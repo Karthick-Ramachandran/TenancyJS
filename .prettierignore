@@ -1,0 +1,9 @@
+.agents/
+.claude/
+.cursor/
+.persist/
+docs/
+node_modules/
+dist/
+coverage/
+pnpm-lock.yaml

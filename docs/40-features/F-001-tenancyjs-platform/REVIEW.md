@@ -1,0 +1,35 @@
+# Review: Tenancyjs Platform
+
+## Status
+
+Feature implementation in progress. T-01 passed architecture, conventions, and security review.
+
+## Findings
+
+- The BRD/PRD and CLI research describe a credible destination but overstate P0 breadth. The delivery
+  plan replaces simultaneous support with evidence-gated vertical slices.
+- Next.js and NestJS do not remove the need for a small raw Express integration. Express provides the
+  lowest-level HTTP reference and a useful isolation test bed.
+- Lucid must have a dedicated public adapter even if it shares Knex implementation primitives.
+- Row-level isolation must be proven before database-per-tenant operations add provisioning and
+  credential-handling risk.
+- Mongoose and Drizzle are deferred from the user's current four-data-layer scope; adding either later
+  requires a change request, module plan, and conformance lane.
+- Architecture ADRs require human acceptance before their implementation begins; ADR-0001 through
+  ADR-0004 have now passed that gate.
+
+## T-01 Review
+
+- ADR-0001 through ADR-0004 are accepted; the workspace follows the documented package direction and
+  uses the approved minimal toolchain without introducing a task orchestrator.
+- `@tenancyjs/core` is only a package shell. It has no framework, ORM, runtime dependency, or product
+  behavior, so T-02 remains the boundary for tenant-context implementation.
+- The README describes both single-database and database-per-tenant strategies while labeling all
+  compatibility and installation examples as pre-alpha/planned.
+- GitHub Actions are pinned to reviewed commit SHAs. Dependabot covers npm and Actions updates.
+- Static secret/path review found no credentials, symlinks, `.env` reads, telemetry, runtime network,
+  cloud, MCP, or AI behavior. The only subprocess is the local pack check, invoked without a shell and
+  writing to a newly created OS temporary directory.
+- `pnpm audit --audit-level high` reported no known vulnerabilities.
+- No blocking convention or security findings remain. CI execution on GitHub is deferred until the
+  repository is pushed; equivalent gates passed in a clean temporary workspace.

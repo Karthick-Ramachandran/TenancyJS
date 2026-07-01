@@ -1,0 +1,19 @@
+# Lessons
+
+Durable, hard-won lessons for this repository, so agents and humans do not repeat the same mistakes.
+Add a lesson when something broke in a non-obvious way, or when a tempting approach turned out to be
+wrong. Keep each entry short: what happened, why, and what to do instead. Repository rules override
+model preferences.
+
+## Lessons
+
+- The installed `plan-module` skill references `docs/ai/MODULE_DELIVERY_WORKFLOW.md`, but this Persist
+  template does not generate that file; use the skill's explicit output contract and Persist CLI
+  scaffolds, and do not assume optional workflow memory exists.
+- `persist adr accept` expects the ADR slug without the `ADR-####-` filename prefix; pass the slug
+  printed after the number or the CLI will not find an in-place Proposed ADR.
+- An imported empty ESM module is a module-namespace object, not a plain `{}`; export smoke tests
+  should assert its enumerable keys rather than deep-equality with a plain object.
+- A populated `node_modules` does not guarantee every tarball is available for `pnpm install --offline`;
+  clean-copy verification should use `--frozen-lockfile`, normal registry access, and fail-fast shell
+  behavior unless the store was explicitly prefetched.
