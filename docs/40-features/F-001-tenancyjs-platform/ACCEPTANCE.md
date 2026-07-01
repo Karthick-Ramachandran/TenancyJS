@@ -39,4 +39,11 @@
 
 - Compatibility targets and advanced features listed as non-goals in `PRD.md`.
 - Performance claims beyond a benchmark harness until representative measurements exist.
-- Acceptance of proposed ADRs; a human must review them before implementation starts.
+- Automatic acceptance of future proposed ADRs; architecture decisions require review before their
+  implementation starts.
+
+## T-02 Evidence
+
+AC-CORE-01 through AC-CORE-04 are implemented in `@tenancyjs/core` and covered by concurrency,
+nesting, central-scope, fail-closed, bootstrap failure, reverse cleanup, lifecycle error, and packed
+consumer tests. Adapter and framework criteria remain pending.

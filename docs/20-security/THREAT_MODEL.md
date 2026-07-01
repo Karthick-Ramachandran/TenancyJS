@@ -2,7 +2,8 @@
 
 ## Status
 
-Draft for the planned platform; controls are requirements until implementation evidence exists.
+Active and incremental. Core-context controls are implemented; adapter, integration, and CLI controls
+remain requirements until their delivery tasks complete.
 
 ## Assets
 
@@ -61,4 +62,6 @@ Draft for the planned platform; controls are requirements until implementation e
 - Raw SQL cannot be made universally safe: adapter/documentation owners; explicit escape policy needed.
 - Atomic rollback across filesystem and database operations is impossible: CLI owner; staged,
   idempotent operations and recovery output required.
-- Proposed ADRs and exact supported peer versions remain unresolved: product/architecture reviewers.
+- Framework and ORM peer versions remain unresolved until their integration tasks: package owners.
+- Shallow tenant snapshots do not freeze custom nested metadata: host applications must treat nested
+  values as application-owned and avoid mutating security-relevant metadata during a scope.

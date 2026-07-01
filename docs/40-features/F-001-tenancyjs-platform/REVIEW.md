@@ -33,3 +33,21 @@ Feature implementation in progress. T-01 passed architecture, conventions, and s
 - `pnpm audit --audit-level high` reported no known vulnerabilities.
 - No blocking convention or security findings remain. CI execution on GitHub is deferred until the
   repository is pushed; equivalent gates passed in a clean temporary workspace.
+
+## T-02 Review
+
+- Architecture: implementation follows ADR-0001, ADR-0002, and ADR-0005. Core imports only Node's
+  `AsyncLocalStorage`; it has no framework, ORM, or runtime package dependency.
+- Module boundary: core owns context/lifecycle/config/error primitives only. It does not resolve
+  tenants, scope ORM queries, authenticate users, provision databases, write files, or expose bypass.
+- Conventions: canonical `TenantContext`, `TenancyManager`, and `TenancyBootstrapper` names are reused;
+  no competing context store or process-global tenant was introduced.
+- Security: missing/central tenant access fails typed and closed; nested/concurrent scopes restore;
+  tenant snapshots are shallow-frozen; cleanup continues after listener/revert failures and preserves
+  complete error evidence.
+- Supply chain: `@types/node` is development-only and aligned to the Node 22 support floor; core has no
+  production dependencies; `pnpm audit --audit-level high` reports no known vulnerabilities.
+- Tests: 24 tests pass with 100% statement/function/line and 94.11% branch coverage. The tarball installs
+  into a fresh temporary consumer with install scripts disabled and executes the public API.
+- No architecture, dependency, module, security, testing, documentation, or engineering-standards
+  blocker remains. Hosted Node 22/24 CI is pending the next push.

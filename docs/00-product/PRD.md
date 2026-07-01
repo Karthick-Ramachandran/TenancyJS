@@ -13,8 +13,10 @@ data across tenants. TenancyJS makes the secure path the documented and tested d
 
 ## Current Status
 
-Planning. The source research is in `docs/BRD-PRD.md` and `docs/CLI-RESEARCH.md`; the delivery source
-of truth is `docs/40-features/F-001-tenancyjs-platform/`.
+Pre-alpha implementation. Repository foundations and the core tenant lifecycle are implemented; ORM
+isolation and framework integrations have not started. The source research is in `docs/BRD-PRD.md`
+and `docs/CLI-RESEARCH.md`; delivery status is in
+`docs/40-features/F-001-tenancyjs-platform/`.
 
 ## Initial Supported Surface
 

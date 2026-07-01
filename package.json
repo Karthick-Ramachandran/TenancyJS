@@ -11,12 +11,12 @@
   "scripts": {
     "build": "tsc -b",
     "clean": "tsc -b --clean",
-    "typecheck": "tsc -b --pretty false",
+    "typecheck": "tsc -b --pretty false && tsc -p tsconfig.test.json --pretty false",
     "lint": "eslint .",
     "format": "prettier --write . --ignore-path .prettierignore",
     "format:check": "prettier --check . --ignore-path .prettierignore",
     "test": "vitest",
-    "test:run": "pnpm build && vitest run",
+    "test:run": "pnpm build && vitest run --coverage",
     "pack:check": "pnpm build && node scripts/pack-check.mjs",
     "memory:check": "persist doctor",
     "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test:run && pnpm pack:check && pnpm memory:check",
@@ -27,6 +27,7 @@
   "devDependencies": {
     "@changesets/cli": "2.31.0",
     "@eslint/js": "10.0.1",
+    "@types/node": "22.20.0",
     "@vitest/coverage-v8": "4.1.9",
     "eslint": "10.6.0",
     "persist-os": "0.6.1",

@@ -36,7 +36,7 @@ Do Not: Add framework/ORM dependencies to core or generate all future packages p
 
 ## T-02: Implement Core Tenant Context And Lifecycle
 
-Status: Todo.
+Status: Done — completed 2026-07-01.
 
 Scope: Immutable context, `TenancyManager`, nested tenant/central scopes, typed errors, bootstrapper
 rollback, events, and minimal config primitives.
@@ -44,6 +44,10 @@ rollback, events, and minimal config primitives.
 Acceptance: AC-CORE-01 through AC-CORE-04.
 
 Tests: Core unit/concurrency/error-injection suite on supported Node versions.
+
+Evidence: 24 tests pass; core coverage is 100% statements/functions/lines and 94.11% branches; the
+packed public API passes a fresh consumer smoke test; `pnpm check`, dependency audit, architecture,
+conventions, security, and Persist reviews pass locally. Node 22/24 hosted CI is pending push.
 
 Do Not: Add HTTP concepts, ORM query logic, mutable global state, or an implicit central fallback.
 

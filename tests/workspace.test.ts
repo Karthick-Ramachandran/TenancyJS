@@ -42,7 +42,9 @@ describe("workspace foundation", () => {
 
     const module = await import(entry);
 
-    expect(Object.keys(module)).toEqual([]);
+    expect(module).toHaveProperty("TenancyManager");
+    expect(module).toHaveProperty("defineConfig");
+    expect(module).toHaveProperty("TenantContextError");
   });
 
   it("documents both committed tenancy strategies without claiming implementation", async () => {

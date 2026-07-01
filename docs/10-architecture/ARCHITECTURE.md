@@ -6,12 +6,12 @@ Describe the accepted architecture for this repository.
 
 ## Current Status
 
-The layered package architecture, tenant-context model, safe CLI boundary, and initial workspace
-toolchain are accepted in ADR-0001 through ADR-0004.
+The layered package architecture, tenant-context model, safe CLI boundary, workspace toolchain, and
+core lifecycle/error contract are accepted in ADR-0001 through ADR-0005.
 
 ## Architecture
 
-The platform plan proposes a layered monorepo with dependency flow:
+The platform uses a layered monorepo with dependency flow:
 
 ```text
 applications -> framework integrations -> core <- data-layer adapters

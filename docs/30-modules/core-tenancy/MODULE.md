@@ -25,12 +25,12 @@ other TenancyJS packages depend.
 
 ## Public Interfaces
 
-- `TenancyManager.runWithTenant(tenant, callback)`
-- `TenancyManager.runInCentralContext(callback)`
-- `TenancyManager.getContext()` / `getTenantOrFail()`
-- `TenantResolver`, `TenancyBootstrapper`, and typed event/error contracts
-
-Signatures remain proposed until ADR-0002 is accepted and T-02 starts.
+- `TenancyManager<TTenant>`: `runWithTenant`, `runInCentralContext`, `getContext`, `getTenant`,
+  `getTenantOrFail`, `isInitialized`, and `on`.
+- `TenantRecord`, `TenantContext`, `TenantExecutionContext`, and `CentralContext`.
+- `TenancyBootstrapper` and typed lifecycle event/listener contracts.
+- `defineConfig`, `TenancyConfig`, and `TenancyStrategy` for `rowLevel` and `databasePerTenant`.
+- Typed `TenancyError` subclasses for context, tenant, bootstrapper, and lifecycle failures.
 
 ## Boundaries
 
@@ -41,5 +41,5 @@ of application authorization.
 
 Relevant feature: `docs/40-features/F-001-tenancyjs-platform/`.
 
-The package boundary is scaffolded at `packages/core/`. Its runtime export surface remains empty until
-T-02.
+The implementation lives in `packages/core/src/`; its contract is fixed by ADR-0005. No unsafe bypass
+API is exposed. A later adapter task must document and review any proposed bypass capability.

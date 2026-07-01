@@ -8,6 +8,8 @@ preferences.
 
 - `TenantContext`: immutable tenant execution state owned by `@tenancyjs/core`.
 - `TenancyManager`: the only public lifecycle entry point for tenant and central execution scopes.
+- `TenancyBootstrapper`: context-local setup/revert contract registered at manager construction.
+- `TenancyLifecycleError`: combined evidence when lifecycle cleanup fails.
 - `TenantResolver`: framework-neutral tenant resolution contract.
 - `TenancyAdapter`: data-layer isolation and validation contract.
 - `TenancyIntegration`: framework lifecycle bridge contract.
@@ -15,8 +17,9 @@ preferences.
 - `pnpm check`: canonical repository gate for lint, format, types, tests, package verification, and
   Persist memory validation.
 
-These names are planned contracts until their implementation task is completed; do not introduce a
-competing name during implementation without updating the feature plan and an ADR where applicable.
+Core names above are implemented contracts. `TenantResolver`, `TenancyAdapter`, `TenancyIntegration`,
+and conformance-suite details remain planned until their tasks complete. Do not introduce a competing
+name without updating the feature plan and an ADR where applicable.
 
 ## Naming Conventions
 

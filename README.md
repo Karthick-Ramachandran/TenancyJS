@@ -20,7 +20,7 @@ framework or ORM that already owns your application.
 [Roadmap](#delivery-roadmap) · [Development](#development) ·
 [Contributing](CONTRIBUTING.md)
 
-> **Pre-alpha:** architecture and workspace foundations are being built in public. No npm package is
+> **Pre-alpha:** repository foundations and `@tenancyjs/core` are implemented, but no npm package is
 > production-ready yet. Follow the [delivery plan](docs/40-features/F-001-tenancyjs-platform/PLAN.md)
 > for the actual implementation state.
 
@@ -200,8 +200,8 @@ Read the [security model](docs/20-security/SECURITY_MODEL.md),
 
 ## Delivery roadmap
 
-1. **Foundation** — workspace, quality gates, release discipline, and repository memory.
-2. **Core contract** — async tenant context, central context, lifecycle, rollback, and test harness.
+1. **Foundation — complete** — workspace, quality gates, release discipline, and repository memory.
+2. **Core contract — complete** — async tenant context, central context, lifecycle, rollback, and tests.
 3. **Reference slice** — Express + Prisma row-level isolation and the first safe CLI workflow.
 4. **Framework depth** — Next.js App Router, then AdonisJS + Lucid/Knex.
 5. **Backend breadth** — NestJS + Prisma/Sequelize and tested adapter combinations.
