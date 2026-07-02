@@ -2,8 +2,8 @@
 
 ## Status
 
-Ready for push and hosted verification. T-06 is locally complete for the Express + Prisma reference
-slice; broader CLI operations remain explicitly out of scope.
+Complete and ready for review. T-06 local and hosted Node 22/24 evidence passes on PR #7; broader CLI
+operations remain explicitly out of scope.
 
 ## Files Changed
 
@@ -26,6 +26,7 @@ slice; broader CLI operations remain explicitly out of scope.
 - Six package archives installed and executed in a clean consumer; installed `tenancy --help` passed.
 - `pnpm audit --audit-level moderate` — no known vulnerabilities.
 - Persist Doctor — passed with 5 features, 6 modules, and 8 accepted ADRs.
+- Hosted Node 22/24 PostgreSQL CI and both Persist Doctor runs — passed on PR #7.
 
 ## Results
 
@@ -45,9 +46,8 @@ slice; broader CLI operations remain explicitly out of scope.
   environment and may initiate behavior defined by that explicit test.
 - Database connectivity diagnostics, migrations/seeds, tenant operations, other stacks, Windows, and
   database-per-tenant commands remain future work.
-- Hosted Node 22/24 CI remains pending until push.
 
 ## Release Readiness
 
-The foundation is ready to include in the combined pull request. Keep it experimental until hosted CI
-passes; do not claim the deferred operational command catalog.
+The foundation is ready for review in the combined pull request. Keep the deferred operational command
+catalog explicitly out of scope.

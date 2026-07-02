@@ -49,12 +49,12 @@ Do Not: Read `.env`, connect to a database/network, execute project modules, a s
 
 ## T4: Package, Document, And Review
 
-Status: Locally complete; hosted Node 22/24 CI pending.
+Status: Complete; hosted Node 22/24 CI passes on PR #7.
 
 Scope: README, changeset, package consumer, root docs, reviews, completion evidence, and gates.
 
 Acceptance: AC-CLI-REF-07 and AC-CLI-REF-08 plus platform AC-CLI-01/02 for the reference slice.
 
-Tests: `pnpm check`, audit, binary/package verification, Persist Doctor, and hosted CI after push.
+Tests: `pnpm check`, audit, binary/package verification, Persist Doctor, and hosted CI.
 
 Do Not: Describe this foundation as migration/database-per-tenant support.

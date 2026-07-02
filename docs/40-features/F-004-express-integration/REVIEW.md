@@ -2,8 +2,8 @@
 
 ## Status
 
-Local architecture, dependency, conventions, and security review passed without a blocking finding.
-Hosted Node 22/24 PostgreSQL verification remains pending until the branch is pushed.
+Architecture, dependency, conventions, and security review passed without a blocking finding. Hosted
+Node 22/24 PostgreSQL CI and both Persist Doctor runs pass on PR #7.
 
 ## Architecture Drift Review
 

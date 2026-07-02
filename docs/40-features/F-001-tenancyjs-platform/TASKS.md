@@ -87,7 +87,7 @@ Do Not: Claim operations the extension API cannot reliably intercept; fail or do
 
 ## T-05: Implement Express Integration And Reference Example
 
-Status: Locally complete through F-004; hosted Node 22/24 CI pending.
+Status: Complete through F-004; hosted Node 22/24 PostgreSQL CI passes on PR #7.
 
 Scope: Middleware factory, error mapping, lifecycle cleanup, Express+Prisma example, and E2E harness.
 
@@ -102,7 +102,7 @@ Delivery memory: `docs/40-features/F-004-express-integration/` and
 
 ## T-06: Implement Safe CLI Foundation
 
-Status: Locally complete through F-005; hosted Node 22/24 CI pending.
+Status: Complete through F-005; hosted Node 22/24 CI passes on PR #7.
 
 Delivery memory: `docs/40-features/F-005-safe-cli-foundation/` and `docs/30-modules/cli/`.
 

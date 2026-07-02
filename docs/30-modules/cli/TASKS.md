@@ -2,11 +2,11 @@
 
 ## Active Work
 
-- F-005 hosted verification after push.
+- No active implementation task; F-005 is ready for review.
 
 ## Tasks
 
 - Complete: Plan module under ADR-0003.
 - Complete: Detection, plans, safe apply, and fixtures.
 - Complete: Doctor, redaction, bounded leak-test delegation, binary tests, packaging, and local review.
-- Pending external evidence: Node 22/24 hosted CI after push.
+- Complete: Node 22/24 hosted PostgreSQL CI and Persist Doctor on PR #7.

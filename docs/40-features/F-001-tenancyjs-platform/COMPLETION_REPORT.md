@@ -2,8 +2,8 @@
 
 ## Status
 
-Feature delivery is locally complete through T-06. The Express + Prisma slice and safe reference CLI
-await hosted Node 22/24 verification after push.
+Feature delivery is complete through T-06. The Express + Prisma slice and safe reference CLI pass
+hosted Node 22/24 verification on PR #7.
 
 ## Completed Scope
 
@@ -36,6 +36,7 @@ await hosted Node 22/24 verification after push.
 - Persist Doctor — passed with 5 features, 6 modules, and 8 accepted ADRs.
 - T-04 through T-06 architecture, dependency, conventions, and security reviews — passed without blockers.
 - Hosted Node 22/24 PostgreSQL CI and both Persist Doctor runs — passed on PR #6.
+- Hosted Node 22/24 PostgreSQL CI and both Persist Doctor runs — passed on combined PR #7.
 
 ## Results
 
@@ -43,8 +44,7 @@ await hosted Node 22/24 verification after push.
 - Prisma's portion of AC-ADAPTER-01 and AC-ADAPTER-02 is complete for the documented operation matrix.
 - Unsupported Prisma raw/nested/fluent paths are rejected rather than advertised.
 - Platform AC-HTTP-01 passes locally for Express 5.2.
-- Express + Prisma has a runnable, tested local reference slice; stable compatibility remains pending
-  hosted Node 22/24 evidence.
+- Express + Prisma has a runnable reference slice with local and hosted Node 22/24 evidence.
 - Platform AC-CLI-01/02 pass locally for the Express + Prisma reference foundation.
 - No other framework, other adapter, operational CLI, or database-per-tenant criterion is claimed.
 
@@ -66,5 +66,5 @@ await hosted Node 22/24 verification after push.
 
 ## Release Readiness
 
-The repository is pre-alpha. T-05/T-06 are ready to push for hosted verification, but the platform is
-not ready for stable release until Node 22/24 compatibility evidence passes.
+The repository is pre-alpha. T-05/T-06 are ready for review with Node 22/24 compatibility evidence;
+later roadmap tasks and deliberate release work remain.

@@ -2,8 +2,7 @@
 
 ## Status
 
-Ready for push and hosted verification. Local implementation and required reviews pass; a stable
-compatibility claim remains blocked on Node 22/24 hosted PostgreSQL CI.
+Complete and ready for review. Local and hosted Node 22/24 PostgreSQL evidence passes on PR #7.
 
 ## Files Changed
 
@@ -28,6 +27,7 @@ compatibility claim remains blocked on Node 22/24 hosted PostgreSQL CI.
 - `pnpm audit --audit-level moderate` — no known vulnerabilities.
 - Static runtime network/telemetry/file-write/central-mode/secret-output scan — no integration finding.
 - Persist Doctor — passed with 4 features, 5 modules, and 8 accepted ADRs.
+- Hosted Node 22/24 PostgreSQL CI and both Persist Doctor runs — passed on PR #7.
 
 ## Results
 
@@ -35,7 +35,7 @@ compatibility claim remains blocked on Node 22/24 hosted PostgreSQL CI.
 - Platform AC-HTTP-01 passes for success, failure, concurrent requests, finish/close, and abort cleanup.
 - The Express + Prisma E2E proves tenant A cannot observe, update, or delete tenant B data through the
   reference HTTP surface, and counts/aggregates remain scoped.
-- AC-EXPRESS-09 and platform AC-COMPAT-01 remain pending only for hosted Node 22/24 evidence.
+- AC-EXPRESS-09 and the Express + Prisma portion of platform AC-COMPAT-01 pass.
 
 ## Remaining Risks
 
@@ -45,9 +45,8 @@ compatibility claim remains blocked on Node 22/24 hosted PostgreSQL CI.
   construction/disconnect and documents the boundary.
 - Long-lived responses retain resources, and host applications own cancellation of async work that
   continues after a client abort.
-- Hosted Node 22/24 PostgreSQL CI cannot run until the user requests a push.
 
 ## Release Readiness
 
-The slice is ready to push for review but remains experimental. Do not label Express + Prisma stable
-until the existing CI workflow passes on Node 22 and Node 24 with PostgreSQL and Persist Doctor.
+The slice is ready for review with its required compatibility evidence. The repository remains
+pre-alpha until the combined change is merged and released deliberately.

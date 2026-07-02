@@ -136,15 +136,15 @@ reporting, and recovery tests before it is called stable.
 Packages are introduced as **experimental** and become **stable** only after their complete evidence
 lane passes.
 
-| Vertical slice                 | Target milestone | Current state                    |
-| ------------------------------ | ---------------: | -------------------------------- |
-| Express + Prisma               |             v0.1 | Local slice complete; CI pending |
-| Next.js App Router + Prisma    |             v0.2 | Planned                          |
-| AdonisJS + Lucid               |             v0.3 | Planned                          |
-| Express + Knex                 |             v0.3 | Planned                          |
-| NestJS + Prisma                |             v0.4 | Planned                          |
-| NestJS + Sequelize             |             v0.4 | Planned                          |
-| Database-per-tenant operations |             v0.5 | Planned                          |
+| Vertical slice                 | Target milestone | Current state        |
+| ------------------------------ | ---------------: | -------------------- |
+| Express + Prisma               |             v0.1 | PR evidence complete |
+| Next.js App Router + Prisma    |             v0.2 | Planned              |
+| AdonisJS + Lucid               |             v0.3 | Planned              |
+| Express + Knex                 |             v0.3 | Planned              |
+| NestJS + Prisma                |             v0.4 | Planned              |
+| NestJS + Sequelize             |             v0.4 | Planned              |
+| Database-per-tenant operations |             v0.5 | Planned              |
 
 Combinations not listed above are not implied to work merely because their individual packages exist.
 See the [test matrix](docs/40-features/F-001-tenancyjs-platform/TEST_PLAN.md).
