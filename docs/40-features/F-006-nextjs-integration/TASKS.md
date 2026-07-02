@@ -2,7 +2,7 @@
 
 ## T1: Plan Next Runtime Contract
 
-Status: In Review
+Status: Complete
 
 Scope:
 
@@ -22,7 +22,7 @@ Do Not:
 
 ## T2: Implement Next Integration Package
 
-Status: Blocked on ADR-0009 acceptance.
+Status: Complete
 
 Scope: Node wrappers, Edge hint helper, typed errors, lifecycle and cache/stream boundaries.
 
@@ -32,7 +32,7 @@ Tests: Unit/conformance/concurrency/error/forged-hint/cache cases.
 
 ## T3: Add Next + Prisma Production Example
 
-Status: Todo.
+Status: In Review — local build passes; PostgreSQL production-start awaits hosted CI.
 
 Scope: App Router Route Handler/Server Action example and production build/start PostgreSQL E2E.
 

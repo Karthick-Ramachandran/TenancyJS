@@ -6,6 +6,7 @@
     { "path": "./packages/cli" },
     { "path": "./packages/identifiers" },
     { "path": "./packages/integration-express" },
+    { "path": "./packages/integration-next" },
     { "path": "./packages/testing" },
     { "path": "./examples/express-prisma" }
   ]

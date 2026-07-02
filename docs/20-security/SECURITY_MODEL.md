@@ -3,9 +3,9 @@
 ## Status
 
 Active and incremental. Core async context, fail-closed tenant access, explicit central scope,
-lifecycle cleanup, tenant resolution, Prisma row-level isolation, Express request lifecycle, and the
-reference safe CLI foundation are implemented and tested. Other adapters, framework integrations, and
-operational CLI commands remain requirements for later tasks.
+lifecycle cleanup, tenant resolution, Prisma row-level isolation, Express and Next.js request
+lifecycle boundaries, and the reference safe CLI foundation are implemented and tested. Other
+adapters, framework integrations, and operational CLI commands remain requirements for later tasks.
 
 ## Baseline Rules
 
@@ -101,6 +101,21 @@ only to locally installed, allowlisted ORM executables using argument arrays rat
   dispatch failure, with idempotent listener removal.
 - Express 5 promise rejection handling forwards asynchronous resolver/lifecycle failures; Express 4 is
   outside the tested compatibility boundary.
+
+## Implemented Next.js Integration Controls
+
+- Route Handlers and Server Actions resolve only in Node through one application-owned manager and
+  resolver; only a `resolved` outcome enters tenant context.
+- Server Action arguments never select tenant or central scope; identity comes from Next request
+  headers and is copied into a frozen resolver snapshot.
+- The Edge-only export imports no context, registry, adapter, or database code. Its reserved hint is
+  untrusted and is revalidated through the Node resolver and tenant store.
+- Missing/invalid identities use sanitized 400 errors; unknown and suspended identities share a
+  generic 404; ambiguous registry data maps to a generic 500.
+- Supported lifecycle ends at handler/action promise settlement. Tenant database work in streamed
+  response callbacks is explicitly unsupported.
+- Applications must use tenant-varying cache keys or `no-store`; the integration never patches Next
+  cache APIs or treats cached identity as authorization.
 
 ## Implemented CLI Foundation Controls
 

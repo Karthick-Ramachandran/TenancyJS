@@ -62,7 +62,8 @@ operational CLI controls remain delivery requirements.
   are rejected; Prisma major updates require renewed compatibility evidence.
 - Client disconnects end Express lifecycle resources, but already-created application async work may
   continue under its captured tenant context; applications own cancellation of abandoned work.
-- Next.js runtime/caching evolution and Edge identity handoff: integration owner; prototype in T-07.
+- Next.js runtime/caching evolution remains an integration-owner compatibility risk; T-07 pins a narrow
+  peer range, revalidates Edge hints in Node, and requires tenant-aware keys or `no-store`.
 - Raw SQL cannot be made universally safe: adapter/documentation owners; explicit escape policy needed.
 - Atomic rollback across filesystem and database operations is impossible: CLI owner; staged,
   idempotent operations and recovery output required.

@@ -18,6 +18,8 @@ preferences.
   Prisma client as the protected application client.
 - `createExpressTenancyMiddleware`: canonical Express 5 request-lifecycle bridge; it composes an
   application-owned `TenancyManager` and tenant resolver and never creates hidden tenant state.
+- `createNextTenancy`: canonical Next.js App Router Node bridge for Route Handlers and Server Actions;
+  its separate Edge helper transports only untrusted identity hints for Node revalidation.
 - `createRowLevelAdapterContract`: runner-neutral two-tenant adapter conformance suite.
 - `ProjectChangePlan`: canonical immutable CLI preview/apply contract; content is never printed in
   normal output and every action is revalidated before commit.

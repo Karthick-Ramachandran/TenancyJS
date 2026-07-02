@@ -1,0 +1,48 @@
+{
+  "name": "@tenancyjs/integration-next",
+  "version": "0.0.0",
+  "description": "Fail-closed Next.js App Router integration for TenancyJS.",
+  "type": "module",
+  "license": "MIT",
+  "sideEffects": false,
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./edge": {
+      "types": "./dist/edge.d.ts",
+      "import": "./dist/edge.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@tenancyjs/core": "workspace:*",
+    "@tenancyjs/identifiers": "workspace:*"
+  },
+  "peerDependencies": {
+    "next": ">=16.2.0 <16.3.0"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --pretty false"
+  },
+  "devDependencies": {
+    "next": "16.2.10"
+  }
+}

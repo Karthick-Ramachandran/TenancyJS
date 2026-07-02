@@ -11,6 +11,7 @@ const packages = [
   { name: "@tenancyjs/cli", directory: "cli" },
   { name: "@tenancyjs/identifiers", directory: "identifiers" },
   { name: "@tenancyjs/integration-express", directory: "integration-express" },
+  { name: "@tenancyjs/integration-next", directory: "integration-next" },
   { name: "@tenancyjs/testing", directory: "testing" },
 ];
 
@@ -96,6 +97,8 @@ try {
         'import { redactText } from "@tenancyjs/cli";',
         'import { HeaderTenantResolver, TenantResolutionChain } from "@tenancyjs/identifiers";',
         'import { createExpressTenancyMiddleware } from "@tenancyjs/integration-express";',
+        'import { createNextTenancy } from "@tenancyjs/integration-next";',
+        'import { createNextTenantHint } from "@tenancyjs/integration-next/edge";',
         'import { createCoreTenancyContract, createTenantFixture } from "@tenancyjs/testing";',
         "const manager = new TenancyManager();",
         "const prismaAdapter = createPrismaAdapter({ manager, tenantModels: { Post: {} } });",
@@ -104,7 +107,7 @@ try {
         'const chain = new TenantResolutionChain({ resolvers: [new HeaderTenantResolver()], store: { find: async () => [{ tenant: fixture, status: "active" }] } });',
         'const outcome = await chain.resolve({ headers: { "x-tenant-id": "consumer" } });',
         "for (const contractCase of createCoreTenancyContract()) await contractCase.run();",
-        'if (tenantId !== "consumer" || outcome.status !== "resolved" || defineConfig({ strategy: "rowLevel" }).strategy !== "rowLevel" || prismaAdapter.name !== "prisma" || PRISMA_ADAPTER_CAPABILITIES.rawQueries !== "rejected" || typeof createExpressTenancyMiddleware !== "function" || redactText("postgresql://user:pass@localhost/db").includes("pass")) process.exit(1);',
+        'if (tenantId !== "consumer" || outcome.status !== "resolved" || defineConfig({ strategy: "rowLevel" }).strategy !== "rowLevel" || prismaAdapter.name !== "prisma" || PRISMA_ADAPTER_CAPABILITIES.rawQueries !== "rejected" || typeof createExpressTenancyMiddleware !== "function" || typeof createNextTenancy !== "function" || createNextTenantHint(new Headers({ "x-tenant-id": "consumer" })) === null || redactText("postgresql://user:pass@localhost/db").includes("pass")) process.exit(1);',
       ].join("\n"),
     ],
     consumer,

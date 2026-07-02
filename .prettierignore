@@ -7,5 +7,7 @@ docs/
 node_modules/
 dist/
 coverage/
+**/.next/
 examples/express-prisma/src/generated/
+examples/next-prisma/generated/
 pnpm-lock.yaml

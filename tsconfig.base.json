@@ -24,6 +24,12 @@
       "@tenancyjs/integration-express": [
         "./packages/integration-express/src/index.ts"
       ],
+      "@tenancyjs/integration-next": [
+        "./packages/integration-next/src/index.ts"
+      ],
+      "@tenancyjs/integration-next/edge": [
+        "./packages/integration-next/src/edge.ts"
+      ],
       "@tenancyjs/testing": ["./packages/testing/src/index.ts"]
     },
     "types": ["node"],

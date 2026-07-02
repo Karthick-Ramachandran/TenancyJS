@@ -11,6 +11,7 @@ if (process.env.TEST_DATABASE_URL === undefined) {
 for (const packageName of [
   "@tenancyjs/adapter-prisma",
   "@tenancyjs/example-express-prisma",
+  "@tenancyjs/example-next-prisma",
 ]) {
   const result = spawnSync(
     "pnpm",

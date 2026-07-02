@@ -6,7 +6,9 @@ export default tseslint.config(
     ignores: [
       "**/dist/**",
       "**/coverage/**",
+      "**/.next/**",
       ".artifacts/**",
+      "examples/next-prisma/generated/**",
       ".agents/**",
       ".claude/**",
       ".cursor/**",

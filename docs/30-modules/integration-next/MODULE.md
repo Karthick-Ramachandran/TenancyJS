@@ -16,8 +16,8 @@ Bridge Next.js App Router Node execution into TenancyJS while keeping Edge ident
 
 ## Public Interfaces
 
-- Proposed `createNextTenancy`, `withRouteHandler`, `withServerAction`, `runWithRequest`, and Edge hint
-  helper plus typed options/errors.
+- `createNextTenancy`, `withRouteHandler`, `withServerAction`, `runWithRequest`, typed errors, and the
+  separate Edge-safe `createNextTenantHint`/`withNextTenantHint` helpers.
 
 ## Boundaries
 

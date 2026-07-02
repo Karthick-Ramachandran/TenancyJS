@@ -19,6 +19,12 @@ export default defineConfig({
       "@tenancyjs/integration-express": fileURLToPath(
         new URL("./packages/integration-express/src/index.ts", import.meta.url),
       ),
+      "@tenancyjs/integration-next/edge": fileURLToPath(
+        new URL("./packages/integration-next/src/edge.ts", import.meta.url),
+      ),
+      "@tenancyjs/integration-next": fileURLToPath(
+        new URL("./packages/integration-next/src/index.ts", import.meta.url),
+      ),
       "@tenancyjs/testing": fileURLToPath(
         new URL("./packages/testing/src/index.ts", import.meta.url),
       ),
@@ -33,6 +39,7 @@ export default defineConfig({
         "packages/core/src/**/*.ts",
         "packages/identifiers/src/**/*.ts",
         "packages/integration-express/src/**/*.ts",
+        "packages/integration-next/src/**/*.ts",
         "packages/testing/src/**/*.ts",
       ],
       provider: "v8",

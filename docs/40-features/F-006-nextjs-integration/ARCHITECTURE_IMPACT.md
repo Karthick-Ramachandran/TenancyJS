@@ -7,8 +7,8 @@
 
 ## ADR Impact
 
-- ADR-0009 proposes the Node execution, Edge hint, wrapper, streaming, and cache boundary.
-- Implementation is blocked until ADR-0009 is accepted.
+- ADR-0009 accepts the Node execution, Edge hint, wrapper, streaming, and cache boundary.
+- Implementation follows that accepted boundary.
 
 ## Security Impact
 

@@ -119,7 +119,8 @@ Do Not: Read `.env`, overwrite conflicting files silently, execute remote packag
 
 ## T-07: Implement Next.js App Router Integration
 
-Status: Planned in F-006; blocked on ADR-0009 acceptance.
+Status: In review through F-006; implementation and local gates pass, hosted Node 22/24 PostgreSQL
+evidence is pending.
 
 Delivery memory: `docs/40-features/F-006-nextjs-integration/` and
 `docs/30-modules/integration-next/`.

@@ -2,10 +2,11 @@
 
 ## Active Work
 
-- F-006 planning and ADR-0009 review.
+- F-006 hosted compatibility review.
 
 ## Tasks
 
-- In review: ADR-0009.
-- Blocked: runtime package implementation.
-- Todo: production example, CLI template, reviews, and hosted evidence.
+- Complete: planning and ADR-0009 acceptance.
+- Complete: runtime package, focused tests, production example, and local reviews.
+- In review: PostgreSQL production-start and Node 22/24 hosted evidence.
+- Deferred: CLI template support.
