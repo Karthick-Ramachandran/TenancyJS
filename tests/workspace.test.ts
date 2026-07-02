@@ -35,6 +35,18 @@ describe("workspace foundation", () => {
     expect(manifest.exports).toHaveProperty(".");
   });
 
+  it("keeps identifiers and testing dependent only on core at runtime", async () => {
+    for (const packageName of ["identifiers", "testing"]) {
+      const manifest = await readJson(`packages/${packageName}/package.json`);
+
+      expect(manifest.dependencies).toEqual({
+        "@tenancyjs/core": "workspace:*",
+      });
+      expect(manifest.peerDependencies ?? {}).toEqual({});
+      expect(manifest.exports).toHaveProperty(".");
+    }
+  });
+
   it("builds an importable ESM core package entry point", async () => {
     const entry = pathToFileURL(
       `${process.cwd()}/packages/core/dist/index.js`,
@@ -42,7 +54,9 @@ describe("workspace foundation", () => {
 
     const module = await import(entry);
 
-    expect(Object.keys(module)).toEqual([]);
+    expect(module).toHaveProperty("TenancyManager");
+    expect(module).toHaveProperty("defineConfig");
+    expect(module).toHaveProperty("TenantContextError");
   });
 
   it("documents both committed tenancy strategies without claiming implementation", async () => {

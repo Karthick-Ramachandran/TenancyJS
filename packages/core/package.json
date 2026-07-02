@@ -6,7 +6,9 @@
   "license": "MIT",
   "sideEffects": false,
   "files": [
-    "dist",
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map",
     "README.md",
     "LICENSE"
   ],

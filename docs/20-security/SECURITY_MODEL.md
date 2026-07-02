@@ -2,7 +2,9 @@
 
 ## Status
 
-Draft threat model for the planned platform. Security behavior is not implemented yet.
+Active and incremental. Core async context, fail-closed tenant access, explicit central scope, and
+lifecycle cleanup are implemented and tested. Adapter isolation, resolver validation, and CLI safety
+remain requirements for later tasks.
 
 ## Baseline Rules
 
@@ -50,3 +52,21 @@ only to locally installed, allowlisted ORM executables using argument arrays rat
 - Cleanup runs in `finally`, including nested contexts and thrown/rejected handlers.
 - Generated file paths are constrained to the target project; symlinks and traversal are rejected.
 - Existing project files are not overwritten without a conflict report and explicit user approval.
+
+## Implemented Core Controls
+
+- `TenancyManager` exposes lexical tenant and central scopes only; there is no imperative global
+  initialize/end pair.
+- `getTenantOrFail` throws `TenantContextError` for missing and central scopes.
+- Tenant records are shallow-cloned and frozen before lifecycle code observes them.
+- Completed bootstrappers revert in reverse order, and cleanup continues after individual failures.
+- `TenancyLifecycleError` preserves the primary failure and every cleanup failure.
+- Core has no runtime dependencies, network, telemetry, storage, file-write, cloud, MCP, or AI behavior.
+
+## Implemented Identification Controls
+
+- Resolver precedence is explicit; present invalid/unknown high-priority identifiers never fall back.
+- Header and ASCII host inputs reject ambiguity, controls, whitespace, schemes, paths, and userinfo.
+- Custom resolver output is validated and stamped with the configured resolver ID before lookup.
+- Registry duplicates and suspension return exhaustive non-secret outcomes rather than tenant records.
+- Resolution establishes tenant identity only and never authenticates membership or selects central mode.

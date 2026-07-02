@@ -33,3 +33,35 @@ Feature implementation in progress. T-01 passed architecture, conventions, and s
 - `pnpm audit --audit-level high` reported no known vulnerabilities.
 - No blocking convention or security findings remain. CI execution on GitHub is deferred until the
   repository is pushed; equivalent gates passed in a clean temporary workspace.
+
+## T-02 Review
+
+- Architecture: implementation follows ADR-0001, ADR-0002, and ADR-0005. Core imports only Node's
+  `AsyncLocalStorage`; it has no framework, ORM, or runtime package dependency.
+- Module boundary: core owns context/lifecycle/config/error primitives only. It does not resolve
+  tenants, scope ORM queries, authenticate users, provision databases, write files, or expose bypass.
+- Conventions: canonical `TenantContext`, `TenancyManager`, and `TenancyBootstrapper` names are reused;
+  no competing context store or process-global tenant was introduced.
+- Security: missing/central tenant access fails typed and closed; nested/concurrent scopes restore;
+  tenant snapshots are shallow-frozen; cleanup continues after listener/revert failures and preserves
+  complete error evidence.
+- Supply chain: `@types/node` is development-only and aligned to the Node 22 support floor; core has no
+  production dependencies; `pnpm audit --audit-level high` reports no known vulnerabilities.
+- Tests: 24 tests pass with 100% statement/function/line and 94.11% branch coverage. The tarball installs
+  into a fresh temporary consumer with install scripts disabled and executes the public API.
+- No architecture, dependency, module, security, testing, documentation, or engineering-standards
+  blocker remains. Hosted Node 22/24 CI is pending the next push.
+
+## Consolidated GitHub Actions Dependency Review
+
+- Dependabot PRs #1 and #2 were reviewed and incorporated together: `actions/checkout` 4.3.1 to
+  7.0.0 and `actions/setup-node` 4.4.0 to 6.4.0.
+- Both Actions remain pinned to the exact Dependabot-reviewed commit SHA. Workflow permissions stay
+  read-only, no secrets or credentials were added, and no runtime or package dependency changed.
+- The checkout upgrade includes stricter fork checkout handling. Its Node.js 24 action runtime is
+  compatible with the repository's `ubuntu-latest` runners; the isolated Dependabot PR passed the
+  repository's Node 22, Node 24, and Persist Doctor checks.
+- The setup-node upgrade preserves the existing Node 22/24 matrix and pnpm cache configuration; its
+  isolated Dependabot PR passed the same hosted checks.
+- `pnpm check` and `pnpm audit --audit-level high` pass after combining both updates with T-02 and
+  T-03. No architecture, module, product behavior, or accepted ADR changes are required.

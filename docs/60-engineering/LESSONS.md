@@ -17,3 +17,11 @@ model preferences.
 - A populated `node_modules` does not guarantee every tarball is available for `pnpm install --offline`;
   clean-copy verification should use `--frozen-lockfile`, normal registry access, and fail-fast shell
   behavior unless the store was explicitly prefetched.
+- Package-consumer tests that invoke npm must use a fresh temporary cache and remove inherited
+  `npm_config_*` values from pnpm; otherwise user-cache permissions and pnpm-only settings make the
+  test environment-dependent.
+- An npm `files: ["dist"]` whitelist can publish stale compiler metadata despite `.npmignore`; use
+  positive artifact globs and make the pack gate reject source, tests, and `.tsbuildinfo` entries.
+- New `workspace:*` package dependencies cannot be packed until `pnpm install` refreshes workspace
+  links and lockfile importers; source aliases keep compilation deterministic but are not a substitute
+  for the required install and package-consumer gate.

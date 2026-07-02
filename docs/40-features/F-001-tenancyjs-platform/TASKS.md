@@ -36,7 +36,7 @@ Do Not: Add framework/ORM dependencies to core or generate all future packages p
 
 ## T-02: Implement Core Tenant Context And Lifecycle
 
-Status: Todo.
+Status: Done — completed 2026-07-01.
 
 Scope: Immutable context, `TenancyManager`, nested tenant/central scopes, typed errors, bootstrapper
 rollback, events, and minimal config primitives.
@@ -45,11 +45,15 @@ Acceptance: AC-CORE-01 through AC-CORE-04.
 
 Tests: Core unit/concurrency/error-injection suite on supported Node versions.
 
+Evidence: 24 tests pass; core coverage is 100% statements/functions/lines and 94.11% branches; the
+packed public API passes a fresh consumer smoke test; `pnpm check`, dependency audit, architecture,
+conventions, security, and Persist reviews pass locally. Node 22/24 hosted CI is pending push.
+
 Do Not: Add HTTP concepts, ORM query logic, mutable global state, or an implicit central fallback.
 
 ## T-03: Implement Identifiers And Core Testing Contracts
 
-Status: Todo.
+Status: Done — completed 2026-07-02 under F-002 and ADR-0006.
 
 Scope: Resolver chain, normalized host/subdomain/header inputs, tenant-store interface, test fixtures,
 and reusable core/integration contract harnesses.
@@ -57,6 +61,10 @@ and reusable core/integration contract harnesses.
 Acceptance: Invalid/ambiguous/suspended tenants produce typed outcomes; resolver precedence is explicit.
 
 Tests: Fuzz/property tests for host/header normalization and resolver-chain integration tests.
+
+Evidence: 68 tests pass; deterministic host generation, precedence/outcome/security cases, portable
+contract self-tests, three-package consumer execution, clean frozen install, audit, and Persist gates
+pass. Hosted CI is pending the T-03 branch push.
 
 Do Not: Treat extracted identifiers as authenticated tenant membership.
 
