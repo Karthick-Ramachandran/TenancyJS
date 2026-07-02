@@ -19,6 +19,8 @@ complete; adapter and framework work has not started.
   manager, explicit central scope, bootstrapper rollback, and lifecycle events.
 - T-02 evidence: core tests, source-only coverage thresholds, test-code typechecking, packed consumer
   execution, package documentation, and a Changeset.
+- Consolidated CI maintenance: SHA-pinned `actions/checkout` 7.0.0 and `actions/setup-node` 6.4.0 in
+  the CI and Persist Doctor workflows.
 - ADR-0001 through ADR-0005 are accepted; the Git `origin` is configured to the approved TenancyJS
   repository URL.
 
@@ -29,6 +31,10 @@ complete; adapter and framework work has not started.
 - Clean T-02 temporary workspace: `pnpm install --frozen-lockfile` and `pnpm check` — passed with the
   same 24 tests, coverage, package-consumer check, and Persist result.
 - `pnpm audit --audit-level high` — no known vulnerabilities.
+- Consolidated branch `pnpm check` — passed with 68/68 tests, coverage gates, all three package
+  archives, and Persist Doctor after both GitHub Actions updates.
+- Dependabot PRs #1 and #2 — each passed hosted Node 22, Node 24, and Persist Doctor checks before
+  consolidation.
 - Static secret, symlink, unpinned Action, telemetry, and runtime-network review — passed.
 - T-02 architecture, module-boundary, conventions, dependency, and security reviews — passed.
 
@@ -38,6 +44,8 @@ complete; adapter and framework work has not started.
   tarball executes from a clean consumer, and Persist Doctor passes with no warnings or errors.
 - AC-CORE-01 through AC-CORE-04 are implemented. Core coverage is 100% statements/functions/lines and
   94.11% branches, above the configured 95/95/95/90 thresholds.
+- Both GitHub Actions upgrades retain exact SHA pinning and existing least-privilege workflow
+  permissions; no runtime package or product behavior changed.
 
 ## Skipped Checks
 
