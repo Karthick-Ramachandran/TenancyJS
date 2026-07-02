@@ -16,6 +16,8 @@ preferences.
 - `TenancyAdapter`: implemented ORM-neutral capability and validation contract owned by core.
 - `createPrismaTenancyExtension`: canonical Prisma row-level extension factory; never expose a base
   Prisma client as the protected application client.
+- `createKnexTenancy`: canonical Knex protected-callback factory; execution stays locked until forced
+  PostgreSQL RLS validation passes, and the base Knex client is never application-facing.
 - `createExpressTenancyMiddleware`: canonical Express 5 request-lifecycle bridge; it composes an
   application-owned `TenancyManager` and tenant resolver and never creates hidden tenant state.
 - `createNextTenancy`: canonical Next.js App Router Node bridge for Route Handlers and Server Actions;

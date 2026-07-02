@@ -17,6 +17,10 @@ delegation remains deferred.
 The Next.js Node/Edge integration boundary is accepted in ADR-0009 and implemented by
 `@tenancyjs/integration-next` with a separate Edge-safe hint export.
 
+The PostgreSQL RLS-backed Knex/Lucid boundary and AdonisJS lifecycle contract are accepted in
+ADR-0010 and ADR-0011. `@tenancyjs/adapter-knex` implementation is in progress; no stable
+compatibility is claimed until real PostgreSQL evidence passes.
+
 ## Architecture
 
 The platform uses a layered monorepo with dependency flow:

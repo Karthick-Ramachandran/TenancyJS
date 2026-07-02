@@ -10,7 +10,7 @@ secured client fails before execution. `Not implemented` makes no compatibility 
 |---|---|---|---|---|
 | Prisma | Prisma 7.8 + PostgreSQL 17 | Experimental; supported top-level matrix | Not implemented | `packages/adapter-prisma/README.md` |
 | Sequelize | Not implemented | Not implemented | Not implemented | Required when implemented |
-| Knex | Not implemented | Not implemented | Not implemented | Required when implemented |
+| Knex | Knex 3.3 boundary implemented; PostgreSQL tests pending | Experimental; no compatibility claim yet | Not implemented | `packages/adapter-knex/README.md` |
 | Lucid | Not implemented | Not implemented | Not implemented | Required when implemented |
 
 ## Prisma 7.8/PostgreSQL 17

@@ -23,7 +23,8 @@ seed, tenant-operation, and database-per-tenant commands remain deferred. The so
 `docs/40-features/F-001-tenancyjs-platform/`.
 
 Next.js App Router integration is implemented under F-006 and follows accepted ADR-0009; hosted
-Node 22/24 PostgreSQL compatibility evidence passes on PR #7.
+Node 22/24 PostgreSQL compatibility evidence passes on PR #7. The Knex/Lucid/AdonisJS vertical slice
+is in progress under F-007 and follows accepted ADR-0010/ADR-0011.
 
 ## Initial Supported Surface
 

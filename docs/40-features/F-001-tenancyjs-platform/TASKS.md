@@ -135,7 +135,8 @@ Do Not: Open tenant database connections in Edge middleware or promise Pages Rou
 
 ## T-08: Implement Knex And Lucid/Adonis Vertical Slice
 
-Status: Todo.
+Status: In progress through F-007; ADR-0010/ADR-0011 are accepted and the Knex package boundary is
+implemented locally pending PostgreSQL evidence.
 
 Scope: Knex adapter, dedicated Lucid adapter, Adonis provider/middleware/config, Japa helper, Ace CLI
 wrappers, CLI template, and examples.
