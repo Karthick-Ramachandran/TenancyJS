@@ -91,7 +91,7 @@ only to locally installed, allowlisted ORM executables using argument arrays rat
 
 ## Implemented Knex Adapter Controls
 
-- The initial guarantee is Knex 3.3 with PostgreSQL 17 forced RLS on Node 22/24; other SQL providers
+- The initial guarantee is Knex 3.3 with PostgreSQL 17 forced RLS on Node 24; other SQL providers
   remain unsupported until equivalent enforcement and real-database evidence exist.
 - Protected execution stays locked until startup validation confirms enabled/forced policies, reviewed
   `USING`/`WITH CHECK` expressions, and a runtime role that is not owner, superuser, or `BYPASSRLS`.

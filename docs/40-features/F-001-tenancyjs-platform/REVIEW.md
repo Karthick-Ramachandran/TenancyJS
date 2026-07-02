@@ -45,12 +45,12 @@ Feature implementation in progress. T-01 passed architecture, conventions, and s
 - Security: missing/central tenant access fails typed and closed; nested/concurrent scopes restore;
   tenant snapshots are shallow-frozen; cleanup continues after listener/revert failures and preserves
   complete error evidence.
-- Supply chain: `@types/node` is development-only and aligned to the Node 22 support floor; core has no
+- Supply chain: `@types/node` is development-only and aligned to the Node 24 support floor; core has no
   production dependencies; `pnpm audit --audit-level high` reports no known vulnerabilities.
 - Tests: 24 tests pass with 100% statement/function/line and 94.11% branch coverage. The tarball installs
   into a fresh temporary consumer with install scripts disabled and executes the public API.
 - No architecture, dependency, module, security, testing, documentation, or engineering-standards
-  blocker remains. Hosted Node 22/24 CI is pending the next push.
+  blocker remains. Historical Node 22/24 evidence passed; ADR-0013 now requires Node 24 CI.
 
 ## Consolidated GitHub Actions Dependency Review
 
@@ -61,8 +61,9 @@ Feature implementation in progress. T-01 passed architecture, conventions, and s
 - The checkout upgrade includes stricter fork checkout handling. Its Node.js 24 action runtime is
   compatible with the repository's `ubuntu-latest` runners; the isolated Dependabot PR passed the
   repository's Node 22, Node 24, and Persist Doctor checks.
-- The setup-node upgrade preserves the existing Node 22/24 matrix and pnpm cache configuration; its
-  isolated Dependabot PR passed the same hosted checks.
+- Historical setup-node evidence covered Node 22/24; ADR-0013 now narrows the active matrix to Node 24
+  and preserves pnpm cache configuration. The isolated Dependabot PR passed the historical hosted
+  checks.
 - `pnpm check` and `pnpm audit --audit-level high` pass after combining both updates with T-02 and
   T-03. No architecture, module, product behavior, or accepted ADR changes are required.
 

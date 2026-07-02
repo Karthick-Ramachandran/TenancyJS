@@ -100,4 +100,4 @@ with check (
 );
 ```
 
-See the repository security model and ADR-0010/ADR-0012 for the complete operational contract.
+See the repository security model and ADR-0010/ADR-0013 for the complete operational contract.

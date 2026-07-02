@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Accepted — superseded by ADR-0013-nodejs-24-and-adonisjs-7-support-baseline
 
 ## Supersedes
 

@@ -18,12 +18,31 @@ async function readJson(path: string): Promise<PackageManifest> {
 }
 
 describe("workspace foundation", () => {
-  it("pins pnpm and requires a supported Node.js release", async () => {
+  it("pins pnpm and requires Node.js 24 across every workspace project", async () => {
     const manifest = await readJson("package.json");
 
     expect(manifest.private).toBe(true);
     expect(manifest.packageManager).toMatch(/^pnpm@\d+\.\d+\.\d+$/);
-    expect(manifest.engines?.node).toBe(">=22");
+    expect(manifest.engines?.node).toBe(">=24");
+
+    for (const path of [
+      "packages/adapter-knex/package.json",
+      "packages/adapter-lucid/package.json",
+      "packages/adapter-prisma/package.json",
+      "packages/cli/package.json",
+      "packages/core/package.json",
+      "packages/identifiers/package.json",
+      "packages/integration-express/package.json",
+      "packages/integration-next/package.json",
+      "packages/testing/package.json",
+      "examples/express-prisma/package.json",
+      "examples/knex-postgres/package.json",
+      "examples/next-prisma/package.json",
+    ]) {
+      await expect(readJson(path)).resolves.toMatchObject({
+        engines: { node: ">=24" },
+      });
+    }
   });
 
   it("keeps the core package free of framework and ORM dependencies", async () => {

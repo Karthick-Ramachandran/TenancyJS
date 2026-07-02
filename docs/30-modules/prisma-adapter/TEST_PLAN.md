@@ -10,7 +10,7 @@
 
 - Shared two-tenant adapter contract against generated Prisma Client and disposable PostgreSQL.
 - Batch/interactive transaction behavior and package-consumer extension execution.
-- Tested Prisma peer on Node 22 and Node 24.
+- Tested Prisma peer on the current Node 24 support floor.
 
 ## Security Tests
 

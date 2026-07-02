@@ -4,7 +4,7 @@
 database per tenant.**
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
-![Node](https://img.shields.io/badge/Node.js-22%20%7C%2024-brightgreen)
+![Node](https://img.shields.io/badge/Node.js-%3E%3D24-brightgreen)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6)
 ![Status](https://img.shields.io/badge/status-pre--alpha-orange)
 ![Isolation](https://img.shields.io/badge/isolation-fail--closed-success)
@@ -225,9 +225,9 @@ The detailed [plan](docs/40-features/F-001-tenancyjs-platform/PLAN.md),
 
 ## Development
 
-Requirements: Node.js 22 or 24 LTS and pnpm 10. AdonisJS 7/Lucid 22 packages and their compatibility
-lane require Node.js 24; framework-neutral packages retain Node.js 22/24 coverage. The local workspace
-may also run on newer Node.js versions, but CI defines the supported release lines.
+Requirements: Node.js 24 LTS or newer and pnpm 10. Node 24 is the minimum supported runtime for every
+TenancyJS package, reference application, framework integration, and data-layer adapter. The local
+workspace may run on newer Node.js versions, but CI defines Node 24 as the release baseline.
 
 ```bash
 corepack enable

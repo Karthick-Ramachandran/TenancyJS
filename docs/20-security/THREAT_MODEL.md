@@ -75,6 +75,6 @@ operational CLI controls remain delivery requirements.
   path, environment, duration, output, and shell use, while users remain responsible for reviewing the
   selected test behavior.
 - Unimplemented framework and ORM peer versions remain unresolved until their integration tasks;
-  AdonisJS 7.3/Lucid 22.4 are fixed by ADR-0012 for the active slice.
+  AdonisJS 7.3/Lucid 22.4 and Node 24 are fixed by ADR-0013 for the active slice.
 - Shallow tenant snapshots do not freeze custom nested metadata: host applications must treat nested
   values as application-owned and avoid mutating security-relevant metadata during a scope.

@@ -1,8 +1,6 @@
 import { defineConfig } from "vitest/config";
 import { fileURLToPath } from "node:url";
 
-const nodeMajor = Number.parseInt(process.versions.node.split(".")[0]!, 10);
-
 export default defineConfig({
   resolve: {
     alias: {
@@ -66,10 +64,6 @@ export default defineConfig({
       "tests/**/*.test.ts",
       "packages/**/*.test.ts",
     ],
-    exclude:
-      nodeMajor < 24
-        ? ["packages/adapter-lucid/test/postgresql.integration.test.ts"]
-        : [],
     passWithNoTests: false,
   },
 });

@@ -7,5 +7,5 @@
 ## Tasks
 
 - Complete: accepted public/security contract, package boundary, and unit/adversarial tests.
-- Complete: PostgreSQL conformance, generic reference, package consumer, and hosted Node 22/24 evidence
+- Complete: PostgreSQL conformance, generic reference, package consumer, and hosted Node 24 evidence
   on PR #8.

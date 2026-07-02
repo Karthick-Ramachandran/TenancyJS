@@ -8,7 +8,7 @@
 ## Integration Tests
 
 - Shared adapter contract plus Knex 3.3/PostgreSQL 17 CRUD/bulk/aggregate/transaction/concurrency/
-  rollback/central behavior on Node 22/24.
+  rollback/central behavior on Node 24.
 
 ## Security Tests
 

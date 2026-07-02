@@ -2,6 +2,9 @@
   "name": "@tenancyjs/example-knex-postgres",
   "version": "0.0.0",
   "private": true,
+  "engines": {
+    "node": ">=24"
+  },
   "type": "module",
   "scripts": {
     "build": "tsc -b",

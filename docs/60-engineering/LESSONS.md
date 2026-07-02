@@ -7,6 +7,10 @@ model preferences.
 
 ## Lessons
 
+- Setting Vitest `test.exclude` replaces its default exclusions; always include `configDefaults.exclude`
+  or linked workspace tests under `node_modules` run repeatedly and corrupt shared database fixtures.
+- A mixed Node-engine workspace forced relaxed install validation and conditional test graphs; while
+  pre-alpha, prefer one Node 24 floor across packages so strict engine checks remain meaningful.
 - Next.js can retain a vulnerable transitive PostCSS release despite a current Next pin; keep the
   workspace override at the audited patched release and verify the production build after updates.
 - Lucid 22 needs AdonisJS Core 7 and Luxon available even for a standalone adapter package; declare

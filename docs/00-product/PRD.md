@@ -15,7 +15,7 @@ data across tenants. TenancyJS makes the secure path the documented and tested d
 
 Pre-alpha implementation. Repository foundations, core lifecycle, tenant identification, shared
 testing contracts, the Prisma 7.8 row-level adapter, and the Express 5 integration/reference example
-are implemented locally under F-004; hosted Node 22/24 evidence remains pending. Other integrations
+are implemented under F-004 with hosted Node 24 evidence. Other integrations
 and adapters have not started. The reference safe CLI foundation is implemented under F-005; migration,
 seed, tenant-operation, and database-per-tenant commands remain deferred. The source research is in
 `docs/BRD-PRD.md` and
@@ -23,16 +23,16 @@ seed, tenant-operation, and database-per-tenant commands remain deferred. The so
 `docs/40-features/F-001-tenancyjs-platform/`.
 
 Next.js App Router integration is implemented under F-006 and follows accepted ADR-0009; hosted
-Node 22/24 PostgreSQL compatibility evidence passes on PR #7. The Knex/Lucid/AdonisJS vertical slice
-is in progress under F-007 and follows accepted ADR-0010/ADR-0012; ADR-0012 supersedes the earlier
-AdonisJS compatibility decision.
+Node 24 PostgreSQL compatibility evidence passes on PR #7. The Knex/Lucid/AdonisJS vertical slice is
+in progress under F-007 and follows accepted ADR-0010/ADR-0013. ADR-0013 sets Node 24 as the common
+repository baseline and carries forward the AdonisJS 7 contract.
 
 ## Initial Supported Surface
 
 - Frameworks: Express, Next.js App Router, NestJS, and AdonisJS.
 - Data layers: Prisma, Sequelize, Knex, and Lucid.
 - Isolation: row-level tenancy first; database-per-tenant after the row-level contract is proven.
-- Runtime: supported Node.js LTS releases; no Edge-runtime tenant database access guarantee.
+- Runtime: Node.js 24 or newer; no Edge-runtime tenant database access guarantee.
 - Distribution: separate npm packages in one monorepo, with a `tenancy` CLI.
 
 Support is delivered as tested vertical slices, not as an all-at-once compatibility claim. Express

@@ -30,7 +30,7 @@ surfaces fail closed.
   errors, Japa helpers, and thin Ace wrappers over existing CLI services.
 - Safe CLI templates for an Adonis + Lucid project, using the existing preview/apply engine.
 - `examples/adonis-lucid` with PostgreSQL production HTTP, Lucid model, Japa, and isolation evidence.
-- Knex 3.3/PostgreSQL 17 on Node 22 and 24; AdonisJS 7.3/Lucid 22.4/PostgreSQL 17 on Node 24.
+- Knex 3.3/PostgreSQL 17 and AdonisJS 7.3/Lucid 22.4/PostgreSQL 17 on Node 24.
 
 ## Non-Goals
 

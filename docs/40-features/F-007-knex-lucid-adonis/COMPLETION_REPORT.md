@@ -6,7 +6,7 @@ Planning and the Knex T2/T3 slice are complete; Lucid implementation is in progr
 
 ## Files Changed
 
-- F-007 feature delivery memory, three module records, and accepted ADR-0010/ADR-0012.
+- F-007 feature delivery memory, three module records, and accepted ADR-0010/ADR-0013.
 - `@tenancyjs/adapter-knex` config, typed errors, protected fluent client, managed transaction context,
   forced-RLS validation, capability metadata, documentation, package wiring, and changeset.
 - Generic Knex/PostgreSQL reference migration/runtime and a real PostgreSQL 17 isolation suite for T3.

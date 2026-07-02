@@ -59,7 +59,7 @@ and typed raw/nested rejection. Other adapters remain pending; Express evidence 
 
 AC-HTTP-01 passes locally through F-004 for Express 5.2 success, thrown/rejected routes, finish/close,
 real client abort, and concurrent tenant requests. The Express + Prisma/PostgreSQL reference E2E proves
-two-tenant read/create/update/delete/count/aggregate isolation. Hosted Node 22/24 PostgreSQL CI passes
+two-tenant read/create/update/delete/count/aggregate isolation. Hosted Node 24 PostgreSQL CI passes
 on PR #7, completing the reference slice evidence for AC-COMPAT-01.
 
 ## T-06 Local Evidence

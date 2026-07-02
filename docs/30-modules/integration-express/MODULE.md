@@ -40,4 +40,4 @@ The signatures follow ADR-0008 and are covered by T2 package and consumer tests.
 - No mutable process-global/request-global tenant state, telemetry, storage, runtime outbound network,
   file writes, secret reads, or central-mode selection.
 - The portable integration contract, Supertest, PostgreSQL example E2E, and clean package consumer pass
-  locally. A stable claim still requires hosted Node 22/24 CI.
+  locally. A stable claim still requires hosted Node 24 CI.

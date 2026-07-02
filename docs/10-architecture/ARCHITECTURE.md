@@ -18,9 +18,9 @@ The Next.js Node/Edge integration boundary is accepted in ADR-0009 and implement
 `@tenancyjs/integration-next` with a separate Edge-safe hint export.
 
 The PostgreSQL RLS-backed Knex/Lucid boundary and AdonisJS lifecycle contract are accepted in
-ADR-0010 and ADR-0012. `@tenancyjs/adapter-knex` is implemented with hosted Node 22/24 PostgreSQL 17
-evidence; the distinct Lucid 22/AdonisJS 7 layers require Node 24 and remain in progress. ADR-0012
-supersedes ADR-0011 and the Lucid 21.8 compatibility clauses in ADR-0010.
+ADR-0010 and ADR-0013. Node 24 is the common repository/package baseline. `@tenancyjs/adapter-knex`
+has hosted PostgreSQL 17 evidence; the distinct Lucid 22/AdonisJS 7 layers remain in progress.
+ADR-0013 supersedes the earlier mixed-engine compatibility decision.
 
 ## Architecture
 
