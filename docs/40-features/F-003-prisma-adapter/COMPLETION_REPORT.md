@@ -2,14 +2,16 @@
 
 ## Status
 
-T-04 implementation is complete and ready for review. Hosted Node 22/24 PostgreSQL CI passes.
+T-04 implementation plus CR-001 security-contract hardening is complete locally and ready for review.
+The original implementation passed hosted Node 22/24 PostgreSQL CI on PR #6; the CR-001 commit must
+rerun those checks.
 
 ## Files Changed
 
 - Core: ORM-neutral `TenancyAdapter` capability/validation types and tests.
 - Prisma adapter: package metadata, immutable configuration, model classification, typed errors,
-  operation policy, extension/adapter factories, documentation, fixture schema, and generated-client
-  compatibility test.
+  educational operation failures, extension/adapter factories, security/migration/benchmark docs,
+  fixture schema, and generated-client compatibility test.
 - Testing: runner-neutral row-level harness/contract, self-tests, and public documentation.
 - Integration: Prisma 7.8 generated client, PostgreSQL 17 CRUD/bulk/aggregate/transaction/security tests,
   conditional database preparation, and hosted PostgreSQL service configuration.
@@ -28,10 +30,13 @@ T-04 implementation is complete and ready for review. Hosted Node 22/24 PostgreS
 - Static secret/runtime-network/file-write/telemetry scan — no production finding.
 - `persist doctor` — passed with 3 features, 4 modules, and 7 accepted ADRs.
 - Hosted Node 22 and Node 24 PostgreSQL CI plus both Persist Doctor runs — passed on PR #6.
+- `pnpm benchmark:prisma` — seven one-million-iteration samples; local Node 26 median estimated policy
+  overhead 270.51 ns/op and p95 policy time 327.73 ns/op, excluding ORM/database latency.
 
 ## Results
 
-- AC-PRISMA-01 through AC-PRISMA-10 pass for the documented Prisma 7.8/PostgreSQL operation matrix.
+- AC-PRISMA-01 through AC-PRISMA-16 pass locally for the documented Prisma 7.8/PostgreSQL operation
+  matrix, security contract, migration/error guidance, startup/context behavior, and benchmark.
 - Shared-database row-level isolation is proven for supported top-level operations and transactions.
 - Raw, nested relation, fluent relation, unknown model/operation, missing context, and discriminator
   tampering paths fail typed and closed.
@@ -50,6 +55,7 @@ T-04 implementation is complete and ready for review. Hosted Node 22/24 PostgreS
   emits a warning because generic runtime introspection cannot prove exhaustiveness.
 - Prisma generated TypeScript create types still require the tenant field even though runtime policy
   can inject it.
+- The benchmark is an initial local engineering baseline without an accepted Node 22/24 threshold.
 
 ## Engineering Standards And Release Readiness
 

@@ -13,5 +13,7 @@
   defense and JavaScript capability, while TypeScript callers supply a value that the adapter validates.
 - Manual schema classification cannot be proven exhaustive from a generic extension, so adapter
   validation emits a warning and schema changes require review; apply the tenancy extension last.
+- CR-001 makes the supported operation matrix the product/security contract, requires educational
+  fail-closed errors, migration guidance, and overhead evidence, and leaves static doctor analysis to T-06.
 
 Feature source: `docs/40-features/F-003-prisma-adapter/`.

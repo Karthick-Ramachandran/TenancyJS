@@ -11,7 +11,7 @@ core tenant context into safe Prisma query arguments.
 - Supported operation capabilities and configuration validation.
 - Filter composition, create/update tenant-field enforcement, and typed unsupported-path failures.
 - The shareable Prisma query extension factory and Prisma-specific errors.
-- Prisma/PostgreSQL conformance evidence and package documentation.
+- Prisma/PostgreSQL conformance evidence, operation matrix, migration guidance, and policy benchmark.
 
 ## Does Not Own
 
@@ -27,6 +27,7 @@ core tenant context into safe Prisma query arguments.
   `PRISMA_ADAPTER_CAPABILITIES`/supported-operation metadata.
 - Typed configuration, unregistered-model, tenant-field-conflict, and unsupported-operation errors.
 - Framework-neutral `TenancyAdapter` capabilities and validation results from core.
+- Educational typed errors that point to supported native Prisma alternatives without disclosing data.
 
 ## Boundaries
 
@@ -36,3 +37,6 @@ a second connection. Host applications apply the returned extension and expose o
 client to tenant-aware code. Prisma's generated non-null create input still requires the discriminator;
 the adapter validates it and injects it for runtime inputs that omit it. Feature source:
 `docs/40-features/F-003-prisma-adapter/`.
+
+The shared guarantee is defined in `docs/20-security/ADAPTER_SECURITY_CONTRACT.md`; the package matrix,
+migration guide, and benchmark are public package artifacts.

@@ -11,6 +11,8 @@ Other adapters, framework integrations, and CLI safety remain requirements for l
 - Never commit secrets or credentials, and never read or copy `.env` files into docs.
 - Validate and authorize untrusted input at every trust boundary.
 - Do not add network, telemetry, cloud, MCP runtime, or AI API behavior without explicit review.
+- Adapter guarantees follow `docs/20-security/ADAPTER_SECURITY_CONTRACT.md`; unsupported operations
+  fail instead of executing with best-effort isolation.
 
 ## Authentication And Authorization
 

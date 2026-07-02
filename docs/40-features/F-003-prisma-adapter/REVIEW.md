@@ -2,8 +2,9 @@
 
 ## Status
 
-Architecture, conventions, dependency, and security review passed with no blocking finding. Hosted
-Node 22/24 PostgreSQL CI and Persist Doctor runs pass on PR #6.
+Architecture, conventions, dependency, and security review passed with no blocking finding. The base
+implementation passed hosted Node 22/24 PostgreSQL CI on PR #6; CR-001 changes require the normal
+hosted rerun before merge.
 
 ## Architecture Drift Review
 
@@ -71,3 +72,20 @@ Node 22/24 PostgreSQL CI and Persist Doctor runs pass on PR #6.
 - Relation-field scanning is conservative and can reject JSON structures containing a configured
   relation-field key. Failing closed is intentional for the initial surface.
 - Compatibility is limited to Prisma 7.8/PostgreSQL 17 until additional CI lanes prove otherwise.
+
+## CR-001 Security Contract Review
+
+- The shared Adapter Security Contract now leads with supported guarantees and makes fail-closed
+  enforcement, secured-client conditions, caller obligations, and evidence-gated expansion explicit.
+- The repository and package operation matrices distinguish supported, rejected, unsupported, and not
+  implemented states; no best-effort state exists.
+- Migration guidance keeps supported work on native Prisma model/transaction APIs and gives explicit
+  replacements or privileged-review boundaries for base clients, raw SQL, nested writes, and relations.
+- Error messages now explain the technical reason for rejection and a safe alternative without
+  including arguments, SQL, records, tenants, or connection values.
+- Configuration remains normalized once at extension creation; per-query work is in-memory context
+  lookup and policy transformation with no resolver/registry/database lookup.
+- The repeatable policy benchmark separates enforcement overhead from ORM/database latency and records
+  an initial baseline without inventing a pass threshold.
+- Planned `tenancy doctor` inventory/migration estimation is recorded in T-06 rather than coupling CLI
+  static analysis into the runtime adapter.

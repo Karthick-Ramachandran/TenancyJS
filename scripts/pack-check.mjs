@@ -55,6 +55,14 @@ try {
         `${package_.name} contains forbidden files: ${forbiddenFiles.join(", ")}`,
       );
     }
+    if (package_.name === "@tenancyjs/adapter-prisma") {
+      const paths = new Set(packedFiles.map(({ path }) => path));
+      for (const required of ["README.md", "MIGRATION.md", "BENCHMARK.md"]) {
+        if (!paths.has(required)) {
+          throw new Error(`${package_.name} is missing ${required}`);
+        }
+      }
+    }
   }
 
   await mkdir(consumer);

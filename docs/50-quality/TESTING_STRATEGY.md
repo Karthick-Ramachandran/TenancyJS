@@ -14,6 +14,8 @@ The platform uses reusable conformance suites:
   binary tests cover exit codes, JSON output, dry runs, conflicts, and secret redaction.
 - Example E2E tests prove two tenants cannot observe or mutate each other's records for every stable
   framework/data-layer combination.
+- Adapter microbenchmarks report synchronous enforcement overhead separately from database latency;
+  thresholds require accepted multi-run baselines rather than a one-machine number.
 
 The detailed matrix and release gates live in
 `docs/40-features/F-001-tenancyjs-platform/TEST_PLAN.md`.

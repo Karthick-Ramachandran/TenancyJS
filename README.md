@@ -67,6 +67,10 @@ await tenancy.runWithTenant(tenant, async () => {
 The core remains framework-neutral. Integrations translate request or job lifecycles into core
 context; adapters translate that context into enforceable data-layer behavior.
 
+V1 is aimed primarily at greenfield services that can adopt a secured ORM client from day one.
+Existing applications use an incremental inventory-and-test migration path; they are not considered
+protected while tenant-aware code can still reach an unextended client.
+
 ## Why TenancyJS
 
 - **Fail closed by default.** Tenant-aware access without valid context throws instead of returning
@@ -197,6 +201,8 @@ The accepted invariants are stricter:
 - secrets are never written to templates or emitted by diagnostics.
 
 Read the [security model](docs/20-security/SECURITY_MODEL.md),
+[adapter security contract](docs/20-security/ADAPTER_SECURITY_CONTRACT.md),
+[adapter operation matrix](docs/50-quality/ADAPTER_OPERATION_MATRIX.md),
 [threat model](docs/20-security/THREAT_MODEL.md), and [security policy](SECURITY.md).
 
 ## Delivery roadmap

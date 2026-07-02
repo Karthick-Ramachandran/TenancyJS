@@ -10,6 +10,8 @@
     "dist/**/*.d.ts",
     "dist/**/*.d.ts.map",
     "README.md",
+    "MIGRATION.md",
+    "BENCHMARK.md",
     "LICENSE"
   ],
   "exports": {

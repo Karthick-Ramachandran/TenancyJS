@@ -81,3 +81,18 @@ Acceptance: No blocker remains; `pnpm check` and `persist doctor` pass; skipped 
 Tests: Full local gates plus hosted Node 22/24 and PostgreSQL checks after publication.
 
 Do Not: Mark AC-ADAPTER-01 complete for non-Prisma adapters or claim database-per-tenant support.
+
+## P7: Harden The Supported Security Contract
+
+Status: Complete locally; hosted CI pending CR-001 publication.
+
+Scope: Adapter Security Contract, operation matrix, greenfield/existing-app migration guide,
+educational typed errors, startup/context guidance, Doctor requirements, and overhead benchmark.
+
+Acceptance: AC-PRISMA-11 through AC-PRISMA-16.
+
+Tests: Educational error assertions, packed documentation checks, repeatable seven-sample benchmark,
+full PostgreSQL gate, audit, and Persist Doctor.
+
+Do Not: Introduce a TenancyJS query language, implement CLI analysis inside the adapter, claim raw or
+nested enforcement, or set a benchmark threshold from one local machine.

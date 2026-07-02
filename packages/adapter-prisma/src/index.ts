@@ -26,7 +26,10 @@ export type {
   PrismaTenancyOptions,
   PrismaTenantModelConfig,
 } from "./config.js";
-export type { PrismaTenancyErrorCode } from "./errors.js";
+export type {
+  PrismaTenancyErrorCode,
+  PrismaUnsupportedOperationReason,
+} from "./errors.js";
 export type {
   PrismaQueryExtensionParameters,
   PrismaTenancyExtension,

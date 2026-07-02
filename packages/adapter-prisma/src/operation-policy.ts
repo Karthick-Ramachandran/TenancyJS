@@ -186,16 +186,17 @@ function rejectRelationOperations(
 ): void {
   if (
     policy.relationFields.length > 0 &&
-    containsKey(args, new Set(policy.relationFields))
+    containsKey(args, policy.relationFields)
   ) {
-    throw new PrismaUnsupportedOperationError(operation, policy.model);
+    throw new PrismaUnsupportedOperationError(
+      operation,
+      policy.model,
+      "relation",
+    );
   }
 }
 
-function containsKey(
-  value: unknown,
-  rejectedKeys: ReadonlySet<string>,
-): boolean {
+function containsKey(value: unknown, rejectedKeys: readonly string[]): boolean {
   if (Array.isArray(value)) {
     return value.some((entry) => containsKey(entry, rejectedKeys));
   }
@@ -204,7 +205,7 @@ function containsKey(
   }
 
   for (const [key, child] of Object.entries(value)) {
-    if (rejectedKeys.has(key) || containsKey(child, rejectedKeys)) {
+    if (rejectedKeys.includes(key) || containsKey(child, rejectedKeys)) {
       return true;
     }
   }

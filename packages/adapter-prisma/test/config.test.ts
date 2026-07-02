@@ -109,7 +109,7 @@ describe("Prisma tenancy configuration", () => {
       PrismaUnregisteredModelError,
     );
     expect(() => classifyPrismaModel(config, "Secret")).toThrow(
-      'Prisma model "Secret" is not classified',
+      "Add it to tenantModels or centralModels during startup configuration",
     );
   });
 

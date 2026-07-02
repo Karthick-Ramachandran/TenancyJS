@@ -51,3 +51,11 @@
 - Database-per-tenant, MongoDB, MySQL, SQLite-only evidence, Prisma 6, and future Prisma 8 are deferred.
 - Nested relations and raw access are tested as rejected capabilities, not supported behavior.
 - Express/Next/Nest lifecycle and example E2E begin in later tasks.
+
+## Non-Functional Benchmark
+
+- `pnpm benchmark:prisma` measures warmed synchronous context/policy/transformation overhead separately
+  from Prisma/driver/database latency.
+- The recorded Node 26 local median is 270.51 ns/op estimated policy overhead across seven one-million
+  iteration samples; p95 policy time is 327.73 ns/op.
+- No pass threshold exists until Node 22/24 CI baselines are collected and accepted.

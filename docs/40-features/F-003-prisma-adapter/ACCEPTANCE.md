@@ -49,8 +49,10 @@
 
 ## Implementation Evidence
 
-AC-PRISMA-01 through AC-PRISMA-10 are implemented for the explicit Prisma 7.8/PostgreSQL operation
-matrix. Unit and real-database tests cover top-level CRUD/bulk/aggregate operations, unique selectors,
-interactive/batch transactions, central models/context, missing context, discriminator tampering,
-unknown models/operations, and raw/nested rejection. The shared adapter contract and package-consumer
-gate and hosted Node 22/24 PostgreSQL lanes pass on PR #6.
+AC-PRISMA-01 through AC-PRISMA-16 are implemented locally for the explicit Prisma 7.8/PostgreSQL
+operation matrix. Unit and real-database tests cover top-level CRUD/bulk/aggregate operations, unique
+selectors, interactive/batch transactions, central models/context, missing context, discriminator
+tampering, unknown models/operations, and raw/nested rejection. The Adapter Security Contract,
+per-adapter matrix, migration guide, educational errors, startup/context boundary, future Doctor
+requirements, benchmark, shared contract, and package-consumer gate are recorded. The original PR #6
+lanes passed; hosted Node 22/24 PostgreSQL must rerun for the CR-001 commit before merge.

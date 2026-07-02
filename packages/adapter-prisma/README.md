@@ -82,3 +82,6 @@ field receive the active tenant ID automatically.
 
 Host schemas should use a non-null tenant discriminator and indexes appropriate for their access
 patterns. TenancyJS does not generate or migrate the Prisma schema.
+
+See [MIGRATION.md](MIGRATION.md) for greenfield/existing-application adoption and
+[BENCHMARK.md](BENCHMARK.md) for the repeatable policy-overhead baseline.
