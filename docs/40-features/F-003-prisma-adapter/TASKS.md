@@ -71,7 +71,7 @@ Do Not: Use SQLite as the only isolation evidence or expose connection credentia
 
 ## P6: Review And Complete T-04
 
-Status: Complete locally; hosted CI pending branch publication.
+Status: Complete; hosted CI passes on PR #6.
 
 Scope: Independent architecture/conventions/security passes, memory updates, root T-04 status, quality
 gates, audit, and completion report.

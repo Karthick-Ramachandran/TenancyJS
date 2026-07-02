@@ -70,7 +70,7 @@ Do Not: Treat extracted identifiers as authenticated tenant membership.
 
 ## T-04: Implement Prisma Adapter Contract Reference
 
-Status: Complete locally through F-003; hosted Node 22/24 PostgreSQL CI pending publication.
+Status: Complete through F-003; hosted Node 22/24 PostgreSQL CI passes on PR #6.
 
 Scope: Finalize `TenancyAdapter` capabilities and implement Prisma row-level scoping.
 

@@ -2,8 +2,7 @@
 
 ## Status
 
-T-04 implementation is complete and locally ready for review. Hosted Node 22/24 PostgreSQL CI is the
-remaining merge gate.
+T-04 implementation is complete and ready for review. Hosted Node 22/24 PostgreSQL CI passes.
 
 ## Files Changed
 
@@ -28,6 +27,7 @@ remaining merge gate.
 - `pnpm audit --audit-level moderate` — no known vulnerabilities after the reviewed Hono override.
 - Static secret/runtime-network/file-write/telemetry scan — no production finding.
 - `persist doctor` — passed with 3 features, 4 modules, and 7 accepted ADRs.
+- Hosted Node 22 and Node 24 PostgreSQL CI plus both Persist Doctor runs — passed on PR #6.
 
 ## Results
 
@@ -39,7 +39,6 @@ remaining merge gate.
 
 ## Skipped Checks
 
-- Hosted Node 22 and Node 24 PostgreSQL jobs await branch publication.
 - Prisma 6/future 8, MySQL, SQLite, MongoDB, framework integration, and database-per-tenant lanes are
   outside T-04 and are not claimed.
 
@@ -57,4 +56,4 @@ remaining merge gate.
 Repository planning, accepted ADR, focused tests, real-database evidence, package verification,
 security/dependency review, documentation, Changeset, and Persist memory requirements are satisfied.
 The experimental adapter is ready for review, not public stable release. T-05 Express integration is
-next after hosted CI passes and this change merges.
+next after this change merges.

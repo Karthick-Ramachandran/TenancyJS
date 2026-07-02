@@ -53,4 +53,4 @@ AC-PRISMA-01 through AC-PRISMA-10 are implemented for the explicit Prisma 7.8/Po
 matrix. Unit and real-database tests cover top-level CRUD/bulk/aggregate operations, unique selectors,
 interactive/batch transactions, central models/context, missing context, discriminator tampering,
 unknown models/operations, and raw/nested rejection. The shared adapter contract and package-consumer
-gate pass locally; hosted Node 22/24 PostgreSQL evidence remains required before merge.
+gate and hosted Node 22/24 PostgreSQL lanes pass on PR #6.

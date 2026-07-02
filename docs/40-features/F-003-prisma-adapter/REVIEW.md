@@ -3,7 +3,7 @@
 ## Status
 
 Architecture, conventions, dependency, and security review passed with no blocking finding. Hosted
-Node 22/24 PostgreSQL CI remains required before merge.
+Node 22/24 PostgreSQL CI and Persist Doctor runs pass on PR #6.
 
 ## Architecture Drift Review
 
