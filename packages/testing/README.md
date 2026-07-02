@@ -10,3 +10,14 @@ for (const contractCase of createCoreTenancyContract()) {
 
 The package does not depend on Vitest, Jest, or a framework. Contract cases throw
 `TenancyContractAssertionError` when an invariant fails.
+
+Adapter packages provide a `RowLevelAdapterContractHarness` and run the shared isolation contract:
+
+```ts
+for (const contractCase of createRowLevelAdapterContract(createHarness)) {
+  test(contractCase.name, contractCase.run);
+}
+```
+
+The contract proves two-tenant reads/counts, create-field enforcement, bulk update/delete isolation,
+missing-context failure, explicit central scope, and transaction rollback.

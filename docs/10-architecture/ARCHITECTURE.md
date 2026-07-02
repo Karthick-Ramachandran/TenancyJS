@@ -7,8 +7,8 @@ Describe the accepted architecture for this repository.
 ## Current Status
 
 The layered package architecture, tenant-context model, safe CLI boundary, workspace toolchain, and
-core lifecycle/error contract, and tenant-resolution/testing contracts are accepted in ADR-0001
-through ADR-0006.
+core lifecycle/error contract, tenant-resolution/testing contracts, and the Prisma row-level security
+boundary are accepted in ADR-0001 through ADR-0007.
 
 ## Architecture
 

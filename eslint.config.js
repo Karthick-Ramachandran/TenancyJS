@@ -6,6 +6,7 @@ export default tseslint.config(
     ignores: [
       "**/dist/**",
       "**/coverage/**",
+      ".artifacts/**",
       ".agents/**",
       ".claude/**",
       ".cursor/**",

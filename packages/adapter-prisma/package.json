@@ -1,0 +1,44 @@
+{
+  "name": "@tenancyjs/adapter-prisma",
+  "version": "0.0.0",
+  "description": "Fail-closed row-level tenant isolation for Prisma Client.",
+  "type": "module",
+  "license": "MIT",
+  "sideEffects": false,
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map",
+    "README.md",
+    "MIGRATION.md",
+    "BENCHMARK.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@tenancyjs/core": "workspace:*"
+  },
+  "peerDependencies": {
+    "@prisma/client": ">=7.8.0 <7.9.0"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "prisma:generate": "prisma generate --schema prisma/schema.prisma",
+    "prisma:test:push": "prisma db push --config prisma.config.ts",
+    "typecheck": "tsc -b --pretty false"
+  }
+}

@@ -17,6 +17,7 @@
     "strict": true,
     "target": "ES2023",
     "paths": {
+      "@tenancyjs/adapter-prisma": ["./packages/adapter-prisma/src/index.ts"],
       "@tenancyjs/core": ["./packages/core/src/index.ts"],
       "@tenancyjs/identifiers": ["./packages/identifiers/src/index.ts"],
       "@tenancyjs/testing": ["./packages/testing/src/index.ts"]

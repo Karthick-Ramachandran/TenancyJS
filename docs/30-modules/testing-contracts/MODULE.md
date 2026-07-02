@@ -9,6 +9,7 @@ integration lifecycle invariants.
 
 - Immutable tenant fixture creation, typed contract assertions/cases, core manager contract cases, and
   integration harness contract cases.
+- Runner-neutral row-level adapter harness and two-tenant isolation contract cases.
 
 ## Does Not Own
 
@@ -19,8 +20,11 @@ integration lifecycle invariants.
 
 - `createTenantFixture`, `TenancyContractCase`, `TenancyContractAssertionError`.
 - `createCoreTenancyContract` and `createIntegrationTenancyContract`.
+- `createRowLevelAdapterContract` and its harness/operation/record types.
 
 ## Boundaries
 
 Depends only on `@tenancyjs/core`. Cases throw on invariant violation and consumers register them with
-their chosen runner. Feature source: `docs/40-features/F-002-tenant-identification-testing-contracts/`.
+their chosen runner. The package imports no ORM or test runner. Feature sources:
+`docs/40-features/F-002-tenant-identification-testing-contracts/` and
+`docs/40-features/F-003-prisma-adapter/`.

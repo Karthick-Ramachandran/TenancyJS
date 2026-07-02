@@ -20,8 +20,9 @@ framework or ORM that already owns your application.
 [Roadmap](#delivery-roadmap) · [Development](#development) ·
 [Contributing](CONTRIBUTING.md)
 
-> **Pre-alpha:** repository foundations, core lifecycle, tenant identifiers, and portable testing
-> contracts are implemented, but no npm package is production-ready yet. Follow the
+> **Pre-alpha:** repository foundations, core lifecycle, tenant identifiers, portable testing
+> contracts, and the experimental Prisma row-level adapter are implemented, but no npm package is
+> production-ready yet. Follow the
 > [delivery plan](docs/40-features/F-001-tenancyjs-platform/PLAN.md) for implementation state.
 
 ---
@@ -65,6 +66,10 @@ await tenancy.runWithTenant(tenant, async () => {
 
 The core remains framework-neutral. Integrations translate request or job lifecycles into core
 context; adapters translate that context into enforceable data-layer behavior.
+
+V1 is aimed primarily at greenfield services that can adopt a secured ORM client from day one.
+Existing applications use an incremental inventory-and-test migration path; they are not considered
+protected while tenant-aware code can still reach an unextended client.
 
 ## Why TenancyJS
 
@@ -130,15 +135,15 @@ reporting, and recovery tests before it is called stable.
 Packages are introduced as **experimental** and become **stable** only after their complete evidence
 lane passes.
 
-| Vertical slice                 | Target milestone | Current state |
-| ------------------------------ | ---------------: | ------------- |
-| Express + Prisma               |             v0.1 | Planned       |
-| Next.js App Router + Prisma    |             v0.2 | Planned       |
-| AdonisJS + Lucid               |             v0.3 | Planned       |
-| Express + Knex                 |             v0.3 | Planned       |
-| NestJS + Prisma                |             v0.4 | Planned       |
-| NestJS + Sequelize             |             v0.4 | Planned       |
-| Database-per-tenant operations |             v0.5 | Planned       |
+| Vertical slice                 | Target milestone | Current state                      |
+| ------------------------------ | ---------------: | ---------------------------------- |
+| Express + Prisma               |             v0.1 | Adapter ready; integration planned |
+| Next.js App Router + Prisma    |             v0.2 | Planned                            |
+| AdonisJS + Lucid               |             v0.3 | Planned                            |
+| Express + Knex                 |             v0.3 | Planned                            |
+| NestJS + Prisma                |             v0.4 | Planned                            |
+| NestJS + Sequelize             |             v0.4 | Planned                            |
+| Database-per-tenant operations |             v0.5 | Planned                            |
 
 Combinations not listed above are not implied to work merely because their individual packages exist.
 See the [test matrix](docs/40-features/F-001-tenancyjs-platform/TEST_PLAN.md).
@@ -196,6 +201,8 @@ The accepted invariants are stricter:
 - secrets are never written to templates or emitted by diagnostics.
 
 Read the [security model](docs/20-security/SECURITY_MODEL.md),
+[adapter security contract](docs/20-security/ADAPTER_SECURITY_CONTRACT.md),
+[adapter operation matrix](docs/50-quality/ADAPTER_OPERATION_MATRIX.md),
 [threat model](docs/20-security/THREAT_MODEL.md), and [security policy](SECURITY.md).
 
 ## Delivery roadmap
@@ -203,7 +210,8 @@ Read the [security model](docs/20-security/SECURITY_MODEL.md),
 1. **Foundation — complete** — workspace, quality gates, release discipline, and repository memory.
 2. **Core contract — complete** — async tenant context, central context, lifecycle, rollback, and tests.
 3. **Identification/testing — complete** — fail-closed resolvers and portable conformance contracts.
-4. **Reference slice** — Express + Prisma row-level isolation and the first safe CLI workflow.
+4. **Reference slice — in progress** — Prisma row-level isolation is implemented; Express integration
+   and the first safe CLI workflow follow.
 5. **Framework depth** — Next.js App Router, then AdonisJS + Lucid/Knex.
 6. **Backend breadth** — NestJS + Prisma/Sequelize and tested adapter combinations.
 7. **Physical isolation** — database provisioning and delegated migrations per tenant.

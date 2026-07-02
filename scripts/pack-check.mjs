@@ -7,6 +7,7 @@ import process from "node:process";
 const destination = await mkdtemp(join(tmpdir(), "tenancyjs-pack-"));
 const packages = [
   { name: "@tenancyjs/core", directory: "core" },
+  { name: "@tenancyjs/adapter-prisma", directory: "adapter-prisma" },
   { name: "@tenancyjs/identifiers", directory: "identifiers" },
   { name: "@tenancyjs/testing", directory: "testing" },
 ];
@@ -54,6 +55,14 @@ try {
         `${package_.name} contains forbidden files: ${forbiddenFiles.join(", ")}`,
       );
     }
+    if (package_.name === "@tenancyjs/adapter-prisma") {
+      const paths = new Set(packedFiles.map(({ path }) => path));
+      for (const required of ["README.md", "MIGRATION.md", "BENCHMARK.md"]) {
+        if (!paths.has(required)) {
+          throw new Error(`${package_.name} is missing ${required}`);
+        }
+      }
+    }
   }
 
   await mkdir(consumer);
@@ -81,15 +90,17 @@ try {
       "--eval",
       [
         'import { TenancyManager, defineConfig } from "@tenancyjs/core";',
+        'import { PRISMA_ADAPTER_CAPABILITIES, createPrismaAdapter } from "@tenancyjs/adapter-prisma";',
         'import { HeaderTenantResolver, TenantResolutionChain } from "@tenancyjs/identifiers";',
         'import { createCoreTenancyContract, createTenantFixture } from "@tenancyjs/testing";',
         "const manager = new TenancyManager();",
+        "const prismaAdapter = createPrismaAdapter({ manager, tenantModels: { Post: {} } });",
         'const tenantId = await manager.runWithTenant({ id: "consumer" }, () => manager.getTenantOrFail().id);',
         'const fixture = createTenantFixture({ id: "consumer" });',
         'const chain = new TenantResolutionChain({ resolvers: [new HeaderTenantResolver()], store: { find: async () => [{ tenant: fixture, status: "active" }] } });',
         'const outcome = await chain.resolve({ headers: { "x-tenant-id": "consumer" } });',
         "for (const contractCase of createCoreTenancyContract()) await contractCase.run();",
-        'if (tenantId !== "consumer" || outcome.status !== "resolved" || defineConfig({ strategy: "rowLevel" }).strategy !== "rowLevel") process.exit(1);',
+        'if (tenantId !== "consumer" || outcome.status !== "resolved" || defineConfig({ strategy: "rowLevel" }).strategy !== "rowLevel" || prismaAdapter.name !== "prisma" || PRISMA_ADAPTER_CAPABILITIES.rawQueries !== "rejected") process.exit(1);',
       ].join("\n"),
     ],
     consumer,

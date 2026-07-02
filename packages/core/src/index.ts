@@ -1,4 +1,12 @@
 export { defineConfig } from "./config.js";
+export type {
+  TenancyAdapter,
+  TenancyAdapterCapabilities,
+  TenancyAdapterCapabilityStatus,
+  TenancyAdapterValidationIssue,
+  TenancyAdapterValidationResult,
+  TenancyAdapterValidationSeverity,
+} from "./adapter.js";
 export {
   DuplicateBootstrapperError,
   InvalidBootstrapperError,

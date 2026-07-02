@@ -8,15 +8,23 @@
   "engines": {
     "node": ">=22"
   },
+  "pnpm": {
+    "overrides": {
+      "@hono/node-server": "1.19.13"
+    }
+  },
   "scripts": {
     "build": "tsc -b",
+    "benchmark:prisma": "pnpm build && node packages/adapter-prisma/benchmark/operation-policy.mjs",
     "clean": "tsc -b --clean",
-    "typecheck": "tsc -b --pretty false && tsc -p tsconfig.test.json --pretty false",
+    "fixtures:generate": "pnpm --filter @tenancyjs/adapter-prisma prisma:generate",
+    "typecheck": "pnpm fixtures:generate && tsc -b --pretty false && tsc -p tsconfig.test.json --pretty false",
     "lint": "eslint .",
     "format": "prettier --write . --ignore-path .prettierignore",
     "format:check": "prettier --check . --ignore-path .prettierignore",
     "test": "vitest",
-    "test:run": "pnpm build && vitest run --coverage",
+    "test:db:prepare": "node scripts/prepare-prisma-test-db.mjs",
+    "test:run": "pnpm fixtures:generate && pnpm test:db:prepare && pnpm build && vitest run --coverage",
     "pack:check": "pnpm build && node scripts/pack-check.mjs",
     "memory:check": "persist doctor",
     "check": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test:run && pnpm pack:check && pnpm memory:check",
@@ -27,11 +35,19 @@
   "devDependencies": {
     "@changesets/cli": "2.31.0",
     "@eslint/js": "10.0.1",
+    "@prisma/adapter-pg": "7.8.0",
+    "@prisma/client": "7.8.0",
     "@types/node": "22.20.0",
+    "@types/pg": "8.15.5",
+    "@types/react": "19.2.17",
     "@vitest/coverage-v8": "4.1.9",
     "eslint": "10.6.0",
     "persist-os": "0.6.1",
+    "pg": "8.16.3",
     "prettier": "3.9.4",
+    "prisma": "7.8.0",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
     "typescript": "6.0.3",
     "typescript-eslint": "8.62.1",
     "vitest": "4.1.9"

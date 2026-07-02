@@ -25,3 +25,6 @@ model preferences.
 - New `workspace:*` package dependencies cannot be packed until `pnpm install` refreshes workspace
   links and lockfile importers; source aliases keep compilation deterministic but are not a substitute
   for the required install and package-consumer gate.
+- Prisma 7 validates unique selectors at the top level of `WhereUniqueInput`; preserve caller unique
+  fields and append tenant scope through a top-level `AND` instead of nesting the entire original
+  `where`, or unique reads/writes fail before reaching the database.
