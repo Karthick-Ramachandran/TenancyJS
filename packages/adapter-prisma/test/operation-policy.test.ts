@@ -184,7 +184,12 @@ describe("Prisma tenant operation policy", () => {
   it("fails closed for raw, unknown model, unknown operation, and nested relations", async () => {
     expect(() =>
       applyPrismaTenantPolicy(config, undefined, "$queryRaw", []),
-    ).toThrow("arbitrary SQL cannot be reliably and generically tenant-scoped");
+    ).toThrow(
+      expect.objectContaining({
+        code: "TENANCY_PRISMA_UNSUPPORTED_OPERATION",
+        reason: "raw",
+      }),
+    );
     expect(() =>
       applyPrismaTenantPolicy(config, "User", "findMany", {}),
     ).toThrow(PrismaUnregisteredModelError);
@@ -193,14 +198,20 @@ describe("Prisma tenant operation policy", () => {
       manager.runWithTenant({ id: "tenant-a" }, () =>
         applyPrismaTenantPolicy(config, "Post", "findRaw", {}),
       ),
-    ).rejects.toBeInstanceOf(PrismaUnsupportedOperationError);
+    ).rejects.toMatchObject({
+      code: "TENANCY_PRISMA_UNSUPPORTED_OPERATION",
+      reason: "operation",
+    });
     await expect(
       manager.runWithTenant({ id: "tenant-a" }, () =>
         applyPrismaTenantPolicy(config, "Post", "findMany", {
           include: { comments: true },
         }),
       ),
-    ).rejects.toThrow("Use supported top-level model operations inside");
+    ).rejects.toMatchObject({
+      code: "TENANCY_PRISMA_UNSUPPORTED_OPERATION",
+      reason: "relation",
+    });
     await expect(
       manager.runWithTenant({ id: "tenant-a" }, () =>
         applyPrismaTenantPolicy(config, "Post", "findMany", {
