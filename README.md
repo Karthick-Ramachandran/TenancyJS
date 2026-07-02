@@ -20,9 +20,9 @@ framework or ORM that already owns your application.
 [Roadmap](#delivery-roadmap) · [Development](#development) ·
 [Contributing](CONTRIBUTING.md)
 
-> **Pre-alpha:** repository foundations and `@tenancyjs/core` are implemented, but no npm package is
-> production-ready yet. Follow the [delivery plan](docs/40-features/F-001-tenancyjs-platform/PLAN.md)
-> for the actual implementation state.
+> **Pre-alpha:** repository foundations, core lifecycle, tenant identifiers, and portable testing
+> contracts are implemented, but no npm package is production-ready yet. Follow the
+> [delivery plan](docs/40-features/F-001-tenancyjs-platform/PLAN.md) for implementation state.
 
 ---
 
@@ -202,11 +202,12 @@ Read the [security model](docs/20-security/SECURITY_MODEL.md),
 
 1. **Foundation — complete** — workspace, quality gates, release discipline, and repository memory.
 2. **Core contract — complete** — async tenant context, central context, lifecycle, rollback, and tests.
-3. **Reference slice** — Express + Prisma row-level isolation and the first safe CLI workflow.
-4. **Framework depth** — Next.js App Router, then AdonisJS + Lucid/Knex.
-5. **Backend breadth** — NestJS + Prisma/Sequelize and tested adapter combinations.
-6. **Physical isolation** — database provisioning and delegated migrations per tenant.
-7. **v1 hardening** — compatibility audit, benchmarks, security review, and stable API commitment.
+3. **Identification/testing — complete** — fail-closed resolvers and portable conformance contracts.
+4. **Reference slice** — Express + Prisma row-level isolation and the first safe CLI workflow.
+5. **Framework depth** — Next.js App Router, then AdonisJS + Lucid/Knex.
+6. **Backend breadth** — NestJS + Prisma/Sequelize and tested adapter combinations.
+7. **Physical isolation** — database provisioning and delegated migrations per tenant.
+8. **v1 hardening** — compatibility audit, benchmarks, security review, and stable API commitment.
 
 The detailed [plan](docs/40-features/F-001-tenancyjs-platform/PLAN.md),
 [acceptance criteria](docs/40-features/F-001-tenancyjs-platform/ACCEPTANCE.md), and

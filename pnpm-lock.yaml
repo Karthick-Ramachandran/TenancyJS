@@ -41,6 +41,18 @@ importers:
 
   packages/core: {}
 
+  packages/identifiers:
+    dependencies:
+      '@tenancyjs/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/testing:
+    dependencies:
+      '@tenancyjs/core':
+        specifier: workspace:*
+        version: link:../core
+
 packages:
 
   '@babel/helper-string-parser@7.29.7':

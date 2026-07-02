@@ -11,14 +11,16 @@ preferences.
 - `TenancyBootstrapper`: context-local setup/revert contract registered at manager construction.
 - `TenancyLifecycleError`: combined evidence when lifecycle cleanup fails.
 - `TenantResolver`: framework-neutral tenant resolution contract.
+- `TenantResolutionOutcome`: exhaustive, non-secret result of ordered resolver plus tenant-store lookup.
+- `TenancyContractCase`: runner-neutral `{ name, run }` conformance case from `@tenancyjs/testing`.
 - `TenancyAdapter`: data-layer isolation and validation contract.
 - `TenancyIntegration`: framework lifecycle bridge contract.
 - Conformance suites in `@tenancyjs/testing`: required evidence for stable adapters and integrations.
 - `pnpm check`: canonical repository gate for lint, format, types, tests, package verification, and
   Persist memory validation.
 
-Core names above are implemented contracts. `TenantResolver`, `TenancyAdapter`, `TenancyIntegration`,
-and conformance-suite details remain planned until their tasks complete. Do not introduce a competing
+Core, resolver, outcome, and contract-case names above are implemented contracts. `TenancyAdapter` and
+`TenancyIntegration` details remain planned until their tasks complete. Do not introduce a competing
 name without updating the feature plan and an ADR where applicable.
 
 ## Naming Conventions

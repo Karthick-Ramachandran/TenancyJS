@@ -62,3 +62,11 @@ only to locally installed, allowlisted ORM executables using argument arrays rat
 - Completed bootstrappers revert in reverse order, and cleanup continues after individual failures.
 - `TenancyLifecycleError` preserves the primary failure and every cleanup failure.
 - Core has no runtime dependencies, network, telemetry, storage, file-write, cloud, MCP, or AI behavior.
+
+## Implemented Identification Controls
+
+- Resolver precedence is explicit; present invalid/unknown high-priority identifiers never fall back.
+- Header and ASCII host inputs reject ambiguity, controls, whitespace, schemes, paths, and userinfo.
+- Custom resolver output is validated and stamped with the configured resolver ID before lookup.
+- Registry duplicates and suspension return exhaustive non-secret outcomes rather than tenant records.
+- Resolution establishes tenant identity only and never authenticates membership or selects central mode.

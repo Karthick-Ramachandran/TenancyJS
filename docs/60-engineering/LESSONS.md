@@ -22,3 +22,6 @@ model preferences.
   test environment-dependent.
 - An npm `files: ["dist"]` whitelist can publish stale compiler metadata despite `.npmignore`; use
   positive artifact globs and make the pack gate reject source, tests, and `.tsbuildinfo` entries.
+- New `workspace:*` package dependencies cannot be packed until `pnpm install` refreshes workspace
+  links and lockfile importers; source aliases keep compilation deterministic but are not a substitute
+  for the required install and package-consumer gate.

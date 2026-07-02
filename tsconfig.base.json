@@ -16,6 +16,11 @@
     "skipLibCheck": true,
     "strict": true,
     "target": "ES2023",
+    "paths": {
+      "@tenancyjs/core": ["./packages/core/src/index.ts"],
+      "@tenancyjs/identifiers": ["./packages/identifiers/src/index.ts"],
+      "@tenancyjs/testing": ["./packages/testing/src/index.ts"]
+    },
     "types": ["node"],
     "verbatimModuleSyntax": true
   }

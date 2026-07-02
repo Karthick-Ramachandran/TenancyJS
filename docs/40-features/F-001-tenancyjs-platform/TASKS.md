@@ -53,7 +53,7 @@ Do Not: Add HTTP concepts, ORM query logic, mutable global state, or an implicit
 
 ## T-03: Implement Identifiers And Core Testing Contracts
 
-Status: Todo.
+Status: Done — completed 2026-07-02 under F-002 and ADR-0006.
 
 Scope: Resolver chain, normalized host/subdomain/header inputs, tenant-store interface, test fixtures,
 and reusable core/integration contract harnesses.
@@ -61,6 +61,10 @@ and reusable core/integration contract harnesses.
 Acceptance: Invalid/ambiguous/suspended tenants produce typed outcomes; resolver precedence is explicit.
 
 Tests: Fuzz/property tests for host/header normalization and resolver-chain integration tests.
+
+Evidence: 68 tests pass; deterministic host generation, precedence/outcome/security cases, portable
+contract self-tests, three-package consumer execution, clean frozen install, audit, and Persist gates
+pass. Hosted CI is pending the T-03 branch push.
 
 Do Not: Treat extracted identifiers as authenticated tenant membership.
 
