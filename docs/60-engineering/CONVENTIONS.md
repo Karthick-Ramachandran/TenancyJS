@@ -16,15 +16,17 @@ preferences.
 - `TenancyAdapter`: implemented ORM-neutral capability and validation contract owned by core.
 - `createPrismaTenancyExtension`: canonical Prisma row-level extension factory; never expose a base
   Prisma client as the protected application client.
+- `createExpressTenancyMiddleware`: canonical Express 5 request-lifecycle bridge; it composes an
+  application-owned `TenancyManager` and tenant resolver and never creates hidden tenant state.
 - `createRowLevelAdapterContract`: runner-neutral two-tenant adapter conformance suite.
 - `TenancyIntegration`: framework lifecycle bridge contract.
 - Conformance suites in `@tenancyjs/testing`: required evidence for stable adapters and integrations.
 - `pnpm check`: canonical repository gate for lint, format, types, tests, package verification, and
   Persist memory validation.
 
-Core, resolver, outcome, contract-case, adapter, and Prisma-extension names above are implemented
-contracts. `TenancyIntegration` remains planned until its task completes. Do not introduce a competing
-name without updating the feature plan and an ADR where applicable.
+Core, resolver, outcome, contract-case, adapter, Prisma-extension, and Express-middleware names above
+are implemented contracts. `TenancyIntegration` remains the framework-neutral planned vocabulary; do
+not introduce a competing name without updating the feature plan and an ADR where applicable.
 
 ## Naming Conventions
 

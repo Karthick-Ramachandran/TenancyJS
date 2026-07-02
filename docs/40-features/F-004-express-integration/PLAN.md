@@ -25,7 +25,7 @@ testing contracts:
 
 ## Delivery Order
 
-- P1: Planning and ADR proposal — selected and complete when Doctor passes.
-- P2: Integration package and lifecycle tests — blocked on ADR-0008 acceptance.
-- P3: Express + Prisma example and PostgreSQL E2E — blocked on P2.
-- P4: Packaging, docs, compatibility, and final reviews — blocked on P3.
+- P1: Planning and ADR acceptance — complete.
+- P2: Integration package and lifecycle tests — complete locally.
+- P3: Express + Prisma example and PostgreSQL E2E — complete locally.
+- P4: Packaging, docs, and local reviews — complete; hosted Node 22/24 verification follows push.

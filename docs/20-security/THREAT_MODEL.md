@@ -2,8 +2,9 @@
 
 ## Status
 
-Active and incremental. Core-context, tenant-resolution, and Prisma row-level adapter controls are
-implemented; other adapter, integration, and CLI controls remain delivery requirements.
+Active and incremental. Core-context, tenant-resolution, Prisma row-level adapter, and Express request
+lifecycle controls are implemented; other adapter, integration, and CLI controls remain delivery
+requirements.
 
 ## Assets
 
@@ -59,6 +60,8 @@ implemented; other adapter, integration, and CLI controls remain delivery requir
 
 - Prisma nested relation/raw capabilities remain outside the accepted adapter security boundary and
   are rejected; Prisma major updates require renewed compatibility evidence.
+- Client disconnects end Express lifecycle resources, but already-created application async work may
+  continue under its captured tenant context; applications own cancellation of abandoned work.
 - Next.js runtime/caching evolution and Edge identity handoff: integration owner; prototype in T-07.
 - Raw SQL cannot be made universally safe: adapter/documentation owners; explicit escape policy needed.
 - Atomic rollback across filesystem and database operations is impossible: CLI owner; staged,

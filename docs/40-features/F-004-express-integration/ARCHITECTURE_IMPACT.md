@@ -25,9 +25,9 @@ testing contracts -> public integration harness
 
 ## ADR Impact
 
-- ADR-0008 proposes the Express request lifecycle and error contract.
+- ADR-0008 accepts the Express request lifecycle and error contract.
 - ADR-0001, ADR-0002, ADR-0005, ADR-0006, and ADR-0007 remain unchanged.
-- Implementation is blocked until ADR-0008 is accepted.
+- Implementation follows ADR-0008.
 
 ## Security Impact
 

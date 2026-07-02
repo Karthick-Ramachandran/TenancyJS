@@ -28,3 +28,5 @@ model preferences.
 - Prisma 7 validates unique selectors at the top level of `WhereUniqueInput`; preserve caller unique
   fields and append tenant scope through a top-level `AND` instead of nesting the entire original
   `where`, or unique reads/writes fail before reaching the database.
+- Real-database Vitest files run concurrently; give independent Prisma fixtures separate PostgreSQL
+  schemas instead of resetting shared tables, or their `beforeEach` hooks corrupt each other's evidence.

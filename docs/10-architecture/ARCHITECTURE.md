@@ -8,8 +8,8 @@ Describe the accepted architecture for this repository.
 
 The layered package architecture, tenant-context model, safe CLI boundary, workspace toolchain, core
 lifecycle/error contract, tenant-resolution/testing contracts, and Prisma row-level security boundary
-are accepted in ADR-0001 through ADR-0007. The Express request lifecycle/error contract is proposed in
-ADR-0008 and is not implemented.
+are accepted in ADR-0001 through ADR-0007. The Express request lifecycle/error contract is accepted in
+ADR-0008 and implemented by `@tenancyjs/integration-express`.
 
 ## Architecture
 

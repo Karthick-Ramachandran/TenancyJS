@@ -2,7 +2,7 @@
 
 ## T1: Define Scope And Request Lifecycle Contract
 
-Status: In Review
+Status: Complete.
 
 Scope:
 
@@ -24,7 +24,7 @@ Do Not:
 
 ## T2: Implement Express Middleware And Typed Errors
 
-Status: Blocked on ADR-0008 acceptance.
+Status: Complete.
 
 Scope:
 
@@ -46,7 +46,7 @@ Do Not:
 
 ## T3: Add Express + Prisma Reference Example
 
-Status: Todo.
+Status: Complete.
 
 Scope:
 
@@ -67,7 +67,7 @@ Do Not:
 
 ## T4: Package, Document, And Review The Slice
 
-Status: Todo.
+Status: Locally complete; hosted Node 22/24 CI pending.
 
 Scope:
 

@@ -87,7 +87,7 @@ Do Not: Claim operations the extension API cannot reliably intercept; fail or do
 
 ## T-05: Implement Express Integration And Reference Example
 
-Status: Planned in F-004; blocked on ADR-0008 acceptance.
+Status: Locally complete through F-004; hosted Node 22/24 CI pending.
 
 Scope: Middleware factory, error mapping, lifecycle cleanup, Express+Prisma example, and E2E harness.
 

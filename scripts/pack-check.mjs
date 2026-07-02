@@ -9,6 +9,7 @@ const packages = [
   { name: "@tenancyjs/core", directory: "core" },
   { name: "@tenancyjs/adapter-prisma", directory: "adapter-prisma" },
   { name: "@tenancyjs/identifiers", directory: "identifiers" },
+  { name: "@tenancyjs/integration-express", directory: "integration-express" },
   { name: "@tenancyjs/testing", directory: "testing" },
 ];
 
@@ -92,6 +93,7 @@ try {
         'import { TenancyManager, defineConfig } from "@tenancyjs/core";',
         'import { PRISMA_ADAPTER_CAPABILITIES, createPrismaAdapter } from "@tenancyjs/adapter-prisma";',
         'import { HeaderTenantResolver, TenantResolutionChain } from "@tenancyjs/identifiers";',
+        'import { createExpressTenancyMiddleware } from "@tenancyjs/integration-express";',
         'import { createCoreTenancyContract, createTenantFixture } from "@tenancyjs/testing";',
         "const manager = new TenancyManager();",
         "const prismaAdapter = createPrismaAdapter({ manager, tenantModels: { Post: {} } });",
@@ -100,7 +102,7 @@ try {
         'const chain = new TenantResolutionChain({ resolvers: [new HeaderTenantResolver()], store: { find: async () => [{ tenant: fixture, status: "active" }] } });',
         'const outcome = await chain.resolve({ headers: { "x-tenant-id": "consumer" } });',
         "for (const contractCase of createCoreTenancyContract()) await contractCase.run();",
-        'if (tenantId !== "consumer" || outcome.status !== "resolved" || defineConfig({ strategy: "rowLevel" }).strategy !== "rowLevel" || prismaAdapter.name !== "prisma" || PRISMA_ADAPTER_CAPABILITIES.rawQueries !== "rejected") process.exit(1);',
+        'if (tenantId !== "consumer" || outcome.status !== "resolved" || defineConfig({ strategy: "rowLevel" }).strategy !== "rowLevel" || prismaAdapter.name !== "prisma" || PRISMA_ADAPTER_CAPABILITIES.rawQueries !== "rejected" || typeof createExpressTenancyMiddleware !== "function") process.exit(1);',
       ].join("\n"),
     ],
     consumer,

@@ -23,13 +23,13 @@ context contracts without duplicating tenant state or ORM behavior.
 
 ## Public Interfaces
 
-- Proposed `createExpressTenancyMiddleware(options): express.RequestHandler`.
-- Proposed `ExpressTenancyMiddlewareOptions<TTenant>` containing application-owned `manager`,
+- `createExpressTenancyMiddleware(options): express.RequestHandler`.
+- `ExpressTenancyMiddlewareOptions<TTenant>` containing application-owned `manager`,
   `resolver`, and optional `onError`.
-- Proposed `ExpressTenancyResolutionError` with stable code, HTTP status, and non-secret reason.
+- `ExpressTenancyResolutionError` with stable code, HTTP status, and non-secret reason.
 - Supporting exported types for the resolver service and error handler.
 
-Exact signatures remain blocked on ADR-0008 acceptance.
+The signatures follow ADR-0008 and are covered by T2 package and consumer tests.
 
 ## Boundaries
 
@@ -39,5 +39,5 @@ Exact signatures remain blocked on ADR-0008 acceptance.
 - The manager scope remains lexical until an HTTP terminal signal and settles once.
 - No mutable process-global/request-global tenant state, telemetry, storage, runtime outbound network,
   file writes, secret reads, or central-mode selection.
-- Stable claims require the portable integration contract, Supertest, PostgreSQL example E2E, clean
-  package consumer, and Node 22/24 CI.
+- The portable integration contract, Supertest, PostgreSQL example E2E, and clean package consumer pass
+  locally. A stable claim still requires hosted Node 22/24 CI.

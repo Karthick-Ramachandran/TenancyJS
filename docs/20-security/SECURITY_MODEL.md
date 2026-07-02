@@ -86,3 +86,17 @@ only to locally installed, allowlisted ORM executables using argument arrays rat
 - Query callbacks delegate exactly once through Prisma's provided callback so transactions retain scope.
 - Errors contain model/operation identifiers but never query arguments, rows, tenants, or database URLs.
 - The tenancy extension must be registered last so later query extensions cannot remove scoped arguments.
+
+## Implemented Express Integration Controls
+
+- Applications supply the canonical manager and resolution service; the integration creates no hidden
+  tenant state, registry, adapter, or central-mode path.
+- Only a `resolved` outcome enters `runWithTenant`; every other outcome fails before tenant routes.
+- Missing/invalid identity uses sanitized 400 errors; unknown and suspended tenants share one generic
+  404 mapping; ambiguous registry data maps to a generic 500.
+- Request header/host input is copied into a frozen resolver snapshot and never appears in default
+  error messages.
+- Tenant lifecycle remains active until response finish, response close, request abort, or synchronous
+  dispatch failure, with idempotent listener removal.
+- Express 5 promise rejection handling forwards asynchronous resolver/lifecycle failures; Express 4 is
+  outside the tested compatibility boundary.

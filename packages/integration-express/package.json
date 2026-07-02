@@ -1,0 +1,42 @@
+{
+  "name": "@tenancyjs/integration-express",
+  "version": "0.0.0",
+  "description": "Fail-closed Express request lifecycle integration for TenancyJS.",
+  "type": "module",
+  "license": "MIT",
+  "sideEffects": false,
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@tenancyjs/core": "workspace:*",
+    "@tenancyjs/identifiers": "workspace:*",
+    "@types/express": "5.0.6"
+  },
+  "peerDependencies": {
+    "express": ">=5.2.0 <5.3.0"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --pretty false"
+  }
+}

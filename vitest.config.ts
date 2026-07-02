@@ -13,6 +13,9 @@ export default defineConfig({
       "@tenancyjs/identifiers": fileURLToPath(
         new URL("./packages/identifiers/src/index.ts", import.meta.url),
       ),
+      "@tenancyjs/integration-express": fileURLToPath(
+        new URL("./packages/integration-express/src/index.ts", import.meta.url),
+      ),
       "@tenancyjs/testing": fileURLToPath(
         new URL("./packages/testing/src/index.ts", import.meta.url),
       ),
@@ -25,6 +28,7 @@ export default defineConfig({
         "packages/adapter-prisma/src/**/*.ts",
         "packages/core/src/**/*.ts",
         "packages/identifiers/src/**/*.ts",
+        "packages/integration-express/src/**/*.ts",
         "packages/testing/src/**/*.ts",
       ],
       provider: "v8",
@@ -36,7 +40,11 @@ export default defineConfig({
         statements: 95,
       },
     },
-    include: ["tests/**/*.test.ts", "packages/**/*.test.ts"],
+    include: [
+      "examples/**/*.test.ts",
+      "tests/**/*.test.ts",
+      "packages/**/*.test.ts",
+    ],
     passWithNoTests: false,
   },
 });

@@ -20,6 +20,9 @@
       "@tenancyjs/adapter-prisma": ["./packages/adapter-prisma/src/index.ts"],
       "@tenancyjs/core": ["./packages/core/src/index.ts"],
       "@tenancyjs/identifiers": ["./packages/identifiers/src/index.ts"],
+      "@tenancyjs/integration-express": [
+        "./packages/integration-express/src/index.ts"
+      ],
       "@tenancyjs/testing": ["./packages/testing/src/index.ts"]
     },
     "types": ["node"],
