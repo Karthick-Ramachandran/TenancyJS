@@ -84,7 +84,7 @@ Do Not: Mark AC-ADAPTER-01 complete for non-Prisma adapters or claim database-pe
 
 ## P7: Harden The Supported Security Contract
 
-Status: Complete locally; hosted CI pending CR-001 publication.
+Status: Complete; hosted CI passes on PR #6.
 
 Scope: Adapter Security Contract, operation matrix, greenfield/existing-app migration guide,
 educational typed errors, startup/context guidance, Doctor requirements, and overhead benchmark.

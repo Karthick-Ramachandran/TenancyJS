@@ -2,9 +2,8 @@
 
 ## Status
 
-Architecture, conventions, dependency, and security review passed with no blocking finding. The base
-implementation passed hosted Node 22/24 PostgreSQL CI on PR #6; CR-001 changes require the normal
-hosted rerun before merge.
+Architecture, conventions, dependency, and security review passed with no blocking finding. Hosted
+Node 22/24 PostgreSQL CI and both Persist Doctor checks pass for the CR-001 commit on PR #6.
 
 ## Architecture Drift Review
 

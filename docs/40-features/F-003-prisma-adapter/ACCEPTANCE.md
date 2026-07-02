@@ -54,5 +54,5 @@ operation matrix. Unit and real-database tests cover top-level CRUD/bulk/aggrega
 selectors, interactive/batch transactions, central models/context, missing context, discriminator
 tampering, unknown models/operations, and raw/nested rejection. The Adapter Security Contract,
 per-adapter matrix, migration guide, educational errors, startup/context boundary, future Doctor
-requirements, benchmark, shared contract, and package-consumer gate are recorded. The original PR #6
-lanes passed; hosted Node 22/24 PostgreSQL must rerun for the CR-001 commit before merge.
+requirements, benchmark, shared contract, and package-consumer gate are recorded. Hosted Node 22/24
+PostgreSQL and Persist Doctor lanes pass for the CR-001 commit on PR #6.

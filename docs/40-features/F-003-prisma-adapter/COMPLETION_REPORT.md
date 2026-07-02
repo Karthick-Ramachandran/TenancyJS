@@ -2,9 +2,8 @@
 
 ## Status
 
-T-04 implementation plus CR-001 security-contract hardening is complete locally and ready for review.
-The original implementation passed hosted Node 22/24 PostgreSQL CI on PR #6; the CR-001 commit must
-rerun those checks.
+T-04 implementation plus CR-001 security-contract hardening is complete and ready for merge. Hosted
+Node 22/24 PostgreSQL CI and both Persist Doctor checks pass for the CR-001 commit on PR #6.
 
 ## Files Changed
 
