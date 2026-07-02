@@ -7,6 +7,10 @@ model preferences.
 
 ## Lessons
 
+- Standalone Lucid 22 database fixtures need an emitter with both `emit` and `hasListeners`; an
+  emit-only stub fails before SQL and looks like adapter policy-introspection failure.
+- Lucid query builders are deferred thenables; await callback results inside `AsyncLocalStorage.run`
+  or a directly returned builder executes after the transaction scope has closed.
 - Setting Vitest `test.exclude` replaces its default exclusions; always include `configDefaults.exclude`
   or linked workspace tests under `node_modules` run repeatedly and corrupt shared database fixtures.
 - A mixed Node-engine workspace forced relaxed install validation and conditional test graphs; while

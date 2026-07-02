@@ -100,7 +100,10 @@ describePostgres("Lucid 22 PostgreSQL row-level isolation", () => {
         },
       },
       new Logger({ enabled: false }),
-      { emit: async () => undefined } as never,
+      {
+        emit: async () => undefined,
+        hasListeners: () => false,
+      } as never,
     );
     BaseModel.useAdapter(database.modelAdapter());
     manager = new TenancyManager<TestTenant>();
@@ -177,8 +180,8 @@ describePostgres("Lucid 22 PostgreSQL row-level isolation", () => {
         title: "stolen",
       });
       const deleted = await Post.query().where("id", "post-b").delete();
-      expect(updated).toBe(0);
-      expect(deleted).toBe(0);
+      expect(updated).toEqual([0]);
+      expect(deleted).toEqual([0]);
 
       created.title = "Updated";
       await created.save();

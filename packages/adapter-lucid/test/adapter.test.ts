@@ -184,6 +184,37 @@ describe("createLucidTenancy", () => {
     }
   });
 
+  it("retains transaction scope when callbacks return deferred Lucid thenables", async () => {
+    const manager = new TenancyManager();
+    const model = createFakeModel("Post", "posts");
+    const database = createFakeDatabase();
+    const adapter = createLucidTenancy({
+      manager,
+      database: database.database,
+      tenantModels: [{ model: model.model }],
+    });
+    await adapter.validate();
+    const query = createFakeQuery();
+    const deferred = {
+      then(resolve: (value: string) => void, reject: (error: unknown) => void) {
+        try {
+          model.hook("fetch")(query);
+          resolve("scoped");
+        } catch (error) {
+          reject(error);
+        }
+      },
+    } as Promise<string>;
+
+    await expect(
+      manager.runWithTenant({ id: "tenant-a" }, () =>
+        adapter.run(() => deferred),
+      ),
+    ).resolves.toBe("scoped");
+    expect(query.where).toHaveBeenCalledWith("tenant_id", "tenant-a");
+    expect(query.useTransaction).toHaveBeenCalledTimes(1);
+  });
+
   it("injects the tenant on create and rejects create/update discriminator changes", async () => {
     const manager = new TenancyManager();
     const model = createFakeModel("Post", "posts");

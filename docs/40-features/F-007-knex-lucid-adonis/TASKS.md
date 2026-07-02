@@ -45,7 +45,7 @@ Acceptance: AC-LUCID-01 and AC-LUCID-02.
 
 Tests: Lucid model/query/relationship/pagination/quiet/bulk/direct-builder isolation tests.
 
-Evidence: 10 unit/adversarial tests pass locally; four Lucid 22/PostgreSQL 17 tests are implemented and
+Evidence: 11 unit/adversarial tests pass locally; four Lucid 22/PostgreSQL 17 tests are implemented and
 skip locally without `TEST_DATABASE_URL`.
 
 ## T5: Implement Adonis Provider And Middleware

@@ -10,7 +10,7 @@
 - Separate Lucid 22.4/PostgreSQL 17 two-tenant CRUD/aggregate/relationship/transaction tests plus
   production AdonisJS 7/Japa composition on Node 24.
 
-Local status: the Lucid-specific suite is implemented; 10 unit/adversarial tests pass and four real
+Local status: the Lucid-specific suite is implemented; 11 unit/adversarial tests pass and four real
 PostgreSQL tests skip when `TEST_DATABASE_URL` is absent. Hosted evidence remains required.
 
 ## Security Tests

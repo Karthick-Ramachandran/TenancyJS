@@ -19,7 +19,7 @@ Planning and the Knex T2/T3 slice are complete; Lucid implementation is in progr
   locally because `TEST_DATABASE_URL` is not configured.
 - TypeScript package/test typecheck, ESLint, package archive/consumer, full repository gate, and Persist
   Doctor before T2 completion.
-- 10 focused Lucid unit/adversarial tests pass; four real PostgreSQL tests are wired and skip locally
+- 11 focused Lucid unit/adversarial tests pass; four real PostgreSQL tests are wired and skip locally
   because `TEST_DATABASE_URL` is not configured.
 
 ## Results

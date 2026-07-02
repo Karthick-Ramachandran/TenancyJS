@@ -89,7 +89,7 @@ export function createLucidTenancy<TTenant extends TenantRecord = TenantRecord>(
       const parent = transactions.getStore();
       const execute = async (transaction: TransactionClientContract) => {
         await setTransactionContext(transaction, context);
-        return transactions.run(transaction, callback);
+        return transactions.run(transaction, async () => await callback());
       };
       return parent === undefined
         ? config.database.transaction(execute)
