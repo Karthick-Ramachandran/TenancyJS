@@ -27,5 +27,5 @@ AdonisJS support.
 - Lucid hooks provide native behavior while forced PostgreSQL RLS covers `.pojo()`, quiet, bulk,
   relationship, and direct query paths. ADR-0010 controls the guarantee.
 - The package requires Node 24 and peers on AdonisJS 7.3, Lucid 22.4, Luxon 3.7, and PostgreSQL driver
-  8.20. Framework/provider lifecycle remains owned by `integration-adonis` under ADR-0013.
+  8.20. Framework/provider lifecycle remains owned by `integration-adonis` under ADR-0014.
 - Linked delivery: `docs/40-features/F-007-knex-lucid-adonis/`.

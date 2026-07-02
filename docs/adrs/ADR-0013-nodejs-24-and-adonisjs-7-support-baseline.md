@@ -10,6 +10,18 @@ Accepted
 - The Node 22 compatibility clauses in ADR-0007, ADR-0008, ADR-0009, and ADR-0010. Their security,
   lifecycle, package-boundary, and database decisions remain accepted.
 
+## Superseded In Part
+
+Decisions 3 through 13 below — the AdonisJS 7 integration contract (the `@tenancyjs/integration-adonis`
+package boundary and AdonisJS 7.3 / Lucid 22.4 peer target, `defineAdonisTenancyConfig`, the provider
+lifecycle, tenant middleware, sanitized error mapping, tenant-route explicitness, the Japa helper, Ace
+factories, safe CLI init templates, the v6-to-v7 fixture, and the PostgreSQL 17 Adonis/Lucid isolation
+clause) — are extracted into and superseded by
+`ADR-0014-adonisjs-7-integration-provider-and-middleware-contract`. Cite ADR-0014 for those decisions.
+Decisions 1 and 2 (the Node.js 24 engine and CI baseline) remain the accepted repository baseline and
+are the reason this ADR stays accepted. The decision text below is preserved unchanged for the audit
+trail.
+
 ## Context
 
 ADR-0012 selected AdonisJS 7.3/Lucid 22.4 on Node 24 while retaining Node 22/24 lanes for the rest of

@@ -19,13 +19,15 @@ Planning accepted; Knex implementation and hosted evidence are complete; Lucid i
   now use an injected structural port, preserving ADR-0001 direction and ADR-0003 service ownership.
 - Security review requires a separate migration role; the runtime role cannot be a table owner or hold
   DDL, superuser, or `BYPASSRLS` privileges on protected tables.
-- No accepted ADR is contradicted. PostgreSQL-only initial support, RLS storage behavior, dependency
-  additions, and AdonisJS 7 lifecycle were accepted in ADR-0010 and ADR-0013.
+- No accepted ADR is contradicted. PostgreSQL-only initial support, RLS storage behavior, and
+  dependency additions were accepted in ADR-0010; the AdonisJS 7 lifecycle contract in ADR-0014 on the
+  ADR-0013 Node 24 baseline.
 - Knex implementation review passes: PostgreSQL 17 isolation, forced-policy validation, concurrency,
   CRUD/aggregate, rollback/savepoints, explicit central behavior, pooled cleanup, package consumers,
   and the full gate pass on Node 22 and 24 in PR #8.
 - Lucid implementation architecture review passes locally: the package depends inward on core, keeps
-  Adonis lifecycle outside the adapter, uses the canonical manager, and matches ADR-0010/ADR-0013.
+  Adonis lifecycle outside the adapter, uses the canonical manager, and matches ADR-0010, ADR-0013,
+  and ADR-0014.
 - Conventions review passes: `createLucidTenancy` is the documented canonical primitive; no second
   context store, migration system, or competing query language was introduced.
 - Security review found no blocker. Transaction settings are parameterized and local, policy

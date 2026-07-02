@@ -23,6 +23,7 @@ service using framework-native provider, middleware, Japa, and Ace conventions.
 ## Boundaries
 
 - Depends inward on core/identifiers/Lucid adapter and peers on AdonisJS/Lucid; imports no CLI, base
-  Knex client, or application models. ADR-0013 controls lifecycle and compatibility.
+  Knex client, or application models. ADR-0014 controls the provider/middleware lifecycle and
+  compatibility contract, on the ADR-0013 Node 24 baseline.
 - Initial target is AdonisJS 7.3/Lucid 22.4/PostgreSQL 17 on Node 24; AdonisJS 6 is not claimed.
 - Linked delivery: `docs/40-features/F-007-knex-lucid-adonis/`.

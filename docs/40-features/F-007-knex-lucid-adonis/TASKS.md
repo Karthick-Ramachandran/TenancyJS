@@ -53,7 +53,7 @@ reproduced locally against `postgres:17-alpine` (17.10).
 
 ## T5: Implement Adonis Provider And Middleware
 
-Status: Todo — unblocked now that T4 is complete; ADR-0013 is accepted
+Status: Todo — unblocked now that T4 is complete; ADR-0014 (on the ADR-0013 Node 24 baseline) is accepted
 
 Scope: Typed config, IoC bindings/provider, HTTP middleware/error mapping, and lifecycle cleanup.
 

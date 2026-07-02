@@ -20,8 +20,9 @@
 ## ADR Impact
 
 - ADR-0010 accepts the PostgreSQL RLS-backed Knex/Lucid security boundary and supported operations.
-- ADR-0013 accepts the common Node 24 baseline and carries forward the AdonisJS 7 provider,
-  middleware, Japa, Ace, and compatibility contract while replacing ADR-0010's Lucid 21.8 clauses.
+- ADR-0013 accepts the common Node 24 engine and CI baseline.
+- ADR-0014 owns the AdonisJS 7 provider, middleware, Japa, Ace, and compatibility contract and the
+  Lucid 22.4 / AdonisJS 7.3 target, replacing ADR-0010's Lucid 21.8 clauses.
 
 ## Config And Template Impact
 
