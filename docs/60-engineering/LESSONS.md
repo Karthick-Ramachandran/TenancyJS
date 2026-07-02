@@ -7,6 +7,10 @@ model preferences.
 
 ## Lessons
 
+- Next.js can retain a vulnerable transitive PostCSS release despite a current Next pin; keep the
+  workspace override at the audited patched release and verify the production build after updates.
+- Lucid 22 needs AdonisJS Core 7 and Luxon available even for a standalone adapter package; declare
+  and test all three peers together or strict installs/imports fail before adapter tests begin.
 - The installed `plan-module` skill references `docs/ai/MODULE_DELIVERY_WORKFLOW.md`, but this Persist
   template does not generate that file; use the skill's explicit output contract and Persist CLI
   scaffolds, and do not assume optional workflow memory exists.

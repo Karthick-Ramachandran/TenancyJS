@@ -25,10 +25,11 @@
   `@tenancyjs/cli` services and do not duplicate migration, seed, or tenant-iteration logic.
 - AC-ADONIS-03: Safe CLI init previews and applies conflict-aware Adonis/Lucid provider, middleware,
   config, model/migration, and test changes without reading `.env` or overwriting project files.
-- AC-COMPAT-KLA-01: Knex 3.3/PostgreSQL 17 and AdonisJS 6.21/Lucid 21.8 production/Japa examples pass
-  on Node 22 and 24, including concurrent tenants and clean installed-package consumers.
+- AC-COMPAT-KLA-01: Knex 3.3/PostgreSQL 17 passes on Node 22 and 24, while AdonisJS 7.3/Lucid 22.4
+  production/Japa examples pass on Node 24, including concurrent tenants and clean installed-package
+  consumers.
 
 ## Out Of Scope
 
-- AdonisJS 7, non-PostgreSQL providers, database-per-tenant switching, operational migrate/seed/list
+- AdonisJS 6, non-PostgreSQL providers, database-per-tenant switching, operational migrate/seed/list
   commands, Bouncer/Auth/Inertia recipes, and unrestricted raw or schema access.

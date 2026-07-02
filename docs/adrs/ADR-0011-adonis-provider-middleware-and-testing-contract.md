@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Accepted — superseded by ADR-0012-adonisjs-7-provider-middleware-and-testing-contract
 
 ## Context
 

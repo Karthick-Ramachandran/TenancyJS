@@ -31,8 +31,10 @@
 - Prove the Japa helper restores context after success/failure and works with the application plugin.
 - Prove Ace commands call shared CLI services exactly once with argument arrays and normalized exits.
 - Golden-test dry-run/apply/reapply/conflict/traversal/symlink/redaction behavior for Adonis templates.
-- Exercise Knex 3.3/PostgreSQL 17 and AdonisJS 6.21/Lucid 21.8 on Node 22/24, then pack and install all
-  public packages into a clean consumer. AdonisJS 7 requires separate future Node 24 evidence.
+- Exercise Knex 3.3/PostgreSQL 17 on Node 22/24 and AdonisJS 7.3/Lucid 22.4/PostgreSQL 17 on Node 24,
+  then pack and install all public packages into a clean consumer.
+- Verify AdonisJS-generated files use v7 compiler registration, hooks, brace test globs, encryption,
+  URL-builder and HTTP type names, package-import aliases, and current file layout where applicable.
 
 ## Security Exit Conditions
 

@@ -2,7 +2,7 @@
 
 ## Status
 
-Planning accepted; Knex implementation is in progress.
+Planning accepted; Knex implementation and hosted evidence are complete; Lucid is in progress.
 
 ## Findings
 
@@ -13,14 +13,23 @@ Planning accepted; Knex implementation is in progress.
 - The proposal combines a narrow protected builder/model surface with forced PostgreSQL RLS and
   transaction-local context. Unsupported composition and retained base clients remain outside the
   guarantee and are rejected or validation failures.
-- Current AdonisJS 7/Lucid 22 require Node 24. Initial support targets AdonisJS 6.21/Lucid 21.8 so the
-  repository's Node 22/24 policy remains truthful; AdonisJS 7 is a later compatibility lane.
+- AdonisJS 7.3/Lucid 22.4 require Node 24 and are the required initial integration target. Their
+  dedicated Node 24 lane does not remove Node 22/24 support from framework-neutral packages.
 - Architecture-drift review found and removed a proposed integration-to-CLI dependency. Ace factories
   now use an injected structural port, preserving ADR-0001 direction and ADR-0003 service ownership.
 - Security review requires a separate migration role; the runtime role cannot be a table owner or hold
   DDL, superuser, or `BYPASSRLS` privileges on protected tables.
 - No accepted ADR is contradicted. PostgreSQL-only initial support, RLS storage behavior, dependency
-  additions, and Adonis lifecycle were accepted in ADR-0010 and ADR-0011.
+  additions, and AdonisJS 7 lifecycle were accepted in ADR-0010 and ADR-0012.
 - Knex implementation review passes: PostgreSQL 17 isolation, forced-policy validation, concurrency,
   CRUD/aggregate, rollback/savepoints, explicit central behavior, pooled cleanup, package consumers,
   and the full gate pass on Node 22 and 24 in PR #8.
+- Lucid implementation architecture review passes locally: the package depends inward on core, keeps
+  Adonis lifecycle outside the adapter, uses the canonical manager, and matches ADR-0010/ADR-0012.
+- Conventions review passes: `createLucidTenancy` is the documented canonical primitive; no second
+  context store, migration system, or competing query language was introduced.
+- Security review found no blocker. Transaction settings are parameterized and local, policy
+  introspection fails closed, errors omit SQL/bindings/tenant values, hook-skipping paths rely on
+  forced RLS, and retained Lucid/raw/privileged surfaces remain explicitly outside the guarantee.
+- Remaining gate: the four Lucid 22/PostgreSQL 17 tests must pass in hosted Node 24 CI before T4 is
+  complete or any operation is promoted from evidence-pending to supported.

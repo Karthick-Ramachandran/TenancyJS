@@ -1,11 +1,16 @@
 import { defineConfig } from "vitest/config";
 import { fileURLToPath } from "node:url";
 
+const nodeMajor = Number.parseInt(process.versions.node.split(".")[0]!, 10);
+
 export default defineConfig({
   resolve: {
     alias: {
       "@tenancyjs/adapter-knex": fileURLToPath(
         new URL("./packages/adapter-knex/src/index.ts", import.meta.url),
+      ),
+      "@tenancyjs/adapter-lucid": fileURLToPath(
+        new URL("./packages/adapter-lucid/src/index.ts", import.meta.url),
       ),
       "@tenancyjs/adapter-prisma": fileURLToPath(
         new URL("./packages/adapter-prisma/src/index.ts", import.meta.url),
@@ -38,6 +43,7 @@ export default defineConfig({
       exclude: ["**/dist/**", "packages/cli/src/bin.ts"],
       include: [
         "packages/adapter-knex/src/**/*.ts",
+        "packages/adapter-lucid/src/**/*.ts",
         "packages/adapter-prisma/src/**/*.ts",
         "packages/cli/src/**/*.ts",
         "packages/core/src/**/*.ts",
@@ -60,6 +66,10 @@ export default defineConfig({
       "tests/**/*.test.ts",
       "packages/**/*.test.ts",
     ],
+    exclude:
+      nodeMajor < 24
+        ? ["packages/adapter-lucid/test/postgresql.integration.test.ts"]
+        : [],
     passWithNoTests: false,
   },
 });

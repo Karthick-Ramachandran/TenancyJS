@@ -3,6 +3,7 @@
   "references": [
     { "path": "./packages/core" },
     { "path": "./packages/adapter-knex" },
+    { "path": "./packages/adapter-lucid" },
     { "path": "./packages/adapter-prisma" },
     { "path": "./packages/cli" },
     { "path": "./packages/identifiers" },

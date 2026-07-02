@@ -7,7 +7,7 @@
 
 ## Integration Tests
 
-- AdonisJS 6.21/Lucid 21.8 production HTTP and Japa/API-client tests with PostgreSQL 17 on Node 22/24.
+- AdonisJS 7.3/Lucid 22.4 production HTTP and Japa/API-client tests with PostgreSQL 17 on Node 24.
 
 ## Security Tests
 

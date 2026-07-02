@@ -2,7 +2,7 @@
 
 ## Approach
 
-1. Review and accept ADR-0010/ADR-0011, then freeze peer ranges and public names.
+1. Review and accept ADR-0010/ADR-0012, then freeze peer ranges and public names.
 2. Implement the narrow Knex/PostgreSQL enforcement core first: configuration, table classification,
    managed transaction context, protected builder facade, RLS policy validation, errors, and matrix.
 3. Prove Knex against the shared adapter contract and adversarial PostgreSQL tests before composing it
@@ -12,7 +12,8 @@
 5. Implement the Adonis provider and HTTP middleware over the proven Lucid service, followed by Japa
    helpers and thin Ace wrappers over existing CLI services.
 6. Extend safe CLI templates/detection, add generic Knex and Adonis/Lucid examples, and run production
-   HTTP/Japa/PostgreSQL/package-consumer evidence on Node 22 and 24.
+   HTTP/Japa/PostgreSQL/package-consumer evidence on Node 24 while preserving Knex evidence on Node
+   22 and 24.
 7. Complete independent conventions, architecture-drift, security, module-memory, and completion
    reviews before promoting the compatibility matrix.
 

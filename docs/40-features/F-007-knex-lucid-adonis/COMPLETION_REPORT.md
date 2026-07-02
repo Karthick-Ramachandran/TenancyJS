@@ -6,10 +6,12 @@ Planning and the Knex T2/T3 slice are complete; Lucid implementation is in progr
 
 ## Files Changed
 
-- F-007 feature delivery memory, three module records, and accepted ADR-0010/ADR-0011.
+- F-007 feature delivery memory, three module records, and accepted ADR-0010/ADR-0012.
 - `@tenancyjs/adapter-knex` config, typed errors, protected fluent client, managed transaction context,
   forced-RLS validation, capability metadata, documentation, package wiring, and changeset.
 - Generic Knex/PostgreSQL reference migration/runtime and a real PostgreSQL 17 isolation suite for T3.
+- `@tenancyjs/adapter-lucid` config, forced-policy validation, managed Lucid transaction scope, model
+  hooks, typed errors, documentation, packaging, and Lucid 22/PostgreSQL 17 test harness.
 
 ## Tests Run
 
@@ -17,6 +19,8 @@ Planning and the Knex T2/T3 slice are complete; Lucid implementation is in progr
   locally because `TEST_DATABASE_URL` is not configured.
 - TypeScript package/test typecheck, ESLint, package archive/consumer, full repository gate, and Persist
   Doctor before T2 completion.
+- 10 focused Lucid unit/adversarial tests pass; four real PostgreSQL tests are wired and skip locally
+  because `TEST_DATABASE_URL` is not configured.
 
 ## Results
 
@@ -29,4 +33,5 @@ Planning and the Knex T2/T3 slice are complete; Lucid implementation is in progr
 
 ## Remaining Risks
 
-- Lucid and Adonis packages/examples remain unimplemented; their compatibility is not claimed.
+- Hosted Lucid 22/PostgreSQL evidence and the AdonisJS 7 integration/example remain incomplete; their
+  compatibility is not yet claimed.

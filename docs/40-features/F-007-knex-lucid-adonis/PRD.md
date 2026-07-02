@@ -15,7 +15,7 @@ surfaces fail closed.
 ## Users And Use Cases
 
 - Generic Node/Express applications using Knex 3.3 with a shared PostgreSQL database.
-- AdonisJS 6.21 applications using Lucid 21.8 and expecting model/provider/middleware conventions.
+- AdonisJS 7.3 applications using Lucid 22.4 and expecting model/provider/middleware conventions.
 - Test authors who need Japa-native tenant scopes and two-tenant isolation evidence.
 - Operators who need Adonis-facing diagnostics without duplicate Ace migration/seed logic.
 
@@ -30,11 +30,11 @@ surfaces fail closed.
   errors, Japa helpers, and thin Ace wrappers over existing CLI services.
 - Safe CLI templates for an Adonis + Lucid project, using the existing preview/apply engine.
 - `examples/adonis-lucid` with PostgreSQL production HTTP, Lucid model, Japa, and isolation evidence.
-- Knex 3.3/PostgreSQL 17 and AdonisJS 6.21/Lucid 21.8 on Node 22 and 24.
+- Knex 3.3/PostgreSQL 17 on Node 22 and 24; AdonisJS 7.3/Lucid 22.4/PostgreSQL 17 on Node 24.
 
 ## Non-Goals
 
-- AdonisJS 7 stable support in this slice; it currently requires Node 24 and needs a separate CI lane.
+- AdonisJS 6 compatibility; the initial integration targets current AdonisJS 7 conventions.
 - MySQL, MariaDB, SQLite, or provider-neutral RLS claims without equivalent enforcement evidence.
 - Database-per-tenant connection switching, provisioning, or pool management; T-11 owns that strategy.
 - Reimplementing Knex/Lucid migrations, seeds, or tenant iteration; T-10 owns native delegation.

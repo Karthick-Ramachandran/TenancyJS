@@ -10,18 +10,19 @@
 ## Dependency Impact
 
 - `adapter-knex` depends on core and peers on Knex 3.3; PostgreSQL is compatibility-test/example only.
-- `adapter-lucid` depends on core and reviewed Knex enforcement primitives, peers on Lucid 21.8, and
+- `adapter-lucid` depends on core and reviewed Knex enforcement primitives, peers on Lucid 22.4, and
   does not import the Adonis integration.
-- `integration-adonis` depends on core, identifiers, and Lucid adapter and peers on AdonisJS 6.21 and
-  Lucid 21.8. Ace factories accept a structural CLI service port; the integration does not depend on
+- `integration-adonis` depends on core, identifiers, and Lucid adapter and peers on AdonisJS 7.3 and
+  Lucid 22.4 with Node 24. Ace factories accept a structural CLI service port; the integration does not depend on
   `@tenancyjs/cli`. Core imports none of these dependencies.
-- AdonisJS 7 is excluded because its current packages require Node 24, while this repository supports
-  both Node 22 and Node 24.
+- The Adonis/Lucid packages use a dedicated Node 24 lane; framework-neutral packages retain Node 22
+  and Node 24 compatibility.
 
 ## ADR Impact
 
 - ADR-0010 accepts the PostgreSQL RLS-backed Knex/Lucid security boundary and supported operations.
-- ADR-0011 accepts the Adonis provider, middleware, Japa, Ace, and compatibility contract.
+- ADR-0012 accepts the AdonisJS 7 provider, middleware, Japa, Ace, and compatibility contract and
+  replaces ADR-0010's Lucid 21.8 version clauses.
 
 ## Config And Template Impact
 

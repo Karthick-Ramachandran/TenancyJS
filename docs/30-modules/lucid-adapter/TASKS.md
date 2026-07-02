@@ -6,6 +6,7 @@
 
 ## Tasks
 
-- Complete: accepted public/model/RLS contract and planned operation matrix.
-- In progress: package implementation now that Knex PostgreSQL evidence passes.
-- Todo: Lucid lifecycle/conformance tests, Adonis composition, packaging, and hosted evidence.
+- Complete: accepted public/model/RLS contract, package implementation, unit/adversarial suite, package
+  wiring, and real PostgreSQL test harness.
+- In progress: hosted Node 24/Lucid 22/PostgreSQL 17 evidence.
+- Todo: Adonis composition, reference application, and final compatibility promotion.

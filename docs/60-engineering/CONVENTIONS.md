@@ -18,6 +18,8 @@ preferences.
   Prisma client as the protected application client.
 - `createKnexTenancy`: canonical Knex protected-callback factory; execution stays locked until forced
   PostgreSQL RLS validation passes, and the base Knex client is never application-facing.
+- `createLucidTenancy`: canonical Lucid 22 managed-transaction factory; registered models use native
+  hooks for normal operations while forced PostgreSQL RLS denies hook-skipping paths.
 - `createExpressTenancyMiddleware`: canonical Express 5 request-lifecycle bridge; it composes an
   application-owned `TenancyManager` and tenant resolver and never creates hidden tenant state.
 - `createNextTenancy`: canonical Next.js App Router Node bridge for Route Handlers and Server Actions;
@@ -31,9 +33,10 @@ preferences.
 - `pnpm check`: canonical repository gate for lint, format, types, tests, package verification, and
   Persist memory validation.
 
-Core, resolver, outcome, contract-case, adapter, Prisma-extension, and Express-middleware names above
-are implemented contracts. `TenancyIntegration` remains the framework-neutral planned vocabulary; do
-not introduce a competing name without updating the feature plan and an ADR where applicable.
+Core, resolver, outcome, contract-case, adapter, Prisma-extension, Knex, Lucid, Express, and Next names
+above are implemented contracts. `TenancyIntegration` remains the framework-neutral planned
+vocabulary; do not introduce a competing name without updating the feature plan and an ADR where
+applicable.
 
 ## Naming Conventions
 
