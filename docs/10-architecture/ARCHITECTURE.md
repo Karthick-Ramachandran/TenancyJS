@@ -14,7 +14,8 @@ ADR-0008 and implemented by `@tenancyjs/integration-express`.
 The safe Express + Prisma CLI foundation implements ADR-0003 through `@tenancyjs/cli`; operational ORM
 delegation remains deferred.
 
-The Next.js Node/Edge integration boundary is accepted in ADR-0009; implementation is in progress.
+The Next.js Node/Edge integration boundary is accepted in ADR-0009 and implemented by
+`@tenancyjs/integration-next` with a separate Edge-safe hint export.
 
 ## Architecture
 

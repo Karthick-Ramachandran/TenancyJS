@@ -32,7 +32,7 @@ Tests: Unit/conformance/concurrency/error/forged-hint/cache cases.
 
 ## T3: Add Next + Prisma Production Example
 
-Status: In Review — local build passes; PostgreSQL production-start awaits hosted CI.
+Status: Complete — hosted Node 22/24 PostgreSQL production-start evidence passes on PR #7.
 
 Scope: App Router Route Handler/Server Action example and production build/start PostgreSQL E2E.
 

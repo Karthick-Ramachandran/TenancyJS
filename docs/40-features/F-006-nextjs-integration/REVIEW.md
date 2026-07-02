@@ -2,7 +2,7 @@
 
 ## Status
 
-Approved for hosted compatibility validation.
+Approved; local and hosted compatibility validation pass.
 
 ## Findings
 
@@ -14,4 +14,4 @@ Approved for hosted compatibility validation.
   the protected extended client to handlers/actions.
 - Accepted tradeoffs: identity hints remain forgeable untrusted metadata; applications still own
   authentication and membership authorization. Stream callbacks cannot claim tenant database scope.
-- Remaining review gate: PostgreSQL production `next start` E2E on Node 22 and 24 in hosted CI.
+- PostgreSQL production `next start` E2E and the full quality gate pass on Node 22 and 24 in PR #7.

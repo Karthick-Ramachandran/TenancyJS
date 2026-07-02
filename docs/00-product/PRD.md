@@ -22,7 +22,8 @@ seed, tenant-operation, and database-per-tenant commands remain deferred. The so
 `docs/CLI-RESEARCH.md`; delivery status is in
 `docs/40-features/F-001-tenancyjs-platform/`.
 
-Next.js App Router integration is in progress under F-006 and follows accepted ADR-0009.
+Next.js App Router integration is implemented under F-006 and follows accepted ADR-0009; hosted
+Node 22/24 PostgreSQL compatibility evidence passes on PR #7.
 
 ## Initial Supported Surface
 
