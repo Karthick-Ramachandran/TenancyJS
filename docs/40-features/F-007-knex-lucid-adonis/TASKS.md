@@ -26,7 +26,7 @@ Tests: Unit/type/adversarial builder and RLS validation tests.
 
 ## T3: Prove Knex PostgreSQL Compatibility
 
-Status: In Progress
+Status: Complete — hosted Node 22/24 PostgreSQL 17 evidence passes on PR #8.
 
 Scope: Shared adapter contract, generic Knex example, PostgreSQL 17 and package-consumer evidence.
 
@@ -36,7 +36,7 @@ Tests: Two-tenant CRUD/bulk/aggregate/transaction/concurrency/rollback/bypass ma
 
 ## T4: Implement And Prove Lucid Adapter
 
-Status: Blocked on T3 and ADR-0010 acceptance
+Status: In Progress
 
 Scope: Dedicated Lucid transaction service, `TenantScopedModel`, hooks, relationship/quiet/bulk paths,
 typed errors, matrix, and PostgreSQL tests.

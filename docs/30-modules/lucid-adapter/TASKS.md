@@ -2,10 +2,10 @@
 
 ## Active Work
 
-- Waiting for Knex PostgreSQL evidence under F-007.
+- F-007 Lucid adapter implementation.
 
 ## Tasks
 
 - Complete: accepted public/model/RLS contract and planned operation matrix.
-- Blocked: package implementation until Knex PostgreSQL evidence exists.
+- In progress: package implementation now that Knex PostgreSQL evidence passes.
 - Todo: Lucid lifecycle/conformance tests, Adonis composition, packaging, and hosted evidence.

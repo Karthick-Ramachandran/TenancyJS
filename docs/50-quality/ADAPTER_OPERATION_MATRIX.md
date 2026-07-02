@@ -10,7 +10,7 @@ secured client fails before execution. `Not implemented` makes no compatibility 
 |---|---|---|---|---|
 | Prisma | Prisma 7.8 + PostgreSQL 17 | Experimental; supported top-level matrix | Not implemented | `packages/adapter-prisma/README.md` |
 | Sequelize | Not implemented | Not implemented | Not implemented | Required when implemented |
-| Knex | Knex 3.3 boundary implemented; PostgreSQL tests pending | Experimental; no compatibility claim yet | Not implemented | `packages/adapter-knex/README.md` |
+| Knex | Knex 3.3 + PostgreSQL 17 | Experimental; supported protected-client matrix | Not implemented | `packages/adapter-knex/README.md` |
 | Lucid | Not implemented | Not implemented | Not implemented | Required when implemented |
 
 ## Prisma 7.8/PostgreSQL 17
@@ -35,3 +35,17 @@ secured client fails before execution. `Not implemented` makes no compatibility 
 
 The guarantee conditions and expansion rules are defined in
 `docs/20-security/ADAPTER_SECURITY_CONTRACT.md`.
+
+## Knex 3.3/PostgreSQL 17
+
+| Operation family | State | Enforcement/evidence |
+|---|---|---|
+| select/first/count/basic aggregates | Supported | protected AND predicates plus forced RLS |
+| insert/bulk insert | Supported | discriminator injected/validated plus RLS `WITH CHECK` |
+| update/delete | Supported | tenant predicate plus forced RLS; discriminator update rejected |
+| managed transactions/savepoints | Supported | transaction-local context, rollback and pooled cleanup tested |
+| explicit central context/central tables | Supported | adapter-owned central flag and explicit allowlist |
+| raw/schema/migration/client/connection | Rejected | outside callback-scoped protected-client boundary |
+| OR/clear/join/union/CTE/subquery/stream/truncate | Rejected | mutable composition is not yet proven safe |
+| unclassified tables/unknown operations | Rejected | exhaustive classification and runtime proxy rejection |
+| non-PostgreSQL/database-per-tenant | Unsupported | requires a separate enforcement capability and evidence |

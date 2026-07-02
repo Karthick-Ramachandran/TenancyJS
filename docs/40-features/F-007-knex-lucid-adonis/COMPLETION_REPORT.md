@@ -2,7 +2,7 @@
 
 ## Status
 
-Planning and T2 Knex package boundary complete; PostgreSQL compatibility work is in progress.
+Planning and the Knex T2/T3 slice are complete; Lucid implementation is in progress.
 
 ## Files Changed
 
@@ -24,9 +24,9 @@ Planning and T2 Knex package boundary complete; PostgreSQL compatibility work is
 - Full local gate: 217 tests pass and 29 environment-specific database tests skip; overall coverage is
   96.58% statements, 92.65% branches, 97.81% functions, and 97.07% lines. Eight package archives and
   Persist Doctor pass.
-- No PostgreSQL runtime compatibility is claimed until T3 real-database evidence passes.
+- Hosted Node 22/24 PostgreSQL 17 lanes pass all 18 files and 246 tests on PR #8, including the Knex
+  RLS suite and eight package archives.
 
 ## Remaining Risks
 
-- PostgreSQL policy introspection and query behavior still require real-database negative tests.
-- Lucid and Adonis packages/examples remain unimplemented.
+- Lucid and Adonis packages/examples remain unimplemented; their compatibility is not claimed.

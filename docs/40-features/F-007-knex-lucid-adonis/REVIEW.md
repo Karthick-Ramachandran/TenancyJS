@@ -21,3 +21,6 @@ Planning accepted; Knex implementation is in progress.
   DDL, superuser, or `BYPASSRLS` privileges on protected tables.
 - No accepted ADR is contradicted. PostgreSQL-only initial support, RLS storage behavior, dependency
   additions, and Adonis lifecycle were accepted in ADR-0010 and ADR-0011.
+- Knex implementation review passes: PostgreSQL 17 isolation, forced-policy validation, concurrency,
+  CRUD/aggregate, rollback/savepoints, explicit central behavior, pooled cleanup, package consumers,
+  and the full gate pass on Node 22 and 24 in PR #8.

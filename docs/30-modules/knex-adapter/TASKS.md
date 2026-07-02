@@ -2,10 +2,10 @@
 
 ## Active Work
 
-- F-007 PostgreSQL compatibility proof.
+- No active Knex implementation task; F-007 Lucid composition follows.
 
 ## Tasks
 
 - Complete: accepted public/security contract, package boundary, and unit/adversarial tests.
-- In progress: PostgreSQL conformance and generic Knex reference example.
-- Todo: package-consumer and hosted Node 22/24 evidence.
+- Complete: PostgreSQL conformance, generic reference, package consumer, and hosted Node 22/24 evidence
+  on PR #8.

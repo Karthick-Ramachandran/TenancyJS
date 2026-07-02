@@ -3,7 +3,7 @@
 ## Status
 
 Active and incremental. Core async context, fail-closed tenant access, explicit central scope,
-lifecycle cleanup, tenant resolution, Prisma row-level isolation, Express and Next.js request
+lifecycle cleanup, tenant resolution, Prisma and Knex/PostgreSQL row-level isolation, Express and Next.js request
 lifecycle boundaries, and the reference safe CLI foundation are implemented and tested. Other
 adapters, framework integrations, and operational CLI commands remain requirements for later tasks.
 
@@ -87,6 +87,20 @@ only to locally installed, allowlisted ORM executables using argument arrays rat
 - Query callbacks delegate exactly once through Prisma's provided callback so transactions retain scope.
 - Errors contain model/operation identifiers but never query arguments, rows, tenants, or database URLs.
 - The tenancy extension must be registered last so later query extensions cannot remove scoped arguments.
+
+## Implemented Knex Adapter Controls
+
+- The initial guarantee is Knex 3.3 with PostgreSQL 17 forced RLS on Node 22/24; other SQL providers
+  remain unsupported until equivalent enforcement and real-database evidence exist.
+- Protected execution stays locked until startup validation confirms enabled/forced policies, reviewed
+  `USING`/`WITH CHECK` expressions, and a runtime role that is not owner, superuser, or `BYPASSRLS`.
+- Tenant work uses parameterized transaction-local settings and a callback-scoped protected client;
+  commit, rollback, savepoints, failure, and pooled reuse are covered by PostgreSQL tests.
+- Supported builders add or validate the discriminator and compose only reviewed AND filters. Raw SQL,
+  raw values, schema/migration/client/connection access, unsafe OR/clear, joins, unions, CTEs,
+  subqueries, streams, truncate, caller transactions, and unknown tables/operations are rejected.
+- The base Knex client and migration role remain private and outside the guarantee. Runtime never
+  installs schema or policies automatically.
 
 ## Implemented Express Integration Controls
 
