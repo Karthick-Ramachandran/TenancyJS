@@ -36,7 +36,8 @@ Tests: Two-tenant CRUD/bulk/aggregate/transaction/concurrency/rollback/bypass ma
 
 ## T4: Implement And Prove Lucid Adapter
 
-Status: In Progress — implementation and test harness complete; hosted PostgreSQL evidence pending
+Status: In Progress — implementation, test harness, and local PostgreSQL 17 evidence complete; hosted
+Node 24 CI evidence pending (the advertised compatibility gate per the PRD)
 
 Scope: Dedicated Lucid transaction service, `TenantScopedModel`, hooks, relationship/quiet/bulk paths,
 typed errors, matrix, and PostgreSQL tests.
@@ -45,8 +46,11 @@ Acceptance: AC-LUCID-01 and AC-LUCID-02.
 
 Tests: Lucid model/query/relationship/pagination/quiet/bulk/direct-builder isolation tests.
 
-Evidence: 11 unit/adversarial tests pass locally; four Lucid 22/PostgreSQL 17 tests are implemented and
-skip locally without `TEST_DATABASE_URL`.
+Evidence: 11 unit/adversarial tests pass locally; the four Lucid 22/PostgreSQL 17 integration tests now
+pass against a live PostgreSQL 17.10 instance (`postgres:17-alpine`, matching the CI service). Full
+`pnpm check` is green with `TEST_DATABASE_URL` set — 20 files, 261 tests, 0 skipped — run on local
+Node 26. Hosted Node 24 CI evidence on a PR remains the advertised compatibility gate and is not yet
+recorded.
 
 ## T5: Implement Adonis Provider And Middleware
 

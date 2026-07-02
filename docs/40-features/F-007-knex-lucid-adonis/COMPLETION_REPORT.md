@@ -2,7 +2,8 @@
 
 ## Status
 
-Planning and the Knex T2/T3 slice are complete; Lucid implementation is in progress.
+Planning and the Knex T2/T3 slice are complete; Lucid implementation is in progress with local
+PostgreSQL 17 evidence now passing (hosted Node 24 CI evidence still pending).
 
 ## Files Changed
 
@@ -19,8 +20,12 @@ Planning and the Knex T2/T3 slice are complete; Lucid implementation is in progr
   locally because `TEST_DATABASE_URL` is not configured.
 - TypeScript package/test typecheck, ESLint, package archive/consumer, full repository gate, and Persist
   Doctor before T2 completion.
-- 11 focused Lucid unit/adversarial tests pass; four real PostgreSQL tests are wired and skip locally
-  because `TEST_DATABASE_URL` is not configured.
+- 11 focused Lucid unit/adversarial tests pass; the four real Lucid 22/PostgreSQL 17 tests now pass
+  against a live `postgres:17-alpine` (PostgreSQL 17.10) instance matching the CI service definition.
+- Full `pnpm check` re-run with `TEST_DATABASE_URL` set and all database lanes active (Knex and Lucid
+  PostgreSQL suites executing, not skipped): 20 test files, 261 tests, 0 skipped, exit code 0. Local
+  coverage 96.87% statements, 93.32% branches, 98.02% functions, 97.31% lines; 9 package archives and
+  Persist Doctor pass. This ran on local Node 26; the advertised CI lane is Node 24.
 
 ## Results
 
@@ -33,5 +38,7 @@ Planning and the Knex T2/T3 slice are complete; Lucid implementation is in progr
 
 ## Remaining Risks
 
-- Hosted Lucid 22/PostgreSQL evidence and the AdonisJS 7 integration/example remain incomplete; their
-  compatibility is not yet claimed.
+- Lucid 22/PostgreSQL 17 isolation now has local evidence but no hosted Node 24 CI run yet; per the
+  PRD, compatibility is claimed only from CI, so it is not yet advertised.
+- The AdonisJS 7 provider/middleware integration (T5) and reference example (T6) remain incomplete;
+  their compatibility is not yet claimed.
