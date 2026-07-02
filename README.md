@@ -22,8 +22,8 @@ framework or ORM that already owns your application.
 
 > **Pre-alpha:** repository foundations, core lifecycle, tenant identifiers, portable testing
 > contracts, the experimental Prisma row-level adapter, and the Express 5 integration are implemented.
-> The Express + Prisma slice has local PostgreSQL evidence but is not production-ready until hosted
-> compatibility review passes. Follow the
+> The safe reference CLI foundation is also implemented locally. The slice is not production-ready
+> until hosted compatibility review passes. Follow the
 > [delivery plan](docs/40-features/F-001-tenancyjs-platform/PLAN.md) for implementation state.
 
 ---
@@ -211,8 +211,8 @@ Read the [security model](docs/20-security/SECURITY_MODEL.md),
 1. **Foundation — complete** — workspace, quality gates, release discipline, and repository memory.
 2. **Core contract — complete** — async tenant context, central context, lifecycle, rollback, and tests.
 3. **Identification/testing — complete** — fail-closed resolvers and portable conformance contracts.
-4. **Reference slice — in progress** — Prisma row-level isolation and Express integration are
-   implemented; hosted compatibility evidence and the first safe CLI workflow follow.
+4. **Reference slice — in progress** — Prisma row-level isolation, Express integration, and safe
+   init/Doctor/leak-test CLI foundation are implemented; hosted compatibility evidence follows.
 5. **Framework depth** — Next.js App Router, then AdonisJS + Lucid/Knex.
 6. **Backend breadth** — NestJS + Prisma/Sequelize and tested adapter combinations.
 7. **Physical isolation** — database provisioning and delegated migrations per tenant.

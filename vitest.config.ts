@@ -7,6 +7,9 @@ export default defineConfig({
       "@tenancyjs/adapter-prisma": fileURLToPath(
         new URL("./packages/adapter-prisma/src/index.ts", import.meta.url),
       ),
+      "@tenancyjs/cli": fileURLToPath(
+        new URL("./packages/cli/src/index.ts", import.meta.url),
+      ),
       "@tenancyjs/core": fileURLToPath(
         new URL("./packages/core/src/index.ts", import.meta.url),
       ),
@@ -23,9 +26,10 @@ export default defineConfig({
   },
   test: {
     coverage: {
-      exclude: ["**/dist/**"],
+      exclude: ["**/dist/**", "packages/cli/src/bin.ts"],
       include: [
         "packages/adapter-prisma/src/**/*.ts",
+        "packages/cli/src/**/*.ts",
         "packages/core/src/**/*.ts",
         "packages/identifiers/src/**/*.ts",
         "packages/integration-express/src/**/*.ts",

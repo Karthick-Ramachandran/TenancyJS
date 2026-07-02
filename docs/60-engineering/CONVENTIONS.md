@@ -19,6 +19,9 @@ preferences.
 - `createExpressTenancyMiddleware`: canonical Express 5 request-lifecycle bridge; it composes an
   application-owned `TenancyManager` and tenant resolver and never creates hidden tenant state.
 - `createRowLevelAdapterContract`: runner-neutral two-tenant adapter conformance suite.
+- `ProjectChangePlan`: canonical immutable CLI preview/apply contract; content is never printed in
+  normal output and every action is revalidated before commit.
+- `runDoctor`: canonical deterministic CLI diagnostic entry point with stable findings and exit mapping.
 - `TenancyIntegration`: framework lifecycle bridge contract.
 - Conformance suites in `@tenancyjs/testing`: required evidence for stable adapters and integrations.
 - `pnpm check`: canonical repository gate for lint, format, types, tests, package verification, and

@@ -102,7 +102,9 @@ Delivery memory: `docs/40-features/F-004-express-integration/` and
 
 ## T-06: Implement Safe CLI Foundation
 
-Status: Todo.
+Status: Locally complete through F-005; hosted Node 22/24 CI pending.
+
+Delivery memory: `docs/40-features/F-005-safe-cli-foundation/` and `docs/30-modules/cli/`.
 
 Scope: Project detection, typed plan, dry-run/apply engine, path/symlink checks, conflict reporting,
 secret redaction, `init`, `doctor`, and `test:leak` for Express+Prisma. Doctor inventories unextended

@@ -3,6 +3,7 @@
   "references": [
     { "path": "./packages/core" },
     { "path": "./packages/adapter-prisma" },
+    { "path": "./packages/cli" },
     { "path": "./packages/identifiers" },
     { "path": "./packages/integration-express" },
     { "path": "./packages/testing" },

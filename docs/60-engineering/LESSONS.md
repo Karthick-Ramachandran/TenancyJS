@@ -30,3 +30,5 @@ model preferences.
   `where`, or unique reads/writes fail before reaching the database.
 - Real-database Vitest files run concurrently; give independent Prisma fixtures separate PostgreSQL
   schemas instead of resetting shared tables, or their `beforeEach` hooks corrupt each other's evidence.
+- Killing a noisy child while its pipe is draining can stall test-process completion; truncate captured
+  output, mark failure, and let the existing timeout own forced termination.

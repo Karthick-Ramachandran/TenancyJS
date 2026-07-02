@@ -11,6 +11,9 @@ lifecycle/error contract, tenant-resolution/testing contracts, and Prisma row-le
 are accepted in ADR-0001 through ADR-0007. The Express request lifecycle/error contract is accepted in
 ADR-0008 and implemented by `@tenancyjs/integration-express`.
 
+The safe Express + Prisma CLI foundation implements ADR-0003 through `@tenancyjs/cli`; operational ORM
+delegation remains deferred.
+
 ## Architecture
 
 The platform uses a layered monorepo with dependency flow:

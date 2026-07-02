@@ -3,8 +3,9 @@
 ## Status
 
 Active and incremental. Core async context, fail-closed tenant access, explicit central scope,
-lifecycle cleanup, tenant resolution, and Prisma row-level isolation are implemented and tested.
-Other adapters, framework integrations, and CLI safety remain requirements for later tasks.
+lifecycle cleanup, tenant resolution, Prisma row-level isolation, Express request lifecycle, and the
+reference safe CLI foundation are implemented and tested. Other adapters, framework integrations, and
+operational CLI commands remain requirements for later tasks.
 
 ## Baseline Rules
 
@@ -100,3 +101,16 @@ only to locally installed, allowlisted ORM executables using argument arrays rat
   dispatch failure, with idempotent listener removal.
 - Express 5 promise rejection handling forwards asynchronous resolver/lifecycle failures; Express 4 is
   outside the tested compatibility boundary.
+
+## Implemented CLI Foundation Controls
+
+- `init` is dry-run by default and creates fixed new files only with `--apply`; no overwrite mode exists.
+- Roots are canonicalized and every write/test path is revalidated for containment, symlinks,
+  duplicates, conflicts, and races before exclusive commit.
+- Generated writes stage inside the project, commit through non-overwriting hard links, and roll back
+  files/directories created by a failed operation.
+- Doctor reads metadata/text only, skips `.env`, VCS/dependencies/build/generated trees, symlinks, and
+  large files, and never imports project code or connects to a database/network.
+- Human, JSON, error, and leak-test output redact URL credentials and secret-like assignments.
+- `test:leak` runs only an explicit contained JavaScript file through absolute Node with `shell: false`;
+  its environment is allowlisted and time/output are bounded. The trusted file is not sandboxed.

@@ -61,3 +61,10 @@ AC-HTTP-01 passes locally through F-004 for Express 5.2 success, thrown/rejected
 real client abort, and concurrent tenant requests. The Express + Prisma/PostgreSQL reference E2E proves
 two-tenant read/create/update/delete/count/aggregate isolation. AC-COMPAT-01 remains pending hosted Node
 22/24 evidence and is not yet a stable claim.
+
+## T-06 Local Evidence
+
+AC-CLI-01 and AC-CLI-02 pass locally for the Express + Prisma reference slice through F-005: safe
+new-file-only init preview/apply, conflict/path/symlink/rollback controls, deterministic human/JSON
+Doctor inventory and migration effort, redaction, exit codes, and explicit bounded leak-test execution.
+Migration/seed delegation under AC-CLI-03 remains a later task.
