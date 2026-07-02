@@ -119,7 +119,10 @@ Do Not: Read `.env`, overwrite conflicting files silently, execute remote packag
 
 ## T-07: Implement Next.js App Router Integration
 
-Status: Todo.
+Status: Planned in F-006; blocked on ADR-0009 acceptance.
+
+Delivery memory: `docs/40-features/F-006-nextjs-integration/` and
+`docs/30-modules/integration-next/`.
 
 Scope: Route Handler and Server Action wrappers, Node server helper, validated middleware handoff,
 template transforms, caching guidance, and Next+Prisma example.
