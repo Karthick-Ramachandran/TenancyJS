@@ -87,7 +87,7 @@ Do Not: Claim operations the extension API cannot reliably intercept; fail or do
 
 ## T-05: Implement Express Integration And Reference Example
 
-Status: Todo.
+Status: Planned in F-004; blocked on ADR-0008 acceptance.
 
 Scope: Middleware factory, error mapping, lifecycle cleanup, Express+Prisma example, and E2E harness.
 
@@ -96,6 +96,9 @@ Acceptance: AC-HTTP-01 and AC-COMPAT-01 for Express+Prisma.
 Tests: Supertest concurrency/error cases and two-tenant PostgreSQL E2E.
 
 Do Not: Store tenant state on process globals or rely on response `finish` as the only cleanup path.
+
+Delivery memory: `docs/40-features/F-004-express-integration/` and
+`docs/30-modules/integration-express/`.
 
 ## T-06: Implement Safe CLI Foundation
 

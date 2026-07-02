@@ -2,8 +2,8 @@
 
 ## Status
 
-Feature delivery is in progress through T-04. T-05 Express integration is next after the Prisma
-adapter merges.
+Feature delivery is complete through T-04. T-05 Express integration planning is recorded in F-004 and
+implementation is blocked on ADR-0008 acceptance.
 
 ## Completed Scope
 

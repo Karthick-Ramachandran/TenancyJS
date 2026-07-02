@@ -6,9 +6,10 @@ Describe the accepted architecture for this repository.
 
 ## Current Status
 
-The layered package architecture, tenant-context model, safe CLI boundary, workspace toolchain, and
-core lifecycle/error contract, tenant-resolution/testing contracts, and the Prisma row-level security
-boundary are accepted in ADR-0001 through ADR-0007.
+The layered package architecture, tenant-context model, safe CLI boundary, workspace toolchain, core
+lifecycle/error contract, tenant-resolution/testing contracts, and Prisma row-level security boundary
+are accepted in ADR-0001 through ADR-0007. The Express request lifecycle/error contract is proposed in
+ADR-0008 and is not implemented.
 
 ## Architecture
 
