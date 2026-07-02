@@ -14,6 +14,7 @@ other TenancyJS packages depend.
 - Bootstrapper registration, ordered setup, reverse rollback, and lifecycle events.
 - Typed configuration primitives and errors for missing/invalid context.
 - Explicit central scope and explicit unsafe-bypass capability boundary.
+- ORM-neutral `TenancyAdapter` capabilities and validation-result types.
 
 ## Does Not Own
 
@@ -31,6 +32,7 @@ other TenancyJS packages depend.
 - `TenancyBootstrapper` and typed lifecycle event/listener contracts.
 - `defineConfig`, `TenancyConfig`, and `TenancyStrategy` for `rowLevel` and `databasePerTenant`.
 - Typed `TenancyError` subclasses for context, tenant, bootstrapper, and lifecycle failures.
+- `TenancyAdapter`, `TenancyAdapterCapabilities`, and adapter validation types.
 
 ## Boundaries
 
@@ -41,5 +43,6 @@ of application authorization.
 
 Relevant feature: `docs/40-features/F-001-tenancyjs-platform/`.
 
-The implementation lives in `packages/core/src/`; its contract is fixed by ADR-0005. No unsafe bypass
-API is exposed. A later adapter task must document and review any proposed bypass capability.
+The implementation lives in `packages/core/src/`; lifecycle behavior is fixed by ADR-0005 and the
+adapter vocabulary by ADR-0007. Core owns only data-only adapter contracts, not ORM behavior. No
+unsafe bypass API is exposed beyond explicit lexical central context.

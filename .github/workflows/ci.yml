@@ -12,6 +12,21 @@ jobs:
   quality:
     name: Node ${{ matrix.node }}
     runs-on: ubuntu-latest
+    env:
+      TEST_DATABASE_URL: postgresql://postgres@127.0.0.1:5432/tenancyjs_test
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: tenancyjs_test
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d tenancyjs_test"
+          --health-interval 2s
+          --health-timeout 2s
+          --health-retries 15
     strategy:
       fail-fast: false
       matrix:

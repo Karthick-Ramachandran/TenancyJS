@@ -4,6 +4,9 @@ import { fileURLToPath } from "node:url";
 export default defineConfig({
   resolve: {
     alias: {
+      "@tenancyjs/adapter-prisma": fileURLToPath(
+        new URL("./packages/adapter-prisma/src/index.ts", import.meta.url),
+      ),
       "@tenancyjs/core": fileURLToPath(
         new URL("./packages/core/src/index.ts", import.meta.url),
       ),
@@ -19,6 +22,7 @@ export default defineConfig({
     coverage: {
       exclude: ["**/dist/**"],
       include: [
+        "packages/adapter-prisma/src/**/*.ts",
         "packages/core/src/**/*.ts",
         "packages/identifiers/src/**/*.ts",
         "packages/testing/src/**/*.ts",

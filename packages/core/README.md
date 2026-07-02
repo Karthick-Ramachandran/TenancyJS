@@ -93,6 +93,12 @@ export default defineConfig({
 Core carries strategy intent; adapters and later provisioning modules implement the actual database
 isolation behavior.
 
+## Adapter contract
+
+`TenancyAdapter`, `TenancyAdapterCapabilities`, and validation-result types provide the small,
+ORM-neutral vocabulary used by adapter packages. Core does not import an ORM or implement query
+rewriting.
+
 ## Errors
 
 - `TenantContextError`: tenant access was attempted with no scope or in central mode.

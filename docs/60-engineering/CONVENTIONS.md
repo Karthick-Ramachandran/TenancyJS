@@ -13,14 +13,17 @@ preferences.
 - `TenantResolver`: framework-neutral tenant resolution contract.
 - `TenantResolutionOutcome`: exhaustive, non-secret result of ordered resolver plus tenant-store lookup.
 - `TenancyContractCase`: runner-neutral `{ name, run }` conformance case from `@tenancyjs/testing`.
-- `TenancyAdapter`: data-layer isolation and validation contract.
+- `TenancyAdapter`: implemented ORM-neutral capability and validation contract owned by core.
+- `createPrismaTenancyExtension`: canonical Prisma row-level extension factory; never expose a base
+  Prisma client as the protected application client.
+- `createRowLevelAdapterContract`: runner-neutral two-tenant adapter conformance suite.
 - `TenancyIntegration`: framework lifecycle bridge contract.
 - Conformance suites in `@tenancyjs/testing`: required evidence for stable adapters and integrations.
 - `pnpm check`: canonical repository gate for lint, format, types, tests, package verification, and
   Persist memory validation.
 
-Core, resolver, outcome, and contract-case names above are implemented contracts. `TenancyAdapter` and
-`TenancyIntegration` details remain planned until their tasks complete. Do not introduce a competing
+Core, resolver, outcome, contract-case, adapter, and Prisma-extension names above are implemented
+contracts. `TenancyIntegration` remains planned until its task completes. Do not introduce a competing
 name without updating the feature plan and an ADR where applicable.
 
 ## Naming Conventions

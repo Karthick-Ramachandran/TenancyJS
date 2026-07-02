@@ -13,9 +13,10 @@ data across tenants. TenancyJS makes the secure path the documented and tested d
 
 ## Current Status
 
-Pre-alpha implementation. Repository foundations and the core tenant lifecycle are implemented; ORM
-isolation and framework integrations have not started. The source research is in `docs/BRD-PRD.md`
-and `docs/CLI-RESEARCH.md`; delivery status is in
+Pre-alpha implementation. Repository foundations, core lifecycle, tenant identification, shared
+testing contracts, and the Prisma 7.8 row-level adapter are implemented; framework integrations and
+other adapters have not started. The source research is in `docs/BRD-PRD.md` and
+`docs/CLI-RESEARCH.md`; delivery status is in
 `docs/40-features/F-001-tenancyjs-platform/`.
 
 ## Initial Supported Surface
@@ -33,6 +34,7 @@ lifecycle and migration conventions.
 
 ## Product Principles
 
+- Make fail-closed enforcement the differentiator: if isolation cannot be proven, do not execute.
 - Fail closed when tenant-aware data access has no valid tenant context.
 - Never use process-global mutable tenant state.
 - Keep core independent from frameworks and ORMs.
@@ -40,6 +42,9 @@ lifecycle and migration conventions.
 - Delegate migrations and schema operations to Prisma, Sequelize, Knex, and Lucid tooling.
 - Make generated project writes previewable, idempotent, conflict-aware, and secret-safe.
 - Claim compatibility only for combinations exercised in CI and examples.
+- Keep supported adapter paths identical to native ORM APIs; do not invent a parallel query language.
+- Target v1 first at greenfield adoption while providing an explicit incremental migration path for
+  existing applications.
 
 ## Non-Goals For The Initial Platform
 

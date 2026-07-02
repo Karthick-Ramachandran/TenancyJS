@@ -65,3 +65,14 @@ Feature implementation in progress. T-01 passed architecture, conventions, and s
   isolated Dependabot PR passed the same hosted checks.
 - `pnpm check` and `pnpm audit --audit-level high` pass after combining both updates with T-02 and
   T-03. No architecture, module, product behavior, or accepted ADR changes are required.
+
+## T-04 Review
+
+- ADR-0007 is accepted and the Prisma adapter follows the separate-package dependency boundary.
+- Supported top-level operations pass the shared row-level contract and Prisma 7.8/PostgreSQL 17
+  negative isolation tests; raw, nested, fluent relation, unknown model/operation, and missing-context
+  paths fail closed.
+- Core gained only ORM-neutral adapter types; testing remains runner/ORM-neutral; no framework or
+  database-per-tenant behavior was introduced.
+- Dependency, architecture, conventions, and security review found no blocker. Detailed findings and
+  tradeoffs live in `docs/40-features/F-003-prisma-adapter/REVIEW.md`.

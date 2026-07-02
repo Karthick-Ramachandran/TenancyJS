@@ -47,6 +47,18 @@ describe("workspace foundation", () => {
     }
   });
 
+  it("keeps Prisma isolated to its adapter package", async () => {
+    const manifest = await readJson("packages/adapter-prisma/package.json");
+
+    expect(manifest.dependencies).toEqual({
+      "@tenancyjs/core": "workspace:*",
+    });
+    expect(manifest.peerDependencies).toEqual({
+      "@prisma/client": ">=7.8.0 <7.9.0",
+    });
+    expect(manifest.exports).toHaveProperty(".");
+  });
+
   it("builds an importable ESM core package entry point", async () => {
     const entry = pathToFileURL(
       `${process.cwd()}/packages/core/dist/index.js`,

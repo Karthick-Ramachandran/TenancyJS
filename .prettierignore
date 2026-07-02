@@ -1,4 +1,5 @@
 .agents/
+.artifacts/
 .claude/
 .cursor/
 .persist/

@@ -2,8 +2,8 @@
 
 ## Status
 
-Active and incremental. Core-context controls are implemented; adapter, integration, and CLI controls
-remain requirements until their delivery tasks complete.
+Active and incremental. Core-context, tenant-resolution, and Prisma row-level adapter controls are
+implemented; other adapter, integration, and CLI controls remain delivery requirements.
 
 ## Assets
 
@@ -57,7 +57,8 @@ remain requirements until their delivery tasks complete.
 
 ## Open Risks
 
-- Prisma interception coverage for nested and evolving query APIs: adapter owner; prototype in T-04.
+- Prisma nested relation/raw capabilities remain outside the accepted adapter security boundary and
+  are rejected; Prisma major updates require renewed compatibility evidence.
 - Next.js runtime/caching evolution and Edge identity handoff: integration owner; prototype in T-07.
 - Raw SQL cannot be made universally safe: adapter/documentation owners; explicit escape policy needed.
 - Atomic rollback across filesystem and database operations is impossible: CLI owner; staged,

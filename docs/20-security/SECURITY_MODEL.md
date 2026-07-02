@@ -2,9 +2,9 @@
 
 ## Status
 
-Active and incremental. Core async context, fail-closed tenant access, explicit central scope, and
-lifecycle cleanup are implemented and tested. Adapter isolation, resolver validation, and CLI safety
-remain requirements for later tasks.
+Active and incremental. Core async context, fail-closed tenant access, explicit central scope,
+lifecycle cleanup, tenant resolution, and Prisma row-level isolation are implemented and tested.
+Other adapters, framework integrations, and CLI safety remain requirements for later tasks.
 
 ## Baseline Rules
 
@@ -70,3 +70,17 @@ only to locally installed, allowlisted ORM executables using argument arrays rat
 - Custom resolver output is validated and stamped with the configured resolver ID before lookup.
 - Registry duplicates and suspension return exhaustive non-secret outcomes rather than tenant records.
 - Resolution establishes tenant identity only and never authenticates membership or selects central mode.
+
+## Implemented Prisma Adapter Controls
+
+- Every observed model must be configured as tenant-scoped or central; unknown/overlapping models fail.
+- Model/relation classification is host-supplied and must be reviewed against every schema change;
+  adapter validation reports that unverifiable boundary as a warning.
+- Supported top-level operations preserve caller filters and append the active tenant predicate.
+- Create operations inject/validate the discriminator; updates cannot change it.
+- Raw operations, nested relation operations, relation traversal, and unknown operations are rejected.
+- The security boundary is only the returned extended client; a retained base client bypasses it.
+- Central-model access is allowlisted and explicit central context is the only tenant-model bypass.
+- Query callbacks delegate exactly once through Prisma's provided callback so transactions retain scope.
+- Errors contain model/operation identifiers but never query arguments, rows, tenants, or database URLs.
+- The tenancy extension must be registered last so later query extensions cannot remove scoped arguments.

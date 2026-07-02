@@ -46,4 +46,11 @@
 
 AC-CORE-01 through AC-CORE-04 are implemented in `@tenancyjs/core` and covered by concurrency,
 nesting, central-scope, fail-closed, bootstrap failure, reverse cleanup, lifecycle error, and packed
-consumer tests. Adapter and framework criteria remain pending.
+consumer tests.
+
+## T-03/T-04 Evidence
+
+Tenant identification and portable lifecycle contracts are implemented through F-002. Prisma's
+portion of AC-ADAPTER-01 and AC-ADAPTER-02 is implemented through F-003 for the explicit Prisma
+7.8/PostgreSQL top-level operation matrix, shared adapter contract, transactions, central models,
+and typed raw/nested rejection. Other adapters and all framework criteria remain pending.

@@ -70,7 +70,7 @@ Do Not: Treat extracted identifiers as authenticated tenant membership.
 
 ## T-04: Implement Prisma Adapter Contract Reference
 
-Status: Todo.
+Status: Complete locally through F-003; hosted Node 22/24 PostgreSQL CI pending publication.
 
 Scope: Finalize `TenancyAdapter` capabilities and implement Prisma row-level scoping.
 
@@ -78,6 +78,10 @@ Acceptance: AC-ADAPTER-01 and AC-ADAPTER-02 for supported Prisma operations, wit
 
 Tests: Shared adapter suite against PostgreSQL, including nested writes, bulk APIs, transactions, and
 raw-query escape behavior.
+
+Evidence: 127 tests pass, including real Prisma 7.8/PostgreSQL 17 isolation, bulk, aggregate,
+transaction, rollback, raw/nested/fluent rejection, and the shared adapter contract. Four-package
+consumer, audit, coverage, and Persist gates pass.
 
 Do Not: Claim operations the extension API cannot reliably intercept; fail or document them explicitly.
 
@@ -98,7 +102,8 @@ Do Not: Store tenant state on process globals or rely on response `finish` as th
 Status: Todo.
 
 Scope: Project detection, typed plan, dry-run/apply engine, path/symlink checks, conflict reporting,
-secret redaction, `init`, `doctor`, and `test:leak` for Express+Prisma.
+secret redaction, `init`, `doctor`, and `test:leak` for Express+Prisma. Doctor inventories unextended
+clients, raw/nested/relation patterns, incomplete adapter classification, and estimated migration effort.
 
 Acceptance: AC-CLI-01 and AC-CLI-02 for the reference slice.
 
