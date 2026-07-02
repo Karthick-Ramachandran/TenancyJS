@@ -28,3 +28,10 @@ model preferences.
 - Prisma 7 validates unique selectors at the top level of `WhereUniqueInput`; preserve caller unique
   fields and append tenant scope through a top-level `AND` instead of nesting the entire original
   `where`, or unique reads/writes fail before reaching the database.
+- Real-database Vitest files run concurrently; give independent Prisma fixtures separate PostgreSQL
+  schemas instead of resetting shared tables, or their `beforeEach` hooks corrupt each other's evidence.
+- Killing a noisy child while its pipe is draining can stall test-process completion; truncate captured
+  output, mark failure, and let the existing timeout own forced termination.
+- A Web `ReadableStream` created inside `AsyncLocalStorage` can retain that creation context when its
+  callbacks run later; end the supported Next tenant scope at handler promise settlement and prohibit
+  tenant-scoped database work inside streamed body callbacks.

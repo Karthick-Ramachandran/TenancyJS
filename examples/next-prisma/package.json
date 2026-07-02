@@ -1,0 +1,30 @@
+{
+  "name": "@tenancyjs/example-next-prisma",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "next build",
+    "dev": "next dev",
+    "prisma:generate": "prisma generate --schema prisma/schema.prisma",
+    "prisma:test:push": "prisma db push --config prisma.config.ts",
+    "start": "next start",
+    "typecheck": "next typegen && tsc --noEmit --pretty false"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "7.8.0",
+    "@prisma/client": "7.8.0",
+    "@tenancyjs/adapter-prisma": "workspace:*",
+    "@tenancyjs/core": "workspace:*",
+    "@tenancyjs/identifiers": "workspace:*",
+    "@tenancyjs/integration-next": "workspace:*",
+    "next": "16.2.10",
+    "react": "19.2.7",
+    "react-dom": "19.2.7"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.17",
+    "prisma": "7.8.0",
+    "typescript": "6.0.3"
+  }
+}

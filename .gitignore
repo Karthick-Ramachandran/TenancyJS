@@ -3,6 +3,9 @@ dist/
 coverage/
 *.tsbuildinfo
 .artifacts/
+examples/express-prisma/src/generated/
+examples/next-prisma/generated/
+.next/
 *.tgz
 .DS_Store
 .env

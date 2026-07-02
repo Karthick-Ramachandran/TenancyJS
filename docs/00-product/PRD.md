@@ -14,10 +14,16 @@ data across tenants. TenancyJS makes the secure path the documented and tested d
 ## Current Status
 
 Pre-alpha implementation. Repository foundations, core lifecycle, tenant identification, shared
-testing contracts, and the Prisma 7.8 row-level adapter are implemented; framework integrations and
-other adapters have not started. The source research is in `docs/BRD-PRD.md` and
+testing contracts, the Prisma 7.8 row-level adapter, and the Express 5 integration/reference example
+are implemented locally under F-004; hosted Node 22/24 evidence remains pending. Other integrations
+and adapters have not started. The reference safe CLI foundation is implemented under F-005; migration,
+seed, tenant-operation, and database-per-tenant commands remain deferred. The source research is in
+`docs/BRD-PRD.md` and
 `docs/CLI-RESEARCH.md`; delivery status is in
 `docs/40-features/F-001-tenancyjs-platform/`.
+
+Next.js App Router integration is implemented under F-006 and follows accepted ADR-0009; hosted
+Node 22/24 PostgreSQL compatibility evidence passes on PR #7.
 
 ## Initial Supported Surface
 

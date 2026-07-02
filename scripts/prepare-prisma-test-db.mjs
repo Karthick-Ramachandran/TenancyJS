@@ -8,21 +8,29 @@ if (process.env.TEST_DATABASE_URL === undefined) {
   process.exit(0);
 }
 
-const result = spawnSync(
-  "pnpm",
-  ["--filter", "@tenancyjs/adapter-prisma", "prisma:test:push"],
-  {
-    cwd: process.cwd(),
-    encoding: "utf8",
-    env: process.env,
-    stdio: "pipe",
-  },
-);
-
-if (result.status !== 0) {
-  throw new Error(
-    result.stderr || result.stdout || "Prisma test database setup failed.",
+for (const packageName of [
+  "@tenancyjs/adapter-prisma",
+  "@tenancyjs/example-express-prisma",
+  "@tenancyjs/example-next-prisma",
+]) {
+  const result = spawnSync(
+    "pnpm",
+    ["--filter", packageName, "prisma:test:push"],
+    {
+      cwd: process.cwd(),
+      encoding: "utf8",
+      env: process.env,
+      stdio: "pipe",
+    },
   );
+
+  if (result.status !== 0) {
+    throw new Error(
+      result.stderr ||
+        result.stdout ||
+        `Prisma test database setup failed for ${packageName}.`,
+    );
+  }
 }
 
-process.stdout.write("Prisma PostgreSQL test schema is ready.\n");
+process.stdout.write("Prisma PostgreSQL test schemas are ready.\n");

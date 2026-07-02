@@ -1,0 +1,26 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  schemas  = ["next_example"]
+}
+
+model Tenant {
+  id        String  @id
+  name      String
+  suspended Boolean @default(false)
+
+  @@schema("next_example")
+}
+
+model Post {
+  id       String @id @default(uuid())
+  tenantId String
+  title    String
+
+  @@index([tenantId])
+  @@schema("next_example")
+}

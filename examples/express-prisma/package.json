@@ -1,0 +1,27 @@
+{
+  "name": "@tenancyjs/example-express-prisma",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -b",
+    "prisma:generate": "prisma generate --schema prisma/schema.prisma",
+    "prisma:test:push": "prisma db push --config prisma.config.ts",
+    "start": "node dist/server.js",
+    "typecheck": "tsc -b --pretty false"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "7.8.0",
+    "@prisma/client": "7.8.0",
+    "@tenancyjs/adapter-prisma": "workspace:*",
+    "@tenancyjs/core": "workspace:*",
+    "@tenancyjs/identifiers": "workspace:*",
+    "@tenancyjs/integration-express": "workspace:*",
+    "express": "5.2.1"
+  },
+  "devDependencies": {
+    "@types/express": "5.0.6",
+    "prisma": "7.8.0",
+    "typescript": "6.0.3"
+  }
+}

@@ -87,7 +87,7 @@ Do Not: Claim operations the extension API cannot reliably intercept; fail or do
 
 ## T-05: Implement Express Integration And Reference Example
 
-Status: Todo.
+Status: Complete through F-004; hosted Node 22/24 PostgreSQL CI passes on PR #7.
 
 Scope: Middleware factory, error mapping, lifecycle cleanup, Express+Prisma example, and E2E harness.
 
@@ -97,9 +97,14 @@ Tests: Supertest concurrency/error cases and two-tenant PostgreSQL E2E.
 
 Do Not: Store tenant state on process globals or rely on response `finish` as the only cleanup path.
 
+Delivery memory: `docs/40-features/F-004-express-integration/` and
+`docs/30-modules/integration-express/`.
+
 ## T-06: Implement Safe CLI Foundation
 
-Status: Todo.
+Status: Complete through F-005; hosted Node 22/24 CI passes on PR #7.
+
+Delivery memory: `docs/40-features/F-005-safe-cli-foundation/` and `docs/30-modules/cli/`.
 
 Scope: Project detection, typed plan, dry-run/apply engine, path/symlink checks, conflict reporting,
 secret redaction, `init`, `doctor`, and `test:leak` for Express+Prisma. Doctor inventories unextended
@@ -114,7 +119,10 @@ Do Not: Read `.env`, overwrite conflicting files silently, execute remote packag
 
 ## T-07: Implement Next.js App Router Integration
 
-Status: Todo.
+Status: Complete through F-006; local gates and hosted Node 22/24 PostgreSQL evidence pass on PR #7.
+
+Delivery memory: `docs/40-features/F-006-nextjs-integration/` and
+`docs/30-modules/integration-next/`.
 
 Scope: Route Handler and Server Action wrappers, Node server helper, validated middleware handoff,
 template transforms, caching guidance, and Next+Prisma example.

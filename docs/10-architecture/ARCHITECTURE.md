@@ -6,9 +6,16 @@ Describe the accepted architecture for this repository.
 
 ## Current Status
 
-The layered package architecture, tenant-context model, safe CLI boundary, workspace toolchain, and
-core lifecycle/error contract, tenant-resolution/testing contracts, and the Prisma row-level security
-boundary are accepted in ADR-0001 through ADR-0007.
+The layered package architecture, tenant-context model, safe CLI boundary, workspace toolchain, core
+lifecycle/error contract, tenant-resolution/testing contracts, and Prisma row-level security boundary
+are accepted in ADR-0001 through ADR-0007. The Express request lifecycle/error contract is accepted in
+ADR-0008 and implemented by `@tenancyjs/integration-express`.
+
+The safe Express + Prisma CLI foundation implements ADR-0003 through `@tenancyjs/cli`; operational ORM
+delegation remains deferred.
+
+The Next.js Node/Edge integration boundary is accepted in ADR-0009 and implemented by
+`@tenancyjs/integration-next` with a separate Edge-safe hint export.
 
 ## Architecture
 

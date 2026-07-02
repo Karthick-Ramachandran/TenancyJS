@@ -2,8 +2,9 @@
 
 ## Status
 
-Active and incremental. Core-context, tenant-resolution, and Prisma row-level adapter controls are
-implemented; other adapter, integration, and CLI controls remain delivery requirements.
+Active and incremental. Core-context, tenant-resolution, Prisma row-level adapter, Express request
+lifecycle, and reference CLI safety controls are implemented; other adapter, integration, and
+operational CLI controls remain delivery requirements.
 
 ## Assets
 
@@ -59,10 +60,16 @@ implemented; other adapter, integration, and CLI controls remain delivery requir
 
 - Prisma nested relation/raw capabilities remain outside the accepted adapter security boundary and
   are rejected; Prisma major updates require renewed compatibility evidence.
-- Next.js runtime/caching evolution and Edge identity handoff: integration owner; prototype in T-07.
+- Client disconnects end Express lifecycle resources, but already-created application async work may
+  continue under its captured tenant context; applications own cancellation of abandoned work.
+- Next.js runtime/caching evolution remains an integration-owner compatibility risk; T-07 pins a narrow
+  peer range, revalidates Edge hints in Node, and requires tenant-aware keys or `no-store`.
 - Raw SQL cannot be made universally safe: adapter/documentation owners; explicit escape policy needed.
 - Atomic rollback across filesystem and database operations is impossible: CLI owner; staged,
   idempotent operations and recovery output required.
+- Explicit leak-test files execute as trusted local code rather than in a sandbox; the CLI constrains
+  path, environment, duration, output, and shell use, while users remain responsible for reviewing the
+  selected test behavior.
 - Framework and ORM peer versions remain unresolved until their integration tasks: package owners.
 - Shallow tenant snapshots do not freeze custom nested metadata: host applications must treat nested
   values as application-owned and avoid mutating security-relevant metadata during a scope.

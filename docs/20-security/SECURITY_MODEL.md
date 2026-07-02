@@ -3,8 +3,9 @@
 ## Status
 
 Active and incremental. Core async context, fail-closed tenant access, explicit central scope,
-lifecycle cleanup, tenant resolution, and Prisma row-level isolation are implemented and tested.
-Other adapters, framework integrations, and CLI safety remain requirements for later tasks.
+lifecycle cleanup, tenant resolution, Prisma row-level isolation, Express and Next.js request
+lifecycle boundaries, and the reference safe CLI foundation are implemented and tested. Other
+adapters, framework integrations, and operational CLI commands remain requirements for later tasks.
 
 ## Baseline Rules
 
@@ -86,3 +87,45 @@ only to locally installed, allowlisted ORM executables using argument arrays rat
 - Query callbacks delegate exactly once through Prisma's provided callback so transactions retain scope.
 - Errors contain model/operation identifiers but never query arguments, rows, tenants, or database URLs.
 - The tenancy extension must be registered last so later query extensions cannot remove scoped arguments.
+
+## Implemented Express Integration Controls
+
+- Applications supply the canonical manager and resolution service; the integration creates no hidden
+  tenant state, registry, adapter, or central-mode path.
+- Only a `resolved` outcome enters `runWithTenant`; every other outcome fails before tenant routes.
+- Missing/invalid identity uses sanitized 400 errors; unknown and suspended tenants share one generic
+  404 mapping; ambiguous registry data maps to a generic 500.
+- Request header/host input is copied into a frozen resolver snapshot and never appears in default
+  error messages.
+- Tenant lifecycle remains active until response finish, response close, request abort, or synchronous
+  dispatch failure, with idempotent listener removal.
+- Express 5 promise rejection handling forwards asynchronous resolver/lifecycle failures; Express 4 is
+  outside the tested compatibility boundary.
+
+## Implemented Next.js Integration Controls
+
+- Route Handlers and Server Actions resolve only in Node through one application-owned manager and
+  resolver; only a `resolved` outcome enters tenant context.
+- Server Action arguments never select tenant or central scope; identity comes from Next request
+  headers and is copied into a frozen resolver snapshot.
+- The Edge-only export imports no context, registry, adapter, or database code. Its reserved hint is
+  untrusted and is revalidated through the Node resolver and tenant store.
+- Missing/invalid identities use sanitized 400 errors; unknown and suspended identities share a
+  generic 404; ambiguous registry data maps to a generic 500.
+- Supported lifecycle ends at handler/action promise settlement. Tenant database work in streamed
+  response callbacks is explicitly unsupported.
+- Applications must use tenant-varying cache keys or `no-store`; the integration never patches Next
+  cache APIs or treats cached identity as authorization.
+
+## Implemented CLI Foundation Controls
+
+- `init` is dry-run by default and creates fixed new files only with `--apply`; no overwrite mode exists.
+- Roots are canonicalized and every write/test path is revalidated for containment, symlinks,
+  duplicates, conflicts, and races before exclusive commit.
+- Generated writes stage inside the project, commit through non-overwriting hard links, and roll back
+  files/directories created by a failed operation.
+- Doctor reads metadata/text only, skips `.env`, VCS/dependencies/build/generated trees, symlinks, and
+  large files, and never imports project code or connects to a database/network.
+- Human, JSON, error, and leak-test output redact URL credentials and secret-like assignments.
+- `test:leak` runs only an explicit contained JavaScript file through absolute Node with `shell: false`;
+  its environment is allowlisted and time/output are bounded. The trusted file is not sandboxed.

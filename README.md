@@ -21,8 +21,9 @@ framework or ORM that already owns your application.
 [Contributing](CONTRIBUTING.md)
 
 > **Pre-alpha:** repository foundations, core lifecycle, tenant identifiers, portable testing
-> contracts, and the experimental Prisma row-level adapter are implemented, but no npm package is
-> production-ready yet. Follow the
+> contracts, the experimental Prisma row-level adapter, and the Express 5 integration are implemented.
+> The safe reference CLI foundation is also implemented locally. The slice is not production-ready
+> until hosted compatibility review passes. Follow the
 > [delivery plan](docs/40-features/F-001-tenancyjs-platform/PLAN.md) for implementation state.
 
 ---
@@ -135,15 +136,15 @@ reporting, and recovery tests before it is called stable.
 Packages are introduced as **experimental** and become **stable** only after their complete evidence
 lane passes.
 
-| Vertical slice                 | Target milestone | Current state                      |
-| ------------------------------ | ---------------: | ---------------------------------- |
-| Express + Prisma               |             v0.1 | Adapter ready; integration planned |
-| Next.js App Router + Prisma    |             v0.2 | Planned                            |
-| AdonisJS + Lucid               |             v0.3 | Planned                            |
-| Express + Knex                 |             v0.3 | Planned                            |
-| NestJS + Prisma                |             v0.4 | Planned                            |
-| NestJS + Sequelize             |             v0.4 | Planned                            |
-| Database-per-tenant operations |             v0.5 | Planned                            |
+| Vertical slice                 | Target milestone | Current state        |
+| ------------------------------ | ---------------: | -------------------- |
+| Express + Prisma               |             v0.1 | PR evidence complete |
+| Next.js App Router + Prisma    |             v0.2 | Planned              |
+| AdonisJS + Lucid               |             v0.3 | Planned              |
+| Express + Knex                 |             v0.3 | Planned              |
+| NestJS + Prisma                |             v0.4 | Planned              |
+| NestJS + Sequelize             |             v0.4 | Planned              |
+| Database-per-tenant operations |             v0.5 | Planned              |
 
 Combinations not listed above are not implied to work merely because their individual packages exist.
 See the [test matrix](docs/40-features/F-001-tenancyjs-platform/TEST_PLAN.md).
@@ -210,8 +211,8 @@ Read the [security model](docs/20-security/SECURITY_MODEL.md),
 1. **Foundation — complete** — workspace, quality gates, release discipline, and repository memory.
 2. **Core contract — complete** — async tenant context, central context, lifecycle, rollback, and tests.
 3. **Identification/testing — complete** — fail-closed resolvers and portable conformance contracts.
-4. **Reference slice — in progress** — Prisma row-level isolation is implemented; Express integration
-   and the first safe CLI workflow follow.
+4. **Reference slice — in progress** — Prisma row-level isolation, Express integration, and safe
+   init/Doctor/leak-test CLI foundation are implemented; hosted compatibility evidence follows.
 5. **Framework depth** — Next.js App Router, then AdonisJS + Lucid/Knex.
 6. **Backend breadth** — NestJS + Prisma/Sequelize and tested adapter combinations.
 7. **Physical isolation** — database provisioning and delegated migrations per tenant.
@@ -242,6 +243,13 @@ Run the complete gate before requesting review:
 
 ```bash
 pnpm check
+```
+
+The runnable reference app is in [`examples/express-prisma`](examples/express-prisma). With a local
+PostgreSQL URL, the same two-tenant HTTP isolation lane used by CI runs through:
+
+```bash
+TEST_DATABASE_URL=postgresql://postgres@127.0.0.1:5432/tenancyjs_test pnpm check
 ```
 
 Persist OS memory under `docs/` records product intent, accepted architecture, module ownership,
