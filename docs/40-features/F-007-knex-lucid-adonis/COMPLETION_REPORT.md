@@ -2,8 +2,9 @@
 
 ## Status
 
-Planning and the Knex T2/T3 slice are complete; Lucid implementation is in progress with local
-PostgreSQL 17 evidence now passing (hosted Node 24 CI evidence still pending).
+Planning and the Knex (T2/T3) and Lucid (T4) slices are complete, each with hosted Node 24 /
+PostgreSQL 17 CI evidence. The AdonisJS provider/middleware (T5) and reference example (T6) are the
+remaining work.
 
 ## Files Changed
 
@@ -35,10 +36,10 @@ PostgreSQL 17 evidence now passing (hosted Node 24 CI evidence still pending).
   Persist Doctor pass.
 - Hosted Node 22/24 PostgreSQL 17 lanes pass all 18 files and 246 tests on PR #8, including the Knex
   RLS suite and eight package archives.
+- Hosted Node 24 PostgreSQL 17 CI passes on PR #8 at commit 623045d (`CI / Node 24`, 1m34s), now
+  including the Lucid 22 RLS integration suite; the Persist OS doctor check also passes.
 
 ## Remaining Risks
 
-- Lucid 22/PostgreSQL 17 isolation now has local evidence but no hosted Node 24 CI run yet; per the
-  PRD, compatibility is claimed only from CI, so it is not yet advertised.
 - The AdonisJS 7 provider/middleware integration (T5) and reference example (T6) remain incomplete;
-  their compatibility is not yet claimed.
+  AdonisJS lifecycle compatibility is not yet claimed until its integration and example E2E pass in CI.
