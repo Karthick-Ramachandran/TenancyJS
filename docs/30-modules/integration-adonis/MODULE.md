@@ -18,9 +18,9 @@ service using framework-native provider, middleware, Japa, and Ace conventions.
 ## Public Interfaces
 
 - Implemented `defineAdonisTenancyConfig`, `TenancyProvider`, `TenancyMiddleware`, the
-  `AdonisTenancyRunner` contract, and the `TENANCY_CONFIG_KEY` binding key with a request resolver-input
-  adapter and sanitized error types. Japa `withTenant` and Ace factories accepting an injected
-  shared-CLI service port remain proposed (F-007 T6).
+  `AdonisTenancyRunner` contract, the `TENANCY_CONFIG_KEY` binding key, sanitized error types, and the
+  framework-neutral `withTenant` test helper (`./testing`). The Japa plugin form + API client and Ace
+  factories accepting an injected shared-CLI service port are proven in the reference example (F-007 T6).
 
 ## Boundaries
 
