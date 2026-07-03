@@ -223,6 +223,34 @@ importers:
         specifier: workspace:*
         version: link:../core
 
+  packages/integration-adonis:
+    dependencies:
+      '@tenancyjs/adapter-lucid':
+        specifier: workspace:*
+        version: link:../adapter-lucid
+      '@tenancyjs/core':
+        specifier: workspace:*
+        version: link:../core
+      '@tenancyjs/identifiers':
+        specifier: workspace:*
+        version: link:../identifiers
+    devDependencies:
+      '@adonisjs/core':
+        specifier: 7.3.4
+        version: 7.3.4(youch@4.1.1)
+      '@adonisjs/lucid':
+        specifier: 22.4.2
+        version: 22.4.2(@adonisjs/core@7.3.4(youch@4.1.1))(luxon@3.7.2)(pg@8.20.0)
+      luxon:
+        specifier: 3.7.2
+        version: 3.7.2
+      pg:
+        specifier: 8.20.0
+        version: 8.20.0
+      youch:
+        specifier: 4.1.1
+        version: 4.1.1
+
   packages/integration-express:
     dependencies:
       '@tenancyjs/core':

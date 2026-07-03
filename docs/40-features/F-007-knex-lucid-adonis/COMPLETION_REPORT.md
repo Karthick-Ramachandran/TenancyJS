@@ -3,12 +3,15 @@
 ## Status
 
 Planning and the Knex (T2/T3) and Lucid (T4) slices are complete, each with hosted Node 24 /
-PostgreSQL 17 CI evidence. The AdonisJS provider/middleware (T5) and reference example (T6) are the
-remaining work.
+PostgreSQL 17 CI evidence. The AdonisJS provider/middleware (T5) is implemented and unit-tested with a
+local full gate green; hosted CI evidence for it is pending a push. The Japa/Ace/CLI templates and
+reference example (T6) remain the remaining work.
 
 ## Files Changed
 
-- F-007 feature delivery memory, three module records, and accepted ADR-0010/ADR-0013.
+- F-007 feature delivery memory, three module records, and accepted ADR-0010/ADR-0013/ADR-0014.
+- `@tenancyjs/integration-adonis`: typed `defineAdonisTenancyConfig`, AdonisJS 7 `TenancyProvider`,
+  `TenancyMiddleware`, sanitized error types, package wiring (tsconfig/vitest/pack-check), and changeset.
 - `@tenancyjs/adapter-knex` config, typed errors, protected fluent client, managed transaction context,
   forced-RLS validation, capability metadata, documentation, package wiring, and changeset.
 - Generic Knex/PostgreSQL reference migration/runtime and a real PostgreSQL 17 isolation suite for T3.
@@ -27,6 +30,13 @@ remaining work.
   PostgreSQL suites executing, not skipped): 20 test files, 261 tests, 0 skipped, exit code 0. Local
   coverage 96.87% statements, 93.32% branches, 98.02% functions, 97.31% lines; 9 package archives and
   Persist Doctor pass. This ran on local Node 26; the advertised CI lane is Node 24.
+- 32 focused AdonisJS integration unit tests pass (config validation, error mapping, middleware
+  resolve-once/tenant-scope/rollback/concurrency/snapshot, provider register/ready-fail-closed/shutdown,
+  and Lucid-runner type compatibility).
+- Full `pnpm check` re-run after T5 with all database lanes active: 25 test files, 293 tests, exit
+  code 0. Coverage 96.97% statements, 93.31% branches, 98.12% functions, 97.4% lines; 10 package
+  archives (now including `tenancyjs-integration-adonis`) and the bare-consumer smoke import pass;
+  Persist Doctor passes. Ran on local Node 26; the advertised CI lane is Node 24.
 
 ## Results
 
@@ -41,5 +51,8 @@ remaining work.
 
 ## Remaining Risks
 
-- The AdonisJS 7 provider/middleware integration (T5) and reference example (T6) remain incomplete;
-  AdonisJS lifecycle compatibility is not yet claimed until its integration and example E2E pass in CI.
+- The AdonisJS 7 integration (T5) is unit-tested and local-gate green but has no hosted Node 24 CI run
+  yet, so per the PRD its compatibility is not yet advertised.
+- T5 uses unit tests with structural fakes; real AdonisJS provider boot, HTTP request handling, and
+  live PostgreSQL rollback are proven only by the Japa + compiled-app example in T6, which remains
+  incomplete. AdonisJS lifecycle compatibility is not claimed until that example E2E passes in CI.

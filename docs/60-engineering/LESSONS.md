@@ -47,3 +47,7 @@ model preferences.
 - A Web `ReadableStream` created inside `AsyncLocalStorage` can retain that creation context when its
   callbacks run later; end the supported Next tenant scope at handler promise settlement and prohibit
   tenant-scoped database work inside streamed body callbacks.
+- The pack-check consumer installs only the tenancyjs tarballs with no peers, then imports each package;
+  a framework integration must import every peer (`@adonisjs/*`, express, etc.) as `import type` so the
+  compiled JS has no runtime peer import, or the bare-consumer smoke import fails. Adonis error classes
+  therefore extend plain `Error` with a `status` field rather than importing Adonis's `Exception`.

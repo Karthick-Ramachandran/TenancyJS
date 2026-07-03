@@ -22,6 +22,9 @@ export default defineConfig({
       "@tenancyjs/identifiers": fileURLToPath(
         new URL("./packages/identifiers/src/index.ts", import.meta.url),
       ),
+      "@tenancyjs/integration-adonis": fileURLToPath(
+        new URL("./packages/integration-adonis/src/index.ts", import.meta.url),
+      ),
       "@tenancyjs/integration-express": fileURLToPath(
         new URL("./packages/integration-express/src/index.ts", import.meta.url),
       ),
@@ -46,6 +49,7 @@ export default defineConfig({
         "packages/cli/src/**/*.ts",
         "packages/core/src/**/*.ts",
         "packages/identifiers/src/**/*.ts",
+        "packages/integration-adonis/src/**/*.ts",
         "packages/integration-express/src/**/*.ts",
         "packages/integration-next/src/**/*.ts",
         "packages/testing/src/**/*.ts",

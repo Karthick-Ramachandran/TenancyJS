@@ -53,13 +53,20 @@ reproduced locally against `postgres:17-alpine` (17.10).
 
 ## T5: Implement Adonis Provider And Middleware
 
-Status: Todo — unblocked now that T4 is complete; ADR-0014 (on the ADR-0013 Node 24 baseline) is accepted
+Status: Implemented — `@tenancyjs/integration-adonis` (typed config, provider, middleware, sanitized
+error mapping) with 32 unit tests; full local gate green. Governed by ADR-0014 on the ADR-0013 Node 24
+baseline. Hosted Node 24 CI evidence pending a push; real AdonisJS/Lucid/PostgreSQL end-to-end proof is
+T6.
 
 Scope: Typed config, IoC bindings/provider, HTTP middleware/error mapping, and lifecycle cleanup.
 
 Acceptance: AC-ADONIS-01.
 
-Tests: Provider/container, resolver outcomes, concurrent HTTP, rollback, cleanup, and error tests.
+Tests: Provider/container, resolver outcomes, concurrent scope, rollback, cleanup, and error tests.
+
+Evidence: 32 unit tests pass (config/errors/middleware/provider/Lucid-runner compatibility). Full
+`pnpm check` with all DB lanes active is green — 25 files, 293 tests, exit 0 — on local Node 26. The
+compiled-app Japa + PostgreSQL end-to-end evidence is delivered in T6.
 
 ## T6: Add Japa, Ace, CLI Templates, And Reference Example
 

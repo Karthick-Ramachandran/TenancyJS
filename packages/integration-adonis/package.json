@@ -1,0 +1,54 @@
+{
+  "name": "@tenancyjs/integration-adonis",
+  "version": "0.0.0",
+  "description": "Fail-closed AdonisJS 7 request lifecycle integration for TenancyJS Lucid tenancy.",
+  "type": "module",
+  "license": "MIT",
+  "sideEffects": false,
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./provider": {
+      "types": "./dist/provider.d.ts",
+      "import": "./dist/provider.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "engines": {
+    "node": ">=24"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@tenancyjs/adapter-lucid": "workspace:*",
+    "@tenancyjs/core": "workspace:*",
+    "@tenancyjs/identifiers": "workspace:*"
+  },
+  "peerDependencies": {
+    "@adonisjs/core": ">=7.3.0 <8",
+    "@adonisjs/lucid": ">=22.4.0 <23"
+  },
+  "devDependencies": {
+    "@adonisjs/core": "7.3.4",
+    "@adonisjs/lucid": "22.4.2",
+    "luxon": "3.7.2",
+    "pg": "8.20.0",
+    "youch": "4.1.1"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --pretty false"
+  }
+}
