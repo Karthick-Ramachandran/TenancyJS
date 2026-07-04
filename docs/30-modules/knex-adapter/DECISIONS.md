@@ -6,3 +6,5 @@
 - The current target is Knex 3.3/PostgreSQL 17 on Node 24, not generic SQL-provider support.
 - Query predicates and forced RLS are complementary; neither an experimental global extension nor
   caller-visible base client is accepted as the sole security boundary.
+- ADR-0019 moves isolation-critical PostgreSQL SQL into adapter-shared. Schema mode uses unqualified
+  protected tables and transaction-local `search_path`; it is adapter-enforced, not RLS-equivalent.

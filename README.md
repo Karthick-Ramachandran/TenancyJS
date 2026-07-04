@@ -15,7 +15,7 @@ NestJS, Express, or AdonisJS** and **Prisma, Sequelize, Knex, or Lucid**. It giv
 same tenant context, isolation contract, test suite, and operational model without replacing the
 framework or ORM that already owns your application.
 
-[Vision](#the-vision) · [Strategies](#two-strategies-one-contract) ·
+[Vision](#the-vision) · [Strategies](#three-strategies-one-contract) ·
 [Compatibility](#compatibility-roadmap) · [Architecture](#architecture) ·
 [Roadmap](#delivery-roadmap) · [Development](#development) ·
 [Contributing](CONTRIBUTING.md)
@@ -23,7 +23,9 @@ framework or ORM that already owns your application.
 > **Pre-alpha:** core, identifiers, testing contracts, Prisma, Express 5, Next.js App Router, the safe
 > CLI foundation, and the Knex and Lucid 22 PostgreSQL boundaries have hosted evidence. The AdonisJS 7
 > integration (provider, middleware, config, and `tenancy init` scaffolding) with Lucid on PostgreSQL is
-> ready to use, proven end-to-end by a two-tenant example test. The project is still pre-alpha and not
+> ready to use, proven end-to-end by a two-tenant example test. Knex/Lucid schema-per-tenant also passes
+> local PostgreSQL 17 adversarial and package-consumer gates; hosted evidence is pending. The project is
+> still pre-alpha and not
 > production-ready. Follow the
 > [delivery plan](docs/40-features/F-001-tenancyjs-platform/PLAN.md) for implementation state.
 
@@ -79,8 +81,8 @@ protected while tenant-aware code can still reach an unextended client.
   unscoped data.
 - **Concurrency-safe context.** Tenant identity follows the async execution scope, never a mutable
   process-global variable.
-- **Two isolation strategies.** Start with shared tables and a tenant key; move selected workloads to
-  dedicated tenant databases without changing the application-level context model.
+- **Three isolation strategies.** Use shared rows, PostgreSQL schemas, or dedicated tenant databases
+  without changing the application-level context model.
 - **Framework-native integration.** Next.js wrappers, NestJS modules, Express middleware, and AdonisJS
   providers follow the lifecycle conventions of each framework.
 - **ORM-native operations.** Prisma, Sequelize, Knex, and Lucid keep ownership of migrations and
@@ -90,7 +92,7 @@ protected while tenant-aware code can still reach an unextended client.
 - **One monorepo, separate packages.** Applications install only the integrations and adapters they
   use while the entire project shares one security and release discipline.
 
-## Two strategies, one contract
+## Three strategies, one contract
 
 ### Single database
 
@@ -108,6 +110,22 @@ This is the first delivery target because it gives most SaaS products the lowest
 Adapters must scope supported create, read, update, delete, aggregate, bulk, nested, and transaction
 operations—and fail explicitly where safe interception is impossible.
 
+### Schema per tenant
+
+Knex and Lucid can route each tenant transaction to one PostgreSQL schema through validated,
+transaction-local `search_path` and unqualified table names.
+
+```txt
+application database
+├── public           -> central tables only
+├── tenant_acme      -> posts, invoices, projects
+└── tenant_globex    -> posts, invoices, projects
+```
+
+This tier is **adapter-enforced** by default: protected clients reject raw/qualified cross-schema
+access, but a retained shared-role raw client is outside the guarantee. It is not equivalent to forced
+RLS. Database-enforced per-tenant roles and automatic provisioning remain planned work.
+
 ### Database per tenant
 
 The central registry resolves a tenant to a dedicated database connection. TenancyJS provisions and
@@ -124,13 +142,13 @@ Database-per-tenant support follows the proven row-level contract. It adds bound
 connection lifecycle, idempotent provisioning, dry runs, redacted diagnostics, partial-failure
 reporting, and recovery tests before it is called stable.
 
-| Concern           | Single database    | Database per tenant                   |
-| ----------------- | ------------------ | ------------------------------------- |
-| Isolation         | Logical row scope  | Physical database boundary            |
-| Operational cost  | Lower              | Higher                                |
-| Tenant migrations | One database       | Bounded tenant iteration              |
-| Best fit          | Most SaaS products | Regulated or high-isolation workloads |
-| Delivery          | First              | After row-level conformance           |
+| Concern           | Shared rows         | Schema per tenant           | Database per tenant                   |
+| ----------------- | ------------------- | --------------------------- | ------------------------------------- |
+| Isolation         | Row/policy boundary | Adapter-routed DB namespace | Physical database boundary            |
+| Operational cost  | Lower               | Medium                      | Higher                                |
+| Tenant migrations | One schema set      | Per-schema iteration        | Bounded database iteration            |
+| Best fit          | Most SaaS products  | Stronger logical separation | Regulated or high-isolation workloads |
+| Delivery          | Implemented         | Knex/Lucid implemented      | Planned                               |
 
 ## Compatibility roadmap
 
@@ -143,6 +161,7 @@ lane passes.
 | Next.js App Router + Prisma    |             v0.2 | PR evidence complete                        |
 | AdonisJS 7 + Lucid 22          |             v0.3 | Stable — integration + CLI + two-tenant E2E |
 | Express + Knex                 |             v0.3 | Adapter evidence complete                   |
+| Knex/Lucid schema-per-tenant   |             v0.4 | Local PostgreSQL 17 evidence complete       |
 | NestJS + Prisma                |             v0.4 | Planned                                     |
 | NestJS + Sequelize             |             v0.4 | Planned                                     |
 | Database-per-tenant operations |             v0.5 | Planned                                     |
@@ -152,7 +171,8 @@ See the [test matrix](docs/40-features/F-001-tenancyjs-platform/TEST_PLAN.md).
 
 **Databases:** the Prisma adapter is database-agnostic — it rewrites query arguments rather than SQL —
 and is proven on **PostgreSQL and MySQL** with two-tenant integration suites. The Knex and Lucid
-adapters enforce **PostgreSQL** row-level security and are PostgreSQL-only by design.
+adapters support PostgreSQL forced-RLS row isolation and adapter-enforced schema-per-tenant; they are
+PostgreSQL-only by design.
 
 ## Architecture
 
@@ -168,12 +188,14 @@ flowchart TB
   Sequelize[Sequelize adapter]
   Knex[Knex adapter]
   Lucid[Lucid adapter]
+  AdapterShared["adapter-shared<br/>dialect strategy engine"]
   Shared[(Shared database)]
   Dedicated[(Tenant databases)]
 
   App --> Next & Nest & Express & Adonis
   Next & Nest & Express & Adonis --> Core
   Core --> Prisma & Sequelize & Knex & Lucid
+  Prisma & Knex & Lucid --> AdapterShared
   Prisma & Sequelize & Knex & Lucid --> Shared & Dedicated
 ```
 
@@ -183,14 +205,15 @@ commands, and Japa tests are not generic Knex behavior.
 
 ## Packages
 
-| Package                    | Responsibility                                                                 |
-| -------------------------- | ------------------------------------------------------------------------------ |
-| `@tenancyjs/core`          | Tenant context, lifecycle, events, configuration, and errors                   |
-| `@tenancyjs/identifiers`   | Host, subdomain, header, and custom resolver contracts                         |
-| `@tenancyjs/adapter-*`     | Prisma, Sequelize, Knex, and Lucid isolation                                   |
-| `@tenancyjs/integration-*` | Express, Next.js, NestJS, and AdonisJS lifecycle wiring                        |
-| `@tenancyjs/testing`       | Shared isolation and framework conformance suites                              |
-| `@tenancyjs/cli`           | Safe initialization, diagnostics, registry, and native operation orchestration |
+| Package                     | Responsibility                                                                 |
+| --------------------------- | ------------------------------------------------------------------------------ |
+| `@tenancyjs/core`           | Tenant context, lifecycle, events, configuration, and errors                   |
+| `@tenancyjs/identifiers`    | Host, subdomain, header, and custom resolver contracts                         |
+| `@tenancyjs/adapter-*`      | Prisma, Sequelize, Knex, and Lucid isolation                                   |
+| `@tenancyjs/adapter-shared` | Internal shared isolation decisions and database-dialect strategy engines      |
+| `@tenancyjs/integration-*`  | Express, Next.js, NestJS, and AdonisJS lifecycle wiring                        |
+| `@tenancyjs/testing`        | Shared isolation and framework conformance suites                              |
+| `@tenancyjs/cli`            | Safe initialization, diagnostics, registry, and native operation orchestration |
 
 ## Security model
 
@@ -220,9 +243,11 @@ Read the [security model](docs/20-security/SECURITY_MODEL.md),
    init/Doctor/leak-test CLI foundation have hosted evidence.
 5. **Framework depth — in progress** — Next.js App Router, Knex, and Lucid 22 are proven; the AdonisJS 7
    integration with Lucid on PostgreSQL is ready to use.
-6. **Backend breadth** — NestJS + Prisma/Sequelize and tested adapter combinations.
-7. **Physical isolation** — database provisioning and delegated migrations per tenant.
-8. **v1 hardening** — compatibility audit, benchmarks, security review, and stable API commitment.
+6. **Strategy depth — in progress** — Knex/Lucid PostgreSQL schema-per-tenant passes local adversarial
+   evidence; hosted CI, per-tenant roles, and provisioning follow.
+7. **Backend breadth** — NestJS + Prisma/Sequelize and tested adapter combinations.
+8. **Physical isolation** — database provisioning and delegated migrations per tenant.
+9. **v1 hardening** — compatibility audit, benchmarks, security review, and stable API commitment.
 
 The detailed [plan](docs/40-features/F-001-tenancyjs-platform/PLAN.md),
 [acceptance criteria](docs/40-features/F-001-tenancyjs-platform/ACCEPTANCE.md), and

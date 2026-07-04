@@ -7,6 +7,8 @@ model preferences.
 
 ## Lessons
 
+- Lucid bulk/quiet/`.pojo()` paths skip model hooks and therefore do not inherit schema-mode
+  `search_path`; keep tenant table names absent from the central schema so those paths fail closed.
 - Standalone Lucid 22 database fixtures need an emitter with both `emit` and `hasListeners`; an
   emit-only stub fails before SQL and looks like adapter policy-introspection failure.
 - Lucid query builders are deferred thenables; await callback results inside `AsyncLocalStorage.run`

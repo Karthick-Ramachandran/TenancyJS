@@ -1,6 +1,6 @@
 # @tenancyjs/adapter-knex
 
-Fail-closed Knex 3.3 row-level tenancy for PostgreSQL 17.
+Fail-closed Knex 3.3 row-level and schema-per-tenant isolation for PostgreSQL 17.
 
 This package is experimental until its PostgreSQL conformance matrix passes. The protected callback
 client exposes a deliberately narrow fluent subset. It combines application-level discriminator
@@ -42,3 +42,31 @@ await manager.runWithTenant(tenant, () =>
 Raw SQL/values, schema/migration/seed APIs, client/connection access, caller transactions, unsafe OR
 or clear operations, joins, unions, CTEs, subqueries, streams, truncate, and unclassified tables are
 outside the initial guarantee. Retaining the base Knex client bypasses TenancyJS entirely.
+
+## Schema per tenant
+
+Schema mode is **adapter-enforced**, not equivalent to forced RLS. The protected client uses only
+unqualified table names and the adapter validates and applies a transaction-local `search_path` for
+every tenant scope.
+
+```ts
+const tenancy = createKnexTenancy({
+  manager,
+  knex: privateBaseKnex,
+  strategy: "schemaPerTenant",
+  schema: (tenant) => tenant.schema,
+  centralSchema: "public",
+  tenantTables: { posts: {} },
+  centralTables: { tenants: {} },
+});
+
+await tenancy.validate();
+await manager.runWithTenant(tenant, () =>
+  tenancy.run((db) => db.table("posts").select("id", "title")),
+);
+```
+
+Tenant and central table names must be unqualified. A tenant schema may not equal the central schema;
+raw/qualified access is unavailable through the protected client. A retained base Knex client can
+bypass this adapter-enforced tier. Database-enforced per-tenant roles and provisioning are not yet
+implemented.

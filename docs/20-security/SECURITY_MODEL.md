@@ -3,10 +3,10 @@
 ## Status
 
 Active and incremental. Core async context, fail-closed tenant access, explicit central scope,
-lifecycle cleanup, tenant resolution, Prisma and Knex/PostgreSQL row-level isolation, Express and
-Next.js request lifecycle boundaries, and the reference safe CLI foundation are implemented and
-tested. The Lucid 22 boundary and PostgreSQL suite are implemented pending real-database CI evidence.
-Other adapters, framework integrations, and operational CLI commands remain later tasks.
+lifecycle cleanup, tenant resolution, Prisma/Knex/Lucid row-level isolation, PostgreSQL
+schema-per-tenant isolation for Knex/Lucid, Express and Next.js request lifecycle boundaries, and the
+reference safe CLI foundation are implemented and tested. Other adapters, database-per-tenant,
+database-enforced schema roles, provisioning, and operational CLI commands remain later tasks.
 
 ## Baseline Rules
 
@@ -102,6 +102,9 @@ only to locally installed, allowlisted ORM executables using argument arrays rat
   subqueries, streams, truncate, caller transactions, and unknown tables/operations are rejected.
 - The base Knex client and migration role remain private and outside the guarantee. Runtime never
   installs schema or policies automatically.
+- Schema-per-tenant is adapter-enforced: the shared engine validates a host-resolved schema, rejects
+  central collisions and qualified table names, verifies runtime-role access/table presence, and sets
+  transaction-local `search_path`. The protected client exposes no raw or cross-placement surface.
 
 ## Implemented Lucid Adapter Controls
 
@@ -117,6 +120,19 @@ only to locally installed, allowlisted ORM executables using argument arrays rat
   they are not advertised as supported operations.
 - The application-owned Lucid database service, unregistered models, privileged roles, and unforced
   schemas are outside the adapter guarantee. Runtime never installs schema or policies.
+- In schema-per-tenant mode registered models use unqualified tables and the shared managed
+  transaction's local `search_path`; no discriminator is injected. The central schema must not contain
+  tenant-table names; validation also checks every effective default-search-path schema. Therefore
+  `.pojo()`, quiet, bulk, and direct unqualified hook-bypass paths fail closed.
+
+## Isolation Enforcement Tiers
+
+- Forced PostgreSQL RLS is **database-enforced** for supported row-level Knex/Lucid operations when the
+  reviewed runtime-role conditions hold.
+- Prisma query rewriting and default schema-per-tenant `search_path` are **adapter-enforced**. Retaining
+  a base/raw client bypasses those guarantees. They must not be presented as equivalent to forced RLS.
+- Per-tenant PostgreSQL roles are the planned database-enforced schema-per-tenant tier under ADR-0018;
+  they are not implemented or implied by current `schemaPerTenant: "supported"` capability metadata.
 
 ## Implemented Express Integration Controls
 

@@ -3,21 +3,23 @@
 ## Affected Modules
 
 - `@tenancyjs/core`: `TenancyStrategy` union, `TenancyAdapterCapabilities`, `defineConfig` validation.
-- `@tenancyjs/adapter-knex`, `@tenancyjs/adapter-lucid`, `@tenancyjs/adapter-prisma`: capability
-  declarations now (foundation); routing/connection/schema management in later increments.
+- `@tenancyjs/adapter-shared`: new package owning shared isolation decisions and dialect engines.
+- `@tenancyjs/adapter-knex`, `@tenancyjs/adapter-lucid`: thin PostgreSQL schema strategy bindings.
+- `@tenancyjs/adapter-prisma`: consumes shared identifier/discriminator decisions but retains its own
+  query-rewrite boundary; Prisma schema-per-tenant remains deferred.
 - Later: the CLI (`provision`/`deprovision`, migrate routing) and the host `TenantStore` contract (returns
   identity + placement).
 
 ## ADR Impact
 
-- New: **ADR-0017** (tenant isolation strategy model and routing contract) — accepted with this slice.
-- Later increments reference ADR-0017; database-per-tenant and schema-per-tenant behavior may add
-  focused ADRs (connection pooling, provisioning) as needed.
+- ADR-0017 defines the strategy/routing model; ADR-0018 defines schema enforcement tiers; ADR-0019
+  establishes the shared engine package and hook-bypass boundary; ADR-0020 validates the effective
+  default search path against tenant-table shadowing.
 
 ## Security Impact
 
-- Foundation: no behavior change, no new dependency, no network/DB/secrets/file writes.
-- Later: schema-per-tenant and database-per-tenant introduce per-tenant `search_path`/connection routing
-  and provisioning (DDL) — each must ship with two-tenant adversarial isolation evidence and fail-closed
-  behavior (an adapter rejects any strategy it does not declare `"supported"`). Row-level's forced-RLS
-  guarantee must not regress.
+- Schema-per-tenant adds per-transaction catalog validation and local `search_path`; it adds no network,
+  telemetry, secret handling, filesystem writes, DDL, or automatic provisioning.
+- Adapter-enforced schema mode is explicitly weaker than forced RLS and a future per-tenant-role mode.
+  It depends on the protected surface rejecting qualification/raw access and on Lucid central-table
+  shadow checks. Row-level's forced-RLS guarantee remains unchanged.

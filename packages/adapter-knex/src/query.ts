@@ -1,4 +1,5 @@
 import type { TenantContext } from "@tenancyjs/core";
+import { decideTenantDiscriminator } from "@tenancyjs/adapter-shared";
 import type { Knex } from "knex";
 
 import type { KnexTablePolicy } from "./config.js";
@@ -32,6 +33,7 @@ type Operation =
 interface QueryState {
   readonly transaction: Knex.Transaction;
   readonly context: TenantContext;
+  readonly strategy: "rowLevel" | "schemaPerTenant";
   readonly policy: KnexTablePolicy;
   readonly where: readonly Readonly<{
     column: string;
@@ -56,6 +58,7 @@ export function createProtectedKnexClient(
     transaction: Knex.Transaction,
     callback: (transaction: Knex.Transaction) => Promise<TResult>,
   ) => Promise<TResult>,
+  strategy: "rowLevel" | "schemaPerTenant",
 ): ProtectedKnexClient {
   const client: ProtectedKnexClient = {
     table(name) {
@@ -64,6 +67,7 @@ export function createProtectedKnexClient(
         new KnexQuery({
           transaction,
           context,
+          strategy,
           policy,
           where: Object.freeze([]),
           operation: Object.freeze({
@@ -88,6 +92,7 @@ export function createProtectedKnexClient(
             context,
             classify,
             createSavepoint,
+            strategy,
           ),
         ),
       );
@@ -265,8 +270,22 @@ class KnexQuery<TResult> implements ProtectedKnexQuery<TResult> {
 
   async #execute(): Promise<unknown> {
     const { policy, context, operation } = this.#state;
+    if (
+      this.#state.strategy === "schemaPerTenant" &&
+      ((context.mode === "tenant" && policy.kind === "central") ||
+        (context.mode === "central" && policy.kind === "tenant"))
+    ) {
+      throw new KnexUnsupportedOperationError(
+        "cross-placement table access",
+        policy.qualifiedName,
+      );
+    }
     let builder = this.#state.transaction(policy.qualifiedName);
-    if (policy.kind === "tenant" && context.mode === "tenant") {
+    if (
+      this.#state.strategy === "rowLevel" &&
+      policy.kind === "tenant" &&
+      context.mode === "tenant"
+    ) {
       builder = builder.where(policy.tenantColumn, context.tenant.id);
     }
     for (const clause of this.#state.where) {
@@ -296,7 +315,7 @@ class KnexQuery<TResult> implements ProtectedKnexQuery<TResult> {
         return builder[operation.method](operation.column);
       case "insert": {
         const rows = operation.data.map((row) =>
-          scopeInsert(policy, context, row),
+          scopeInsert(policy, context, row, this.#state.strategy),
         );
         let query = builder.insert(rows.length === 1 ? rows[0] : rows);
         if (this.#state.returning.length > 0)
@@ -304,7 +323,12 @@ class KnexQuery<TResult> implements ProtectedKnexQuery<TResult> {
         return query;
       }
       case "update": {
-        const data = scopeUpdate(policy, operation.data);
+        const data = scopeUpdate(
+          policy,
+          context,
+          operation.data,
+          this.#state.strategy,
+        );
         let query = builder.update(data);
         if (this.#state.returning.length > 0)
           query = query.returning(this.#state.returning);
@@ -324,20 +348,45 @@ function scopeInsert(
   policy: KnexTablePolicy,
   context: TenantContext,
   data: KnexDataRecord,
+  strategy: "rowLevel" | "schemaPerTenant",
 ): KnexDataRecord {
-  if (policy.kind !== "tenant" || context.mode !== "tenant") return data;
+  if (
+    strategy !== "rowLevel" ||
+    policy.kind !== "tenant" ||
+    context.mode !== "tenant"
+  )
+    return data;
   const supplied = data[policy.tenantColumn];
-  if (supplied !== undefined && supplied !== context.tenant.id) {
+  const decision = decideTenantDiscriminator(
+    context.tenant.id,
+    "create",
+    supplied !== undefined,
+    supplied,
+  );
+  if (decision.kind === "reject") {
     throw new KnexTenantFieldConflictError(policy.qualifiedName, "insert");
   }
-  return Object.freeze({ ...data, [policy.tenantColumn]: context.tenant.id });
+  return decision.kind === "inject"
+    ? Object.freeze({ ...data, [policy.tenantColumn]: decision.value })
+    : data;
 }
 
 function scopeUpdate(
   policy: KnexTablePolicy,
+  context: TenantContext,
   data: KnexDataRecord,
+  strategy: "rowLevel" | "schemaPerTenant",
 ): KnexDataRecord {
-  if (policy.kind === "tenant" && Object.hasOwn(data, policy.tenantColumn)) {
+  if (
+    strategy === "rowLevel" &&
+    policy.kind === "tenant" &&
+    decideTenantDiscriminator(
+      context.mode === "tenant" ? context.tenant.id : undefined,
+      "update",
+      Object.hasOwn(data, policy.tenantColumn),
+      data[policy.tenantColumn],
+    ).kind === "reject"
+  ) {
     throw new KnexTenantFieldConflictError(policy.qualifiedName, "update");
   }
   return data;

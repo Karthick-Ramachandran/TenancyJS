@@ -2,7 +2,7 @@ import type { TenancyAdapterCapabilities } from "@tenancyjs/core";
 
 export const LUCID_ADAPTER_CAPABILITIES = Object.freeze({
   rowLevel: "supported",
-  schemaPerTenant: "unsupported",
+  schemaPerTenant: "supported",
   databasePerTenant: "unsupported",
   centralModels: "supported",
   transactions: "supported",

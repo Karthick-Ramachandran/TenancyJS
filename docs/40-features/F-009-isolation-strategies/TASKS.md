@@ -13,7 +13,7 @@ Acceptance:
 
 ## T2: Knex schema-per-tenant, adapter-enforced (ADR-0018)
 
-Status: Todo
+Status: Done
 
 Scope:
 - `config`: schema-per-tenant mode + `schema(tenant) => string` resolver (validated identifier).
@@ -29,12 +29,22 @@ Acceptance:
 Tests:
 - Real-PG two-schema adversarial isolation; config validation; capability flip.
 
+Evidence:
+- Shared engine unit/security suite and Knex schema configuration tests pass.
+- Three Knex schema-per-tenant PostgreSQL 17 tests pass, including concurrent read/write isolation,
+  mutation denial, central placement, rollback, raw/qualified rejection, and pool cleanup.
+
 ## T3: Lucid schema-per-tenant, adapter-enforced
 
-Status: Todo
+Status: Done
 
 Scope:
-- Same mechanism on Lucid (searchPath / named connection); adversarial test.
+- Same shared `search_path` mechanism on Lucid model transactions; hook-skipping paths fail closed.
+
+Evidence:
+- Four Lucid schema-per-tenant PostgreSQL 17 tests pass alongside the four row-level tests, including
+  relationships, create/read isolation, cross-tenant mutation denial, central rejection, rollback,
+  hook-bypass rejection, and pool cleanup.
 
 ## T4: Database-enforced (opt-in per-tenant role)
 

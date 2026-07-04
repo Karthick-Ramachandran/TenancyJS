@@ -1,7 +1,7 @@
 {
   "name": "@tenancyjs/adapter-knex",
   "version": "0.0.0",
-  "description": "Fail-closed PostgreSQL row-level tenancy for Knex.",
+  "description": "Fail-closed PostgreSQL row-level and schema-per-tenant isolation for Knex.",
   "type": "module",
   "license": "MIT",
   "sideEffects": false,
@@ -28,6 +28,7 @@
     "provenance": true
   },
   "dependencies": {
+    "@tenancyjs/adapter-shared": "workspace:*",
     "@tenancyjs/core": "workspace:*"
   },
   "peerDependencies": {

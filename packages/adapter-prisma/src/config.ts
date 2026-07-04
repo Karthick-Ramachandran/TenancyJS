@@ -1,11 +1,11 @@
 import type { TenancyManager, TenantRecord } from "@tenancyjs/core";
+import { assertSqlIdentifier } from "@tenancyjs/adapter-shared";
 
 import {
   PrismaTenancyConfigurationError,
   PrismaUnregisteredModelError,
 } from "./errors.js";
 
-const PRISMA_IDENTIFIER = /^[A-Za-z][A-Za-z0-9_]*$/;
 const DEFAULT_TENANT_FIELD = "tenantId";
 
 export interface PrismaTenantModelConfig {
@@ -210,9 +210,12 @@ function assertIdentifier(
   value: unknown,
   label: string,
 ): asserts value is string {
-  if (typeof value !== "string" || !PRISMA_IDENTIFIER.test(value)) {
-    throw new PrismaTenancyConfigurationError(
-      `${label} must be a valid Prisma identifier.`,
-    );
-  }
+  assertSqlIdentifier(value, {
+    label,
+    allowLeadingUnderscore: false,
+    createError: () =>
+      new PrismaTenancyConfigurationError(
+        `${label} must be a valid Prisma identifier.`,
+      ),
+  });
 }

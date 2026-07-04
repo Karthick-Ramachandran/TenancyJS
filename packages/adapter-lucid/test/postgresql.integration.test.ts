@@ -6,10 +6,14 @@ import type { HasMany } from "@adonisjs/lucid/types/relations";
 import knex, { type Knex } from "knex";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
-import { createLucidTenancy } from "../src/index.js";
+import {
+  LucidTenancyConfigurationError,
+  createLucidTenancy,
+} from "../src/index.js";
 
 const databaseUrl = process.env.TEST_DATABASE_URL;
-const describePostgres = databaseUrl === undefined ? describe.skip : describe;
+const describePostgres =
+  databaseUrl === undefined ? describe.skip : describe.sequential;
 const suffix = `${process.pid}_${Math.random().toString(36).slice(2, 8)}`;
 const schema = `lucid_tenancy_${suffix}`;
 const runtimeRole = `lucid_runtime_${suffix}`;
@@ -267,3 +271,268 @@ async function installPolicy(
     )
   `);
 }
+
+const schemaTenantA = `lucid_schema_a_${suffix}`;
+const schemaTenantB = `lucid_schema_b_${suffix}`;
+const schemaCentral = `lucid_schema_central_${suffix}`;
+const schemaRuntimeRole = `lucid_schema_runtime_${suffix}`;
+
+interface SchemaTenant {
+  readonly id: string;
+  readonly schema: string;
+}
+
+class SchemaPost extends BaseModel {
+  static override table = "posts";
+
+  declare id: string;
+  declare title: string;
+  declare comments: HasMany<typeof SchemaComment>;
+}
+
+class SchemaComment extends BaseModel {
+  static override table = "comments";
+
+  declare id: string;
+  declare postId: string;
+  declare body: string;
+}
+
+column({ isPrimary: true })(SchemaPost.prototype, "id");
+column()(SchemaPost.prototype, "title");
+column({ isPrimary: true })(SchemaComment.prototype, "id");
+column({ columnName: "post_id" })(SchemaComment.prototype, "postId");
+column()(SchemaComment.prototype, "body");
+hasMany(() => SchemaComment, { foreignKey: "postId" })(
+  SchemaPost.prototype,
+  "comments",
+);
+
+describePostgres("Lucid 22 PostgreSQL schema-per-tenant isolation", () => {
+  let admin: Knex;
+  let database: Database;
+  let manager: TenancyManager<SchemaTenant>;
+  let tenancy: ReturnType<typeof createLucidTenancy<SchemaTenant>>;
+
+  beforeAll(async () => {
+    admin = knex({ client: "pg", connection: databaseUrl! });
+    await admin.raw(
+      `create role ${schemaRuntimeRole} login nosuperuser nobypassrls`,
+    );
+    for (const schema of [schemaTenantA, schemaTenantB, schemaCentral]) {
+      await admin.schema.createSchema(schema);
+      await admin.raw(
+        `grant usage on schema ${schema} to ${schemaRuntimeRole}`,
+      );
+    }
+    for (const schema of [schemaTenantA, schemaTenantB]) {
+      await admin.schema.withSchema(schema).createTable("posts", (table) => {
+        table.string("id").primary();
+        table.string("title").notNullable();
+      });
+      await admin.schema.withSchema(schema).createTable("comments", (table) => {
+        table.string("id").primary();
+        table
+          .string("post_id")
+          .notNullable()
+          .references("id")
+          .inTable(`${schema}.posts`);
+        table.string("body").notNullable();
+      });
+      await admin.raw(
+        `grant select, insert, update, delete on ${schema}.posts, ${schema}.comments to ${schemaRuntimeRole}`,
+      );
+    }
+
+    const runtimeUrl = new URL(databaseUrl!);
+    runtimeUrl.username = schemaRuntimeRole;
+    runtimeUrl.password = "";
+    database = new Database(
+      {
+        connection: "postgres",
+        connections: {
+          postgres: {
+            client: "pg",
+            connection: runtimeUrl.toString(),
+            pool: { min: 0, max: 4 },
+          },
+        },
+      },
+      new Logger({ enabled: false }),
+      {
+        emit: async () => undefined,
+        hasListeners: () => false,
+      } as never,
+    );
+    BaseModel.useAdapter(database.modelAdapter());
+    manager = new TenancyManager<SchemaTenant>();
+    tenancy = createLucidTenancy({
+      manager,
+      database,
+      strategy: "schemaPerTenant",
+      schema: (tenant) => tenant.schema,
+      centralSchema: schemaCentral,
+      tenantModels: [{ model: SchemaPost }, { model: SchemaComment }],
+    });
+  });
+
+  beforeEach(async () => {
+    for (const schema of [schemaTenantA, schemaTenantB]) {
+      await admin.withSchema(schema).table("comments").delete();
+      await admin.withSchema(schema).table("posts").delete();
+    }
+    await admin.withSchema(schemaTenantA).table("posts").insert({
+      id: "post-a",
+      title: "A",
+    });
+    await admin.withSchema(schemaTenantB).table("posts").insert({
+      id: "post-b",
+      title: "B",
+    });
+    await admin.withSchema(schemaTenantA).table("comments").insert({
+      id: "comment-a",
+      post_id: "post-a",
+      body: "A",
+    });
+    await admin.withSchema(schemaTenantB).table("comments").insert({
+      id: "comment-b",
+      post_id: "post-b",
+      body: "B",
+    });
+    await expect(tenancy.validate()).resolves.toEqual({
+      valid: true,
+      issues: [],
+    });
+  });
+
+  afterAll(async () => {
+    await database?.manager.closeAll();
+    if (admin !== undefined) {
+      for (const schema of [schemaTenantA, schemaTenantB, schemaCentral]) {
+        await admin.schema.dropSchemaIfExists(schema, true);
+      }
+      await admin.raw(`drop role if exists ${schemaRuntimeRole}`);
+      await admin.destroy();
+    }
+  });
+
+  it("isolates concurrent model reads, relationships, and writes by search_path", async () => {
+    const [tenantA, tenantB] = await Promise.all([
+      withTenant("tenant-a", schemaTenantA, async () => {
+        const created = await SchemaPost.create({
+          id: "created-a",
+          title: "Created",
+        });
+        created.title = "Updated";
+        await created.save();
+        const deleted = await SchemaPost.create({
+          id: "deleted-a",
+          title: "Delete",
+        });
+        await deleted.delete();
+        expect(await SchemaPost.find("post-b")).toBeNull();
+        await expect(
+          SchemaPost.query().where("id", "post-b").update({
+            title: "stolen",
+          }),
+        ).rejects.toBeDefined();
+        await expect(
+          SchemaPost.query().where("id", "post-b").delete(),
+        ).rejects.toBeDefined();
+        return SchemaPost.query().preload("comments").orderBy("id");
+      }),
+      withTenant("tenant-b", schemaTenantB, () =>
+        SchemaPost.query().orderBy("id"),
+      ),
+    ]);
+
+    expect(tenantA.map((post) => post.id)).toEqual(["created-a", "post-a"]);
+    expect(tenantA[1]!.comments.map((comment) => comment.id)).toEqual([
+      "comment-a",
+    ]);
+    expect(tenantB.map((post) => post.id)).toEqual(["post-b"]);
+    await expect(
+      admin.withSchema(schemaTenantB).table("posts").where("id", "created-a"),
+    ).resolves.toEqual([]);
+    await expect(
+      admin
+        .withSchema(schemaTenantB)
+        .table("posts")
+        .where("id", "post-b")
+        .first(),
+    ).resolves.toMatchObject({ title: "B" });
+  });
+
+  it("fails closed for hook-skipping and central tenant-model paths", async () => {
+    await withTenant("tenant-a", schemaTenantA, async () => {
+      await expect(SchemaPost.query().pojo()).rejects.toBeDefined();
+      await expect(database.from("posts").select("id")).rejects.toBeDefined();
+      await expect(
+        SchemaPost.createQuietly({ id: "quiet", title: "Quiet" }),
+      ).rejects.toBeDefined();
+    });
+    await expect(
+      manager.runInCentralContext(() =>
+        tenancy.run(() => SchemaPost.query().select("id")),
+      ),
+    ).rejects.toBeInstanceOf(LucidTenancyConfigurationError);
+  });
+
+  it("rejects tenant-table shadowing anywhere on the runtime default search path", async () => {
+    await admin.schema.createSchema(schemaRuntimeRole);
+    try {
+      await admin.schema
+        .withSchema(schemaRuntimeRole)
+        .createTable("posts", (table) => {
+          table.string("id").primary();
+          table.string("title").notNullable();
+        });
+      await admin.raw(
+        `grant usage on schema ${schemaRuntimeRole} to ${schemaRuntimeRole}`,
+      );
+      await admin.raw(
+        `grant select on ${schemaRuntimeRole}.posts to ${schemaRuntimeRole}`,
+      );
+
+      const validation = await tenancy.validate();
+      expect(validation.valid).toBe(false);
+      expect(validation.issues.map((issue) => issue.code)).toContain(
+        "TENANCY_LUCID_DEFAULT_SEARCH_PATH_SHADOWS_TENANT_TABLE",
+      );
+    } finally {
+      await admin.schema.dropSchemaIfExists(schemaRuntimeRole, true);
+    }
+    await expect(tenancy.validate()).resolves.toEqual({
+      valid: true,
+      issues: [],
+    });
+  });
+
+  it("rolls back failures and clears transaction-local search_path", async () => {
+    const failure = new Error("rollback");
+    await expect(
+      withTenant("tenant-a", schemaTenantA, async () => {
+        await SchemaPost.create({ id: "rolled-back", title: "Rollback" });
+        throw failure;
+      }),
+    ).rejects.toBe(failure);
+    await expect(
+      admin.withSchema(schemaTenantA).table("posts").where("id", "rolled-back"),
+    ).resolves.toEqual([]);
+
+    await withTenant("tenant-a", schemaTenantA, () => SchemaPost.query());
+    await withTenant("tenant-b", schemaTenantB, async () => {
+      const posts = await SchemaPost.query();
+      expect(posts.map((post) => post.id)).toEqual(["post-b"]);
+    });
+    await expect(database.from("posts").select("id")).rejects.toBeDefined();
+  });
+
+  function withTenant<TResult>(
+    id: string,
+    schema: string,
+    callback: () => MaybePromise<TResult>,
+  ): Promise<TResult> {
+    return manager.runWithTenant({ id, schema }, () => tenancy.run(callback));
+  }
+});

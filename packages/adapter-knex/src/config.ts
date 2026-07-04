@@ -1,4 +1,10 @@
 import type { TenancyManager, TenantRecord } from "@tenancyjs/core";
+import {
+  POSTGRES_CENTRAL_SETTING,
+  POSTGRES_TENANT_SETTING,
+  assertSqlIdentifier,
+  normalizeQualifiedTable,
+} from "@tenancyjs/adapter-shared";
 import type { Knex } from "knex";
 
 import {
@@ -6,11 +12,10 @@ import {
   KnexUnregisteredTableError,
 } from "./errors.js";
 
-const IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
 const DEFAULT_TENANT_COLUMN = "tenant_id";
 
-export const KNEX_TENANT_SETTING = "tenancyjs.tenant_id";
-export const KNEX_CENTRAL_SETTING = "tenancyjs.is_central";
+export const KNEX_TENANT_SETTING = POSTGRES_TENANT_SETTING;
+export const KNEX_CENTRAL_SETTING = POSTGRES_CENTRAL_SETTING;
 
 export interface KnexTenantTableConfig {
   readonly tenantColumn?: string;
@@ -26,10 +31,13 @@ export interface KnexTenancyOptions<
   readonly knex: Knex;
   readonly tenantTables: Readonly<Record<string, KnexTenantTableConfig>>;
   readonly centralTables?: Readonly<Record<string, KnexCentralTableConfig>>;
+  readonly strategy?: "rowLevel" | "schemaPerTenant";
+  readonly schema?: (tenant: TTenant) => string;
+  readonly centralSchema?: string;
 }
 
 export interface NormalizedKnexTenantTableConfig {
-  readonly schema: string;
+  readonly schema: string | undefined;
   readonly table: string;
   readonly qualifiedName: string;
   readonly tenantColumn: string;
@@ -37,7 +45,7 @@ export interface NormalizedKnexTenantTableConfig {
 }
 
 export interface NormalizedKnexCentralTableConfig {
-  readonly schema: string;
+  readonly schema: string | undefined;
   readonly table: string;
   readonly qualifiedName: string;
 }
@@ -47,6 +55,9 @@ export interface KnexTenancyConfig<
 > {
   readonly manager: TenancyManager<TTenant>;
   readonly knex: Knex;
+  readonly strategy: "rowLevel" | "schemaPerTenant";
+  readonly schema: ((tenant: TTenant) => string) | undefined;
+  readonly centralSchema: string;
   readonly tenantTables: Readonly<
     Record<string, Readonly<NormalizedKnexTenantTableConfig>>
   >;
@@ -85,8 +96,36 @@ export function defineKnexTenancyConfig<
     );
   }
 
-  const tenantTables = normalizeTenantTables(options.tenantTables);
-  const centralTables = normalizeCentralTables(options.centralTables ?? {});
+  const strategy = options.strategy ?? "rowLevel";
+  if (strategy !== "rowLevel" && strategy !== "schemaPerTenant") {
+    throw new KnexTenancyConfigurationError(
+      "Knex tenancy strategy must be rowLevel or schemaPerTenant.",
+    );
+  }
+  if (strategy === "schemaPerTenant" && typeof options.schema !== "function") {
+    throw new KnexTenancyConfigurationError(
+      "Knex schema-per-tenant requires a schema resolver.",
+    );
+  }
+  if (strategy === "rowLevel" && options.schema !== undefined) {
+    throw new KnexTenancyConfigurationError(
+      "Knex row-level tenancy does not accept a schema resolver.",
+    );
+  }
+  if (strategy === "rowLevel" && options.centralSchema !== undefined) {
+    throw new KnexTenancyConfigurationError(
+      "Knex row-level tenancy does not accept a central schema placement.",
+    );
+  }
+  const centralSchema = assertKnexIdentifier(
+    options.centralSchema ?? "public",
+    "Central schema",
+  );
+  const tenantTables = normalizeTenantTables(options.tenantTables, strategy);
+  const centralTables = normalizeCentralTables(
+    options.centralTables ?? {},
+    strategy,
+  );
   for (const name of Object.keys(centralTables)) {
     if (Object.hasOwn(tenantTables, name)) {
       throw new KnexTenancyConfigurationError(
@@ -97,6 +136,9 @@ export function defineKnexTenancyConfig<
   return Object.freeze({
     manager: options.manager,
     knex: options.knex,
+    strategy,
+    schema: options.schema,
+    centralSchema,
     tenantTables,
     centralTables,
   });
@@ -106,7 +148,10 @@ export function classifyKnexTable<TTenant extends TenantRecord>(
   config: KnexTenancyConfig<TTenant>,
   name: string,
 ): KnexTablePolicy {
-  const normalizedName = normalizeTableName(name).qualifiedName;
+  const normalizedName = normalizeTableName(
+    name,
+    config.strategy,
+  ).qualifiedName;
   const tenant = config.tenantTables[normalizedName];
   if (tenant !== undefined) return Object.freeze({ kind: "tenant", ...tenant });
   const central = config.centralTables[normalizedName];
@@ -117,6 +162,7 @@ export function classifyKnexTable<TTenant extends TenantRecord>(
 
 function normalizeTenantTables(
   input: Readonly<Record<string, KnexTenantTableConfig>>,
+  strategy: "rowLevel" | "schemaPerTenant",
 ): Readonly<Record<string, Readonly<NormalizedKnexTenantTableConfig>>> {
   if (input === null || typeof input !== "object" || Array.isArray(input)) {
     throw new KnexTenancyConfigurationError(
@@ -135,14 +181,22 @@ function normalizeTenantTables(
         `Configuration for Knex table "${name}" must be an object.`,
       );
     }
-    const table = normalizeTableName(name);
+    if (
+      strategy === "schemaPerTenant" &&
+      (value.tenantColumn !== undefined || value.policyName !== undefined)
+    ) {
+      throw new KnexTenancyConfigurationError(
+        `Knex schema-per-tenant table "${name}" cannot configure row-level tenant columns or RLS policies.`,
+      );
+    }
+    const table = normalizeTableName(name, strategy);
     const tenantColumn = value.tenantColumn ?? DEFAULT_TENANT_COLUMN;
-    assertIdentifier(
+    assertKnexIdentifier(
       tenantColumn,
       `Tenant column for Knex table "${table.qualifiedName}"`,
     );
     const policyName = value.policyName ?? `${table.table}_tenant_isolation`;
-    assertIdentifier(
+    assertKnexIdentifier(
       policyName,
       `RLS policy for Knex table "${table.qualifiedName}"`,
     );
@@ -159,6 +213,7 @@ function normalizeTenantTables(
 
 function normalizeCentralTables(
   input: Readonly<Record<string, KnexCentralTableConfig>>,
+  strategy: "rowLevel" | "schemaPerTenant",
 ): Readonly<Record<string, Readonly<NormalizedKnexCentralTableConfig>>> {
   if (input === null || typeof input !== "object" || Array.isArray(input)) {
     throw new KnexTenancyConfigurationError(
@@ -172,7 +227,7 @@ function normalizeCentralTables(
         `Configuration for central Knex table "${name}" must be an object.`,
       );
     }
-    const table = normalizeTableName(name);
+    const table = normalizeTableName(name, strategy);
     if (Object.hasOwn(result, table.qualifiedName))
       duplicateTable(table.qualifiedName);
     result[table.qualifiedName] = Object.freeze(table);
@@ -180,31 +235,33 @@ function normalizeCentralTables(
   return Object.freeze(result);
 }
 
-function normalizeTableName(name: string): NormalizedKnexCentralTableConfig {
-  if (typeof name !== "string") invalidTable();
-  const parts = name.split(".");
-  if (parts.length > 2 || parts.some((part) => !IDENTIFIER.test(part)))
-    invalidTable();
-  const [schema, table] =
-    parts.length === 1 ? ["public", parts[0]!] : [parts[0]!, parts[1]!];
-  return Object.freeze({ schema, table, qualifiedName: `${schema}.${table}` });
+function normalizeTableName(
+  name: string,
+  strategy: "rowLevel" | "schemaPerTenant",
+): NormalizedKnexCentralTableConfig {
+  const normalized = normalizeQualifiedTable(name, {
+    label: "Knex table name",
+    allowQualified: strategy === "rowLevel",
+    ...(strategy === "rowLevel" ? { defaultSchema: "public" } : {}),
+    createError: () =>
+      new KnexTenancyConfigurationError(
+        strategy === "rowLevel"
+          ? "Knex table names must be an unaliased identifier or schema-qualified identifier."
+          : "Knex schema-per-tenant table names must be unqualified identifiers.",
+      ),
+  });
+  return Object.freeze({
+    schema: normalized.schema,
+    table: normalized.table,
+    qualifiedName: normalized.qualifiedName,
+  });
 }
 
-function assertIdentifier(
-  value: unknown,
-  label: string,
-): asserts value is string {
-  if (typeof value !== "string" || !IDENTIFIER.test(value)) {
-    throw new KnexTenancyConfigurationError(
-      `${label} must be a valid PostgreSQL identifier.`,
-    );
-  }
-}
-
-function invalidTable(): never {
-  throw new KnexTenancyConfigurationError(
-    "Knex table names must be an unaliased identifier or schema-qualified identifier.",
-  );
+function assertKnexIdentifier(value: unknown, label: string): string {
+  return assertSqlIdentifier(value, {
+    label,
+    createError: (message) => new KnexTenancyConfigurationError(message),
+  });
 }
 
 function duplicateTable(name: string): never {

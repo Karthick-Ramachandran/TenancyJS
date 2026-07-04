@@ -28,7 +28,7 @@ export class KnexTenancyConfigurationError extends KnexTenancyError {
 export class KnexPolicyValidationError extends KnexTenancyError {
   constructor() {
     super(
-      "Knex tenancy policy validation must pass before protected execution. Run and review adapter.validate() during application startup.",
+      "Knex tenancy isolation validation must pass before protected execution. Run and review adapter.validate() during application startup.",
       "TENANCY_KNEX_POLICY_VALIDATION",
     );
   }

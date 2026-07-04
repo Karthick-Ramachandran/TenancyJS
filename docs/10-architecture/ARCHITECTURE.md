@@ -23,12 +23,18 @@ baseline under ADR-0013. `@tenancyjs/adapter-knex` and `@tenancyjs/adapter-lucid
 PostgreSQL 17 evidence; the AdonisJS 7 integration layer remains in progress. ADR-0013 supersedes the
 earlier mixed-engine compatibility decision, and ADR-0014 extracts the AdonisJS 7 contract out of it.
 
+F-009 adds `@tenancyjs/adapter-shared` under ADR-0019 as the database-dialect strategy boundary.
+Knex and Lucid now reuse one PostgreSQL implementation for RLS validation, transaction context, SQL
+identifiers, tenant-discriminator decisions, and adapter-enforced schema-per-tenant `search_path`.
+ADR-0020 additionally rejects tenant-table shadowing across PostgreSQL's effective default search path.
+Core remains database-neutral.
+
 ## Architecture
 
 The platform uses a layered monorepo with dependency flow:
 
 ```text
-applications -> framework integrations -> core <- data-layer adapters
+applications -> framework integrations -> core <- data-layer adapters -> adapter-shared
                                       \-> identifiers
 CLI -> project analysis/templates + public package APIs
 testing -> core contracts + adapter/integration conformance suites

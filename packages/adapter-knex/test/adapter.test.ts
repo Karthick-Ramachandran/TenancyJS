@@ -300,7 +300,7 @@ describe("Knex tenancy configuration", () => {
   it("publishes a conservative capability matrix", () => {
     expect(KNEX_ADAPTER_CAPABILITIES).toEqual({
       rowLevel: "supported",
-      schemaPerTenant: "unsupported",
+      schemaPerTenant: "supported",
       databasePerTenant: "unsupported",
       centralModels: "supported",
       transactions: "supported",
@@ -308,6 +308,86 @@ describe("Knex tenancy configuration", () => {
       nestedWrites: "rejected",
       rawQueries: "rejected",
     });
+  });
+
+  it("normalizes schema-per-tenant tables as unqualified placement names", () => {
+    const manager = new TenancyManager<Tenant>();
+    const { knex } = createKnexDouble();
+    const config = defineKnexTenancyConfig({
+      manager,
+      knex,
+      strategy: "schemaPerTenant",
+      schema: (tenant) => `tenant_${tenant.id}`,
+      centralSchema: "central",
+      tenantTables: { posts: {} },
+      centralTables: { tenants: {} },
+    });
+
+    expect(config.strategy).toBe("schemaPerTenant");
+    expect(config.tenantTables.posts).toMatchObject({
+      schema: undefined,
+      table: "posts",
+      qualifiedName: "posts",
+    });
+    expect(config.schema?.({ id: "a", name: "A" })).toBe("tenant_a");
+    expect(classifyKnexTable(config, "posts").kind).toBe("tenant");
+  });
+
+  it.each([
+    [
+      "missing schema resolver",
+      { strategy: "schemaPerTenant", tenantTables: { posts: {} } },
+    ],
+    [
+      "qualified schema table",
+      {
+        strategy: "schemaPerTenant",
+        schema: (): string => "tenant_a",
+        tenantTables: { "tenant_a.posts": {} },
+      },
+    ],
+    [
+      "row-level schema resolver",
+      {
+        strategy: "rowLevel",
+        schema: (): string => "tenant_a",
+        tenantTables: { posts: {} },
+      },
+    ],
+    [
+      "row-level central placement",
+      {
+        strategy: "rowLevel",
+        centralSchema: "central",
+        tenantTables: { posts: {} },
+      },
+    ],
+    [
+      "schema-mode row policy",
+      {
+        strategy: "schemaPerTenant",
+        schema: (): string => "tenant_a",
+        tenantTables: { posts: { tenantColumn: "tenant_id" } },
+      },
+    ],
+    [
+      "invalid central schema",
+      {
+        strategy: "schemaPerTenant",
+        schema: (): string => "tenant_a",
+        centralSchema: "central-schema",
+        tenantTables: { posts: {} },
+      },
+    ],
+    ["unknown strategy", { strategy: "unknown", tenantTables: { posts: {} } }],
+  ])("rejects schema strategy configuration with %s", (_name, input) => {
+    expect(() =>
+      defineKnexTenancyConfig({
+        manager: new TenancyManager(),
+        knex: createKnexDouble().knex,
+        ...input,
+      } as never),
+    ).toThrow(KnexTenancyConfigurationError);
   });
 });
 

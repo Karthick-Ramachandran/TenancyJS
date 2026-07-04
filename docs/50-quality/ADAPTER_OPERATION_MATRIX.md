@@ -6,12 +6,12 @@ secured client fails before execution. `Not implemented` makes no compatibility 
 
 ## Current Adapter Status
 
-| Adapter | ORM/data layer evidence | Row-level status | Database-per-tenant status | Detailed matrix |
-|---|---|---|---|---|
-| Prisma | Prisma 7.8 + PostgreSQL 17 | Experimental; supported top-level matrix | Not implemented | `packages/adapter-prisma/README.md` |
-| Sequelize | Not implemented | Not implemented | Not implemented | Required when implemented |
-| Knex | Knex 3.3 + PostgreSQL 17 | Experimental; supported protected-client matrix | Not implemented | `packages/adapter-knex/README.md` |
-| Lucid | Lucid 22.4 + PostgreSQL 17 suite implemented; hosted evidence pending | Experimental; local unit evidence only | Not implemented | `packages/adapter-lucid/README.md` |
+| Adapter | ORM/data layer evidence | Row-level status | Schema-per-tenant status | Database-per-tenant status | Detailed matrix |
+| --- | --- | --- | --- | --- | --- |
+| Prisma | Prisma 7.8 + PostgreSQL/MySQL evidence | Supported top-level matrix; adapter-enforced | Not implemented | Not implemented | `packages/adapter-prisma/README.md` |
+| Sequelize | Not implemented | Not implemented | Not implemented | Not implemented | Required when implemented |
+| Knex | Knex 3.3 + PostgreSQL 17 | Supported protected-client matrix; forced-RLS database-enforced | Supported protected-client matrix; adapter-enforced | Not implemented | `packages/adapter-knex/README.md` |
+| Lucid | Lucid 22.4 + PostgreSQL 17 | Supported normal-model matrix; forced-RLS database-enforced | Supported normal-model matrix; adapter-enforced | Not implemented | `packages/adapter-lucid/README.md` |
 
 ## Prisma 7.8/PostgreSQL 17
 
@@ -49,19 +49,20 @@ The guarantee conditions and expansion rules are defined in
 | OR/clear/join/union/CTE/subquery/stream/truncate | Rejected | mutable composition is not yet proven safe |
 | unclassified tables/unknown operations | Rejected | exhaustive classification and runtime proxy rejection |
 | non-PostgreSQL/database-per-tenant | Unsupported | requires a separate enforcement capability and evidence |
+| schema-per-tenant reads/writes | Supported | unqualified protected tables + validated transaction-local `search_path`; adapter-enforced |
+| schema qualified/cross-placement tables | Rejected | configuration and protected table classification reject qualification |
 
 ## Lucid 22.4/PostgreSQL 17
 
-The implementation and real-database suite exist, but no operation is promoted to `Supported` until
-the Node 24/PostgreSQL lane passes in hosted CI.
-
 | Operation family | State | Enforcement/evidence |
 |---|---|---|
-| find/fetch/paginate/aggregate | Evidence pending | model hook attaches the managed transaction and tenant predicate; forced RLS is final boundary |
-| create/save/delete | Evidence pending | transaction attachment, discriminator injection/immutability, and RLS `WITH CHECK` |
-| relationship preload | Evidence pending | every registered related model receives the same fetch hook and transaction scope |
-| managed transactions/savepoints | Evidence pending | transaction-local context and async-local transaction ownership; unit-tested |
-| explicit central context | Evidence pending | adapter-owned central transaction setting; unit-tested |
+| find/fetch/paginate/aggregate | Supported | model hook attaches the managed transaction; row mode adds the predicate/RLS, schema mode uses local `search_path` |
+| create/save/delete | Supported | transaction attachment; row mode enforces discriminator, schema mode routes unqualified tables |
+| relationship preload | Supported | every registered related model receives the same fetch hook and transaction scope |
+| managed transactions/savepoints | Supported | transaction-local context/search path and async-local transaction ownership |
+| explicit central context | Supported (row-level) | adapter-owned central RLS setting; tenant models are rejected in schema-mode central context |
 | `.pojo()`/quiet/bulk/direct builder | Rejected/fail-closed | hook-skipping paths receive no protected transaction and forced RLS must deny access |
 | unregistered models/base database service | Outside guarantee | application-retained Lucid surfaces bypass adapter hooks |
 | non-PostgreSQL/database-per-tenant | Unsupported | requires a separate enforcement capability and evidence |
+| schema-per-tenant normal model operations | Supported | unqualified registered models + validated transaction-local `search_path`; adapter-enforced |
+| schema-mode hook-skipping paths | Rejected/fail-closed | central tenant-table shadowing is prohibited, so unqualified bypasses cannot resolve a tenant table |

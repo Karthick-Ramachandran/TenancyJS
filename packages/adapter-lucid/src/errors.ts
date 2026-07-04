@@ -27,7 +27,7 @@ export class LucidTenancyConfigurationError extends LucidTenancyError {
 export class LucidPolicyValidationError extends LucidTenancyError {
   constructor() {
     super(
-      "Lucid tenancy policy validation must pass before protected execution. Run and review adapter.validate() during application startup.",
+      "Lucid tenancy isolation validation must pass before protected execution. Run and review adapter.validate() during application startup.",
       "TENANCY_LUCID_POLICY_VALIDATION",
     );
   }
