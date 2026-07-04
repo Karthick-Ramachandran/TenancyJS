@@ -3,14 +3,9 @@ dist/
 coverage/
 *.tsbuildinfo
 .artifacts/
-examples/express-prisma/src/generated/
-examples/next-prisma/generated/
 .next/
 *.tgz
 .DS_Store
 .env
 .env.*
 !.env.example
-
-# Local-only AdonisJS reference example (built + tested locally, never pushed; see F-007)
-examples/adonis-lucid/

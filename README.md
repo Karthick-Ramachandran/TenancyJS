@@ -248,8 +248,9 @@ Run the complete gate before requesting review:
 pnpm check
 ```
 
-Reference applications are under `examples/`, including Express/Prisma, Next.js/Prisma, and generic
-Knex/PostgreSQL. With a local PostgreSQL URL, the same two-tenant isolation lanes used by CI run through:
+The runnable example apps live in a separate repository, published once the `@tenancyjs/*` packages are
+on npm so they install the way a real adopter does — see [`examples/README.md`](examples/README.md).
+Within this repo, the same two-tenant isolation lanes used by CI run against a local PostgreSQL URL:
 
 ```bash
 TEST_DATABASE_URL=postgresql://postgres@127.0.0.1:5432/tenancyjs_test pnpm check

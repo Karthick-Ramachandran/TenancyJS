@@ -10,8 +10,6 @@
     { "path": "./packages/integration-adonis" },
     { "path": "./packages/integration-express" },
     { "path": "./packages/integration-next" },
-    { "path": "./packages/testing" },
-    { "path": "./examples/knex-postgres" },
-    { "path": "./examples/express-prisma" }
+    { "path": "./packages/testing" }
   ]
 }

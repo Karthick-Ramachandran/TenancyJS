@@ -67,3 +67,14 @@ model preferences.
   creates the schema/policies it checks; validating in `test` would fail before the suite provisions
   its schema. In tests, run migrations then call `tenancyConfig.tenancy.validate()` before serving —
   the adapter's `run()` refuses until `validate()` has passed, mirroring production startup order.
+- A reference example must be a REAL app scaffolded from the framework's own tooling
+  (`create-next-app`, the official AdonisJS starter kit) with the real ORM installed — not a
+  hand-crafted minimal app. Building the real app catches integration bugs mocks miss: the AdonisJS
+  config-loads-before-providers-boot factory bug, and the Next.js example's missing `app/actions.ts`,
+  both surfaced only at real `next build` / app boot. A hand-crafted "example" is not compatibility
+  evidence.
+- Example apps that depend on the workspace via `workspace:*` exercise local source, not the packed
+  tarball, so they cannot prove the "install from npm and it works" claim — a true consumer test only
+  exists after the packages are published. This is why the runnable examples were moved OUT of this
+  monorepo into a separate repository (see ADR-0015): they will install from the published npm
+  packages. The monorepo keeps only `packages/*`, their tests, and an `examples/README.md` placeholder.
