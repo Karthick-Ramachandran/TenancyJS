@@ -20,3 +20,5 @@
 - Lucid `.pojo()`, quiet, bulk/direct builder and central tenant-model paths fail closed.
 - Central schema tenant-table shadowing, missing/inaccessible placement, privileged roles, invalid
   identifiers, resolver exceptions, and database errors never unlock protected execution.
+- Database resource cache mapping collisions, active capacity, eviction/destruction failure, creation
+  redaction, lease cleanup, and shutdown retry.

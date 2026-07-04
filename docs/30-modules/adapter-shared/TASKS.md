@@ -12,5 +12,8 @@
 - Complete: thin Lucid binding with hook-bypass fail-closed evidence.
 - Complete locally: full PostgreSQL 17 gate, package-consumer verification, dependency audit, and
   Persist Doctor.
-- In progress: hosted evidence and review handoff.
-- Deferred: provisioning, per-tenant roles, database-per-tenant, and non-PostgreSQL dialects.
+- Complete: ADR-0021 bounded resource-cache foundation with collision, concurrency, eviction, failure,
+  lease, and shutdown tests.
+- In progress: hosted evidence, review handoff, and thin Knex database-per-tenant binding.
+- Deferred: ORM database-per-tenant bindings after Knex, provisioning, per-tenant roles, and
+  non-PostgreSQL dialects.

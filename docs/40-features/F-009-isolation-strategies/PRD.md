@@ -14,7 +14,8 @@ capability declarations and adversarial isolation evidence for each.
 - One shared dialect engine package and PostgreSQL schema-per-tenant implementation (ADR-0019).
 - Thin Knex/Lucid schema bindings with transaction-local `search_path`, unqualified addressing,
   central-schema collision checks, and real PostgreSQL adversarial evidence.
-- Later increments: database-per-tenant on Knex/Lucid/Prisma; database-enforced per-tenant roles;
+- Shared bounded resource-cache foundation for database-per-tenant ORM bindings (ADR-0021).
+- Later increments: database-per-tenant bindings on Knex/Lucid/Prisma; database-enforced per-tenant roles;
   provisioning (`CREATE SCHEMA`/`CREATE DATABASE` + migrate).
 
 ## Non-Goals

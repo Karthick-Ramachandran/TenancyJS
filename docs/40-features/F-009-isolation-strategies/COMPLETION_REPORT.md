@@ -2,8 +2,9 @@
 
 ## Status
 
-T1–T3 implemented and locally gate-green. Ready for review; hosted CI/merge remain. T4/T5 and
-database-per-tenant remain.
+In progress. T1–T4 are implemented locally: schema isolation is gate-green and the
+database-per-tenant cache foundation is finished. ORM database bindings, hosted CI/merge, roles, and
+provisioning remain.
 
 ## Files Changed
 
@@ -11,6 +12,7 @@ database-per-tenant remain.
 - Consolidated PostgreSQL RLS validation, transaction context, identifiers, and discriminator decisions.
 - Added the PostgreSQL schema strategy and thin Knex/Lucid bindings.
 - Added unit/security and real PostgreSQL schema isolation tests; updated capabilities and docs.
+- Added ADR-0021 and the bounded shared tenant resource cache; no adapter capability was flipped.
 
 ## Tests Run
 
@@ -23,6 +25,9 @@ database-per-tenant remain.
   passed/14 MySQL-only skipped, coverage, 11 package archives, and Persist Doctor.
 - Final coverage: 97.11% statements, 93.42% branches, 98.81% functions, 97.43% lines.
 - `pnpm audit --audit-level high` — no known vulnerabilities.
+- Cache-foundation `pnpm check` — 322 passed/45 database-environment skips; 96.35% statements, 92.09%
+  branches, 98.19% functions, 96.77% lines; 11 package archives passed. The initial Doctor run caught
+  completion-status wording and was rerun after correction.
 
 ## Results
 
@@ -36,3 +41,5 @@ database-per-tenant remain.
 - Hosted Node 24/PostgreSQL 17 CI still needs final evidence after push.
 - Shared-role schema mode is not database-enforced; retained raw/base clients can bypass it.
 - Provisioning, per-tenant roles, database-per-tenant, and Prisma schema cache remain unimplemented.
+- The shared cache is implemented, but connected-database identity validation and ORM bindings remain
+  before database-per-tenant can be advertised.

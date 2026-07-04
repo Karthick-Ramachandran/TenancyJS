@@ -23,6 +23,8 @@ preferences.
 - `createPostgresStrategyEngine`: canonical shared PostgreSQL schema-placement engine in
   `@tenancyjs/adapter-shared`; Knex/Lucid bind their raw executor shapes to it and never duplicate its
   RLS/context/`search_path` SQL.
+- `createTenantResourceCache`: canonical bounded database-per-tenant resource lifecycle; adapters use
+  its single-flight leases and never create an unbounded per-tenant client map.
 - `createExpressTenancyMiddleware`: canonical Express 5 request-lifecycle bridge; it composes an
   application-owned `TenancyManager` and tenant resolver and never creates hidden tenant state.
 - `createNextTenancy`: canonical Next.js App Router Node bridge for Route Handlers and Server Actions;

@@ -73,6 +73,9 @@ provisioning, and operational CLI controls remain delivery requirements.
   surface rejects that path, and Lucid validation requires tenant-table names to be absent centrally
   and across the effective default search path so hook-skipping unqualified paths fail closed.
   Per-tenant roles remain the stronger future tier.
+- Database-per-tenant pools risk cardinality exhaustion, placement-key collisions, use-after-eviction,
+  and secret leakage in creation failures. ADR-0021 mitigates these with bounded idle-only LRU,
+  reference-counted leases, one-to-one active mappings, sanitized errors, and retryable destruction.
 - Raw SQL cannot be made universally safe: adapter/documentation owners; explicit escape policy needed.
 - Atomic rollback across filesystem and database operations is impossible: CLI owner; staged,
   idempotent operations and recovery output required.

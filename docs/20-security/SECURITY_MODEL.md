@@ -7,6 +7,8 @@ lifecycle cleanup, tenant resolution, Prisma/Knex/Lucid row-level isolation, Pos
 schema-per-tenant isolation for Knex/Lucid, Express and Next.js request lifecycle boundaries, and the
 reference safe CLI foundation are implemented and tested. Other adapters, database-per-tenant,
 database-enforced schema roles, provisioning, and operational CLI commands remain later tasks.
+The bounded database-per-tenant resource-cache foundation is implemented under ADR-0021, but no
+database-per-tenant adapter binding is implemented or advertised yet.
 
 ## Baseline Rules
 
@@ -133,6 +135,17 @@ only to locally installed, allowlisted ORM executables using argument arrays rat
   a base/raw client bypasses those guarantees. They must not be presented as equivalent to forced RLS.
 - Per-tenant PostgreSQL roles are the planned database-enforced schema-per-tenant tier under ADR-0018;
   they are not implemented or implied by current `schemaPerTenant: "supported"` capability metadata.
+
+## Database-Per-Tenant Resource Lifecycle
+
+- The shared cache has an explicit capacity, single-flight creation, reference-counted leases, idle LRU
+  eviction, and deterministic shutdown. It never evicts an active resource or exceeds capacity.
+- Tenant identity and opaque placement keys are one-to-one while cached; collisions fail before
+  resource creation or callback execution. Placement keys reject URL/credential-shaped values.
+- Creation/destruction failures are sanitized. Failed creation is not cached; failed destruction is
+  retained for retry rather than losing ownership of a possibly live pool.
+- ORM bindings must verify connected database identity before caching a client. Host factories own
+  credentials; placement metadata and cache diagnostics never contain connection URLs.
 
 ## Implemented Express Integration Controls
 

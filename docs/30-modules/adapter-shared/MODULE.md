@@ -11,6 +11,7 @@ engines, while keeping ORM packages thin and user-facing.
 - PostgreSQL RLS validation and transaction-local context SQL.
 - PostgreSQL schema-per-tenant placement validation and `search_path` application.
 - Shared SQL-identifier, qualified-table, and tenant-discriminator decisions.
+- Bounded ORM-neutral tenant resource cache for database-per-tenant client/pool lifecycle.
 
 ## Does Not Own
 
@@ -20,8 +21,8 @@ engines, while keeping ORM packages thin and user-facing.
 ## Public Interfaces
 
 - `createPostgresStrategyEngine`, `validatePostgresRlsPolicies`, SQL identifier/table normalization,
-  and tenant-discriminator decision helpers. These are consumed by TenancyJS adapters, not intended as
-  the primary application API.
+  tenant-discriminator decision helpers, and `createTenantResourceCache`. These are consumed by
+  TenancyJS adapters, not intended as the primary application API.
 
 ## Boundaries
 
@@ -30,4 +31,4 @@ engines, while keeping ORM packages thin and user-facing.
   Postgres executor contract.
 - All SQL values are parameterized. Identifiers are validated before being used as placement values.
 - Schema context is always transaction-local and revalidated before protected execution.
-- Accepted decisions: ADR-0017, ADR-0018, ADR-0019.
+- Accepted decisions: ADR-0017, ADR-0018, ADR-0019, ADR-0020, ADR-0021.

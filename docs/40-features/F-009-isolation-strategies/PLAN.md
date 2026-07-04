@@ -26,8 +26,8 @@ Deliver in increments; each independently tested and gate-green.
    transaction-local `search_path`, unqualified addressing, schema-per-tenant validation +
    real-Postgres two-tenant adversarial test. Flip Knex capability only then. Provisioning remains T5.
 3. **Done — thin Lucid binding** reusing the same Postgres dialect + adversarial test.
-4. **Database-per-tenant**: per-tenant connection/client routing across dialects + adapters + provisioning
-   + adversarial tests.
+4. **Database-per-tenant — in progress**: bounded shared resource cache complete under ADR-0021;
+   per-tenant connection/client routing across adapters + provisioning + adversarial tests follow.
 5. **Database-enforced schema-per-tenant** (opt-in per-tenant role, ADR-0018) and **Prisma per-schema
    client cache** (deferred).
 

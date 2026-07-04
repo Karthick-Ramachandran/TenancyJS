@@ -22,3 +22,6 @@ Architecture, conventions, and security reviews passed locally; hosted CI eviden
 - Final local gate: PostgreSQL 17 `pnpm check` passes 343 tests with 14 MySQL-only skips, all coverage
   floors, 11 packed-package consumer checks, and Persist Doctor. Dependency audit reports no known
   vulnerabilities.
+- Database-per-tenant cache review: ADR-0021 corrects the task-order drift. The foundation is bounded,
+  single-flight, collision-aware, lease-safe, and sanitizes lifecycle failures. Capabilities remain
+  unsupported until ORM/database identity evidence lands.

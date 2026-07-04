@@ -9,6 +9,9 @@
   expressions, sanitized introspection failure.
 - Schema strategy: missing/central-equal/inaccessible schemas, missing tables, transaction-local SQL,
   tenant and central context, resolver failure redaction.
+- Resource cache: invalid/secret-shaped keys, mapping collision, single-flight creation, callback
+  cleanup, active-capacity rejection, idle LRU eviction, sanitized create/destroy failure, shutdown
+  blocking, retry, and continued cleanup.
 
 ## Integration Tests
 

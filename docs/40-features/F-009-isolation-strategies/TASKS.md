@@ -46,15 +46,42 @@ Evidence:
   relationships, create/read isolation, cross-tenant mutation denial, central rejection, rollback,
   hook-bypass rejection, and pool cleanup.
 
-## T4: Database-enforced (opt-in per-tenant role)
+## T4: Database-per-tenant shared resource cache
+
+Status: Done
+
+Scope:
+- Bounded, single-flight, reference-counted LRU resource cache in adapter-shared; tenant/placement
+  collision rejection; deterministic shutdown and sanitized failures. ADR-0021.
+
+Evidence:
+- Ten focused cache tests cover configuration, mapping collision, single-flight creation, active
+  capacity, idle LRU, callback cleanup, sanitized create/destroy failures, retention/retry, and shutdown.
+- Full no-database workspace gate passes 322 tests with coverage and package-consumer checks.
+
+## T5: Knex database-per-tenant binding
 
 Status: Todo
 
 Scope:
-- Per-tenant role + `USAGE`-only grants; tenant scope `SET ROLE`s; DB blocks cross-schema. Provisioning
-  role/grant lifecycle.
+- Host placement/client factory, connected-database identity validation, protected client reuse, and
+  real two-database isolation/cache lifecycle evidence. Flip Knex capability only after evidence.
 
-## T5: Provisioning
+## T6: Lucid and Prisma database-per-tenant bindings
+
+Status: Todo
+
+Scope:
+- Thin Lucid and Prisma bindings over the shared cache with separate real-database evidence.
+
+## T7: Database-enforced schema mode (opt-in per-tenant role)
+
+Status: Todo
+
+Scope:
+- Per-tenant role + `USAGE`-only grants; tenant scope `SET ROLE`s; database blocks cross-schema.
+
+## T8: Provisioning
 
 Status: Todo
 

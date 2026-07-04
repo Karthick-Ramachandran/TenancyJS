@@ -14,6 +14,15 @@ export {
   createPostgresStrategyEngine,
   validatePostgresRlsPolicies,
 } from "./postgres.js";
+export {
+  TenantResourceCacheError,
+  createTenantResourceCache,
+} from "./resource-cache.js";
+export type {
+  TenantResourceCache,
+  TenantResourceCacheErrorCode,
+  TenantResourceCacheOptions,
+} from "./resource-cache.js";
 export type {
   PostgresExecutor,
   PostgresBinding,
