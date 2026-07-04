@@ -35,6 +35,7 @@ describe("createLucidTenancy", () => {
   it("defines a frozen AdonisJS 7/Lucid 22 capability boundary", () => {
     expect(LUCID_ADAPTER_CAPABILITIES).toEqual({
       rowLevel: "supported",
+      schemaPerTenant: "unsupported",
       databasePerTenant: "unsupported",
       centralModels: "supported",
       transactions: "supported",

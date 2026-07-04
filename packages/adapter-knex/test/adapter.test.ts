@@ -300,6 +300,7 @@ describe("Knex tenancy configuration", () => {
   it("publishes a conservative capability matrix", () => {
     expect(KNEX_ADAPTER_CAPABILITIES).toEqual({
       rowLevel: "supported",
+      schemaPerTenant: "unsupported",
       databasePerTenant: "unsupported",
       centralModels: "supported",
       transactions: "supported",

@@ -5,6 +5,7 @@ export type TenancyAdapterCapabilityStatus =
 
 export interface TenancyAdapterCapabilities {
   readonly rowLevel: TenancyAdapterCapabilityStatus;
+  readonly schemaPerTenant: TenancyAdapterCapabilityStatus;
   readonly databasePerTenant: TenancyAdapterCapabilityStatus;
   readonly centralModels: TenancyAdapterCapabilityStatus;
   readonly transactions: TenancyAdapterCapabilityStatus;

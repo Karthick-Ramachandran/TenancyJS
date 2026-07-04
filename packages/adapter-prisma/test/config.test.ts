@@ -116,6 +116,7 @@ describe("Prisma tenancy configuration", () => {
   it("publishes an immutable, fail-closed capability contract", () => {
     expect(PRISMA_ADAPTER_CAPABILITIES).toEqual({
       rowLevel: "supported",
+      schemaPerTenant: "unsupported",
       databasePerTenant: "unsupported",
       centralModels: "supported",
       transactions: "supported",

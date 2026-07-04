@@ -2,7 +2,8 @@ export interface TenantRecord {
   readonly id: string;
 }
 
-export type TenancyStrategy = "rowLevel" | "databasePerTenant";
+export type TenancyStrategy =
+  "rowLevel" | "schemaPerTenant" | "databasePerTenant";
 
 export interface TenancyConfig {
   readonly strategy: TenancyStrategy;
