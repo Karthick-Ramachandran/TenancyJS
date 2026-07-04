@@ -1,6 +1,14 @@
+import process from "node:process";
+
 import { applyChangePlan } from "./apply.js";
+import {
+  FRAMEWORK_CHOICES,
+  capabilityBanner,
+  checkNodeVersion,
+  ormForFramework,
+} from "./capabilities.js";
 import { detectProject } from "./detection.js";
-import { CliUsageError, TenancyCliError } from "./errors.js";
+import { CliProjectError, CliUsageError, TenancyCliError } from "./errors.js";
 import { runDoctor } from "./doctor.js";
 import { runLeakTest } from "./leak-test.js";
 import {
@@ -11,11 +19,30 @@ import {
 } from "./output.js";
 import { createInitPlan } from "./plan.js";
 import { redactText } from "./redaction.js";
+import type {
+  InitFramework,
+  ProjectChangePlan,
+  ProjectDetection,
+} from "./types.js";
+
+export interface CliSelectChoice {
+  readonly value: string;
+  readonly label: string;
+}
 
 export interface CliIo {
   readonly cwd: string;
   writeStdout(value: string): void;
   writeStderr(value: string): void;
+  /** True when stdin is an interactive TTY the CLI may prompt on. */
+  readonly isInteractive?: boolean;
+  /** Node version string; defaults to the running process. */
+  readonly nodeVersion?: string;
+  /** Present only in interactive mode; returns the chosen `value`. */
+  select?(
+    question: string,
+    choices: readonly CliSelectChoice[],
+  ): Promise<string>;
 }
 
 export async function runCli(
@@ -30,14 +57,7 @@ export async function runCli(
     }
     const root = parsed.root ?? io.cwd;
     if (parsed.command === "init") {
-      const plan = await createInitPlan(await detectProject(root));
-      if (parsed.apply) await applyChangePlan(plan);
-      io.writeStdout(
-        parsed.json
-          ? formatJson(publicPlan(plan, parsed.apply))
-          : formatPlan(plan, parsed.apply),
-      );
-      return plan.actions.some(({ status }) => status === "conflict") ? 2 : 0;
+      return await runInit(parsed, root, io);
     }
     if (parsed.command === "doctor") {
       const report = await runDoctor(root, {
@@ -71,18 +91,111 @@ export async function runCli(
             status: "error",
             error: { code, message: redacted },
           })
-        : `${code}: ${redacted}\n`,
+        : `Error: ${redacted}\n`,
     );
     return 2;
   }
+}
+
+async function runInit(
+  parsed: ParsedArguments,
+  root: string,
+  io: CliIo,
+): Promise<number> {
+  const nodeVersion = io.nodeVersion ?? process.versions.node;
+  if (!parsed.json) io.writeStderr(capabilityBanner(nodeVersion));
+
+  const node = checkNodeVersion(nodeVersion);
+  if (!node.ok) {
+    throw new CliProjectError(
+      `TenancyJS requires Node.js >= ${node.requiredMajor}, but this is Node ${node.current}. ` +
+        `Upgrade Node, then run tenancy init again. No files were written.`,
+    );
+  }
+
+  const detection = await detectProject(root);
+  const framework = await resolveFramework(detection, parsed, io);
+  const plan = await createInitPlan({
+    root: detection.root,
+    framework,
+    orm: ormForFramework(framework),
+  });
+
+  if (parsed.apply) await applyChangePlan(plan);
+  io.writeStdout(
+    parsed.json
+      ? formatJson(publicPlan(plan, parsed.apply))
+      : formatPlan(plan, parsed.apply),
+  );
+  return plan.actions.some(({ status }) => status === "conflict") ? 2 : 0;
+}
+
+async function resolveFramework(
+  detection: ProjectDetection,
+  parsed: ParsedArguments,
+  io: CliIo,
+): Promise<InitFramework> {
+  if (parsed.framework !== undefined) return parsed.framework;
+
+  if (detection.framework.supported && detection.framework.name !== "unknown") {
+    if (!parsed.json) {
+      io.writeStderr(
+        `Detected ${detection.framework.name}${
+          detection.framework.version === undefined
+            ? ""
+            : ` ${detection.framework.version}`
+        }.\n`,
+      );
+    }
+    return detection.framework.name;
+  }
+
+  const interactive =
+    io.isInteractive === true &&
+    typeof io.select === "function" &&
+    !parsed.json &&
+    !parsed.yes;
+
+  if (interactive) {
+    io.writeStderr(describeDetection(detection));
+    const value = await io.select!(
+      "Which framework are you setting up?",
+      FRAMEWORK_CHOICES,
+    );
+    if (value !== "express" && value !== "adonis" && value !== "next") {
+      throw new CliUsageError(
+        `Unknown framework "${value}". Choose express, adonis, or next.`,
+      );
+    }
+    return value;
+  }
+
+  throw new CliUsageError(
+    "Could not detect a supported framework in this project. " +
+      "Run tenancy init in an interactive terminal, or pass " +
+      "--framework=express|adonis|next (supported: Express 5.2 + Prisma 7.8, " +
+      "AdonisJS 7.3 + Lucid 22.4, Next.js 16 + Prisma 7.8).",
+  );
+}
+
+function describeDetection(detection: ProjectDetection): string {
+  const framework = detection.framework;
+  if (framework.name === "unknown") {
+    return "No supported framework was detected in package.json.\n";
+  }
+  return `Detected ${framework.name}${
+    framework.version === undefined ? "" : ` ${framework.version}`
+  }, which is outside the supported range.\n`;
 }
 
 interface ParsedArguments {
   readonly command: "init" | "doctor" | "test:leak" | "help";
   readonly root?: string;
   readonly testFile?: string;
+  readonly framework?: InitFramework;
   readonly apply: boolean;
   readonly json: boolean;
+  readonly yes: boolean;
 }
 
 function parseArguments(arguments_: readonly string[]): ParsedArguments {
@@ -92,7 +205,7 @@ function parseArguments(arguments_: readonly string[]): ParsedArguments {
     commandValue === "-h" ||
     commandValue === "help"
   ) {
-    return { command: "help", apply: false, json: false };
+    return { command: "help", apply: false, json: false, yes: false };
   }
   if (
     commandValue !== "init" &&
@@ -103,19 +216,34 @@ function parseArguments(arguments_: readonly string[]): ParsedArguments {
   }
   let root: string | undefined;
   let testFile: string | undefined;
+  let framework: InitFramework | undefined;
   let apply = false;
   let json = false;
+  let yes = false;
   for (let index = 1; index < arguments_.length; index += 1) {
     const argument = arguments_[index]!;
     if (argument === "--apply") apply = true;
     else if (argument === "--json") json = true;
-    else if (argument === "--root" || argument === "--test-file") {
+    else if (argument === "--yes" || argument === "-y") yes = true;
+    else if (
+      argument === "--root" ||
+      argument === "--test-file" ||
+      argument === "--framework"
+    ) {
       const value = arguments_[index + 1];
       if (value === undefined || value.startsWith("--")) {
         throw new CliUsageError(`${argument} requires a value.`);
       }
       if (argument === "--root") root = value;
-      else testFile = value;
+      else if (argument === "--test-file") testFile = value;
+      else {
+        if (value !== "express" && value !== "adonis" && value !== "next") {
+          throw new CliUsageError(
+            `Unknown framework "${value}". Choose express, adonis, or next.`,
+          );
+        }
+        framework = value;
+      }
       index += 1;
     } else {
       throw new CliUsageError(`Unknown option: ${argument}`);
@@ -123,19 +251,20 @@ function parseArguments(arguments_: readonly string[]): ParsedArguments {
   }
   if (commandValue !== "init" && apply)
     throw new CliUsageError("--apply is valid only for init.");
+  if (commandValue !== "init" && (framework !== undefined || yes))
+    throw new CliUsageError("--framework and --yes are valid only for init.");
   return {
     command: commandValue,
     ...(root === undefined ? {} : { root }),
     ...(testFile === undefined ? {} : { testFile }),
+    ...(framework === undefined ? {} : { framework }),
     apply,
     json,
+    yes,
   };
 }
 
-function publicPlan(
-  plan: Awaited<ReturnType<typeof createInitPlan>>,
-  applied: boolean,
-) {
+function publicPlan(plan: ProjectChangePlan, applied: boolean) {
   return {
     schemaVersion: 1,
     command: "init",
@@ -151,11 +280,13 @@ function helpText(): string {
   return `TenancyJS CLI
 
 Usage:
-  tenancy init [--root <path>] [--apply] [--json]
+  tenancy init [--framework <express|adonis|next>] [--root <path>] [--apply] [--yes] [--json]
   tenancy doctor [--root <path>] [--test-file <path>] [--json]
   tenancy test:leak --test-file <path> [--root <path>] [--json]
 
-init is a dry run unless --apply is present. The initial CLI supports Express 5.2 + Prisma 7.8, or
-AdonisJS 7.3 + Lucid 22.4.
+init previews changes (dry run) unless --apply is present. It detects your stack and, when it cannot,
+asks you to choose one interactively; pass --framework to skip the prompt in CI. Supported stacks:
+Express 5.2 + Prisma 7.8, AdonisJS 7.3 + Lucid 22.4, or Next.js 16 + Prisma 7.8. Isolation is
+single-database row-level (forced RLS); Node.js >= 24 is required.
 `;
 }

@@ -21,11 +21,13 @@ export async function detectProject(root: string): Promise<ProjectDetection> {
           dependencies["@adonisjs/core"],
           /(?:^|\D)7\.3(?:\D|$)/u,
         )
-      : detectComponent(
-          "express",
-          dependencies.express,
-          /(?:^|\D)5\.2(?:\D|$)/u,
-        );
+      : dependencies.next !== undefined
+        ? detectComponent("next", dependencies.next, /(?:^|\D)16(?:\D|$)/u)
+        : detectComponent(
+            "express",
+            dependencies.express,
+            /(?:^|\D)5\.2(?:\D|$)/u,
+          );
   const orm: DetectedComponent<DetectedOrm> =
     dependencies["@adonisjs/lucid"] !== undefined
       ? detectComponent(

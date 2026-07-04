@@ -101,3 +101,48 @@ export { TenancyMiddleware as default } from "@tenancyjs/integration-adonis";
 `,
   }),
 ]);
+
+export const NEXT_PRISMA_TEMPLATES = Object.freeze([
+  Object.freeze({
+    path: "tenancy.config.ts",
+    content: `import { defineConfig } from "@tenancyjs/core";
+
+export default defineConfig({
+  strategy: "rowLevel",
+  framework: "next",
+  orm: "prisma",
+});
+`,
+  }),
+  Object.freeze({
+    path: "lib/tenancy/register.ts",
+    content: `import { createPrismaTenancyExtension } from "@tenancyjs/adapter-prisma";
+import type { TenancyManager } from "@tenancyjs/core";
+
+export function createTenancyExtension(manager: TenancyManager) {
+  return createPrismaTenancyExtension({
+    manager,
+    // Classify every Prisma model before using the secured client.
+    tenantModels: {},
+    centralModels: {},
+  });
+}
+`,
+  }),
+  Object.freeze({
+    path: "lib/tenancy/server.ts",
+    content: `import type { TenancyManager, TenantRecord } from "@tenancyjs/core";
+import type { TenantResolutionChain } from "@tenancyjs/identifiers";
+import { createNextTenancy } from "@tenancyjs/integration-next";
+
+// Wire this once, then import it from Route Handlers and Server Actions.
+// Do not run tenant-scoped database work inside a streamed response body.
+export function createTenancy<TTenant extends TenantRecord>(
+  manager: TenancyManager<TTenant>,
+  resolver: TenantResolutionChain<TTenant>,
+) {
+  return createNextTenancy<TTenant>({ manager, resolver });
+}
+`,
+  }),
+]);
