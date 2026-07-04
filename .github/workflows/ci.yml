@@ -14,6 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TEST_DATABASE_URL: postgresql://postgres@127.0.0.1:5432/tenancyjs_test
+      MYSQL_TEST_DATABASE_URL: mysql://root:root@127.0.0.1:3306/tenancyjs_test
     services:
       postgres:
         image: postgres:17-alpine
@@ -27,6 +28,18 @@ jobs:
           --health-interval 2s
           --health-timeout 2s
           --health-retries 15
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: tenancyjs_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval 3s
+          --health-timeout 3s
+          --health-retries 20
     strategy:
       fail-fast: false
       matrix:

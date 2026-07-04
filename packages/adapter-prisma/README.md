@@ -2,7 +2,9 @@
 
 Fail-closed row-level tenant isolation for supported Prisma Client operations.
 
-> Pre-alpha: implemented and tested against Prisma 7.8/PostgreSQL, but not published for production use.
+> Pre-alpha: implemented and tested against Prisma 7.8 on **PostgreSQL and MySQL** (two-tenant
+> integration suites), but not published for production use. Isolation is database-agnostic because the
+> extension rewrites query arguments rather than SQL.
 
 ## Security boundary
 

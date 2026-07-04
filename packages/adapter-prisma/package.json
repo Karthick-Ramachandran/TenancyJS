@@ -38,7 +38,9 @@
   "scripts": {
     "build": "tsc -b",
     "prisma:generate": "prisma generate --schema prisma/schema.prisma",
+    "prisma:generate:mysql": "prisma generate --schema prisma/schema.mysql.prisma",
     "prisma:test:push": "prisma db push --config prisma.config.ts",
+    "prisma:test:push:mysql": "prisma db push --config prisma.mysql.config.ts",
     "typecheck": "tsc -b --pretty false"
   }
 }

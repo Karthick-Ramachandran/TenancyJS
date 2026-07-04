@@ -150,6 +150,10 @@ lane passes.
 Combinations not listed above are not implied to work merely because their individual packages exist.
 See the [test matrix](docs/40-features/F-001-tenancyjs-platform/TEST_PLAN.md).
 
+**Databases:** the Prisma adapter is database-agnostic — it rewrites query arguments rather than SQL —
+and is proven on **PostgreSQL and MySQL** with two-tenant integration suites. The Knex and Lucid
+adapters enforce **PostgreSQL** row-level security and are PostgreSQL-only by design.
+
 ## Architecture
 
 ```mermaid
