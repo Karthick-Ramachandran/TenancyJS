@@ -155,6 +155,7 @@ Usage:
   tenancy doctor [--root <path>] [--test-file <path>] [--json]
   tenancy test:leak --test-file <path> [--root <path>] [--json]
 
-init is a dry run unless --apply is present. The initial CLI supports Express 5.2 + Prisma 7.8.
+init is a dry run unless --apply is present. The initial CLI supports Express 5.2 + Prisma 7.8, or
+AdonisJS 7.3 + Lucid 22.4.
 `;
 }

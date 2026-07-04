@@ -64,6 +64,41 @@ describe("CLI project detection and init", () => {
     });
   });
 
+  it("detects AdonisJS 7.3 with Lucid 22.4 and plans the Adonis templates", async () => {
+    const root = await temporaryDirectory();
+    await writeJson(join(root, "package.json"), {
+      dependencies: { "@adonisjs/core": "7.3.4", "@adonisjs/lucid": "22.4.2" },
+    });
+
+    await expect(detectProject(root)).resolves.toMatchObject({
+      framework: { name: "adonis", version: "7.3.4", supported: true },
+      orm: { name: "lucid", version: "22.4.2", supported: true },
+      supported: true,
+    });
+
+    const plan = await createInitPlan(await detectProject(root));
+    expect(plan).toMatchObject({
+      framework: "adonis",
+      orm: "lucid",
+      strategy: "rowLevel",
+    });
+    expect(plan.actions.map((action) => action.path)).toEqual([
+      "config/tenancy.ts",
+      "app/middleware/tenant_middleware.ts",
+    ]);
+    expect(plan.actions.every((action) => action.status === "create")).toBe(
+      true,
+    );
+
+    await writeJson(join(root, "package.json"), {
+      dependencies: { "@adonisjs/core": "6.18.0", "@adonisjs/lucid": "22.4.2" },
+    });
+    await expect(detectProject(root)).resolves.toMatchObject({
+      framework: { name: "adonis", supported: false },
+      supported: false,
+    });
+  });
+
   it("fails safely for missing, malformed, and unsupported manifests", async () => {
     const missing = await temporaryDirectory();
     await expect(detectProject(missing)).rejects.toBeInstanceOf(

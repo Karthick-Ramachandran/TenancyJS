@@ -2,8 +2,9 @@
 
 Safe, deterministic project initialization and diagnostics for TenancyJS.
 
-The initial CLI supports the tested Express 5.2 + Prisma 7.8 row-level reference slice. It uses Node
-built-ins only, makes no network calls, reads no `.env` files, and never invokes a shell or remote
+The initial CLI supports the tested Express 5.2 + Prisma 7.8 and AdonisJS 7.3 + Lucid 22.4 row-level
+reference slices. It detects the stack from `package.json` and scaffolds the matching wiring. It uses
+Node built-ins only, makes no network calls, reads no `.env` files, and never invokes a shell or remote
 package runner.
 
 ## Commands
@@ -32,13 +33,22 @@ explicit test file exits successfully. Output redacts URL credentials and secret
 
 ## Generated Files
 
+Express + Prisma:
+
 - `tenancy.config.ts`
 - `src/tenancy/register.ts`
 - `src/middleware/tenancy.ts`
 
-The generated Prisma classification is intentionally empty. Classify every schema model as tenant or
-central and add a real leak test before Doctor can pass. Static Doctor output estimates migration work;
-it does not prove runtime tenant isolation.
+AdonisJS + Lucid:
+
+- `config/tenancy.ts`
+- `app/middleware/tenant_middleware.ts`
+
+The generated classification is intentionally empty. Classify every model as tenant or central and add
+a real leak test before Doctor can pass. For AdonisJS, register the provider in `adonisrc.ts`, apply
+the middleware to tenant route groups, and add a migration that enables and FORCES PostgreSQL row-level
+security under a non-privileged runtime role. Static Doctor output estimates migration work; it does
+not prove runtime tenant isolation.
 
 ## Security Boundary
 

@@ -6,7 +6,10 @@ import {
   isMissing,
   resolveContainedPath,
 } from "./paths.js";
-import { EXPRESS_PRISMA_TEMPLATES } from "./templates.js";
+import {
+  ADONIS_LUCID_TEMPLATES,
+  EXPRESS_PRISMA_TEMPLATES,
+} from "./templates.js";
 import type {
   ProjectChangeAction,
   ProjectChangePlan,
@@ -18,19 +21,23 @@ export async function createInitPlan(
 ): Promise<ProjectChangePlan> {
   if (!detection.supported) {
     throw new CliProjectError(
-      "The initial CLI supports Express 5.2 with Prisma Client 7.8 only.",
+      "The initial CLI supports Express 5.2 with Prisma Client 7.8, or AdonisJS 7.3 with Lucid 22.4.",
     );
   }
+  const isAdonis = detection.framework.name === "adonis";
+  const templates = isAdonis
+    ? ADONIS_LUCID_TEMPLATES
+    : EXPRESS_PRISMA_TEMPLATES;
   const actions = await Promise.all(
-    EXPRESS_PRISMA_TEMPLATES.map(async ({ path, content }) =>
+    templates.map(async ({ path, content }) =>
       inspectAction(detection.root, path, content),
     ),
   );
   return Object.freeze({
     schemaVersion: 1,
     root: detection.root,
-    framework: "express",
-    orm: "prisma",
+    framework: isAdonis ? "adonis" : "express",
+    orm: isAdonis ? "lucid" : "prisma",
     strategy: "rowLevel",
     actions: Object.freeze(actions),
   });
