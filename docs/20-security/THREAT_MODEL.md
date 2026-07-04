@@ -2,8 +2,9 @@
 
 ## Status
 
-Active and incremental. Core-context, tenant-resolution, Prisma row-level adapter, Express request
-lifecycle, and reference CLI safety controls are implemented; other adapter, integration, and
+Active and incremental. Core context, tenant resolution, Prisma/Knex row-level adapters, Express and
+Next.js request lifecycles, and reference CLI safety controls are implemented. The Lucid 22 adapter
+boundary is implemented pending hosted PostgreSQL evidence; other adapter, integration, and
 operational CLI controls remain delivery requirements.
 
 ## Assets
@@ -64,12 +65,16 @@ operational CLI controls remain delivery requirements.
   continue under its captured tenant context; applications own cancellation of abandoned work.
 - Next.js runtime/caching evolution remains an integration-owner compatibility risk; T-07 pins a narrow
   peer range, revalidates Edge hints in Node, and requires tenant-aware keys or `no-store`.
+- Lucid intentionally exposes hook-skipping model/database paths and application-owned transaction
+  clients. TenancyJS guarantees registered normal model operations only; forced PostgreSQL RLS denies
+  missing-context paths, while retained/raw/privileged capabilities remain outside the guarantee.
 - Raw SQL cannot be made universally safe: adapter/documentation owners; explicit escape policy needed.
 - Atomic rollback across filesystem and database operations is impossible: CLI owner; staged,
   idempotent operations and recovery output required.
 - Explicit leak-test files execute as trusted local code rather than in a sandbox; the CLI constrains
   path, environment, duration, output, and shell use, while users remain responsible for reviewing the
   selected test behavior.
-- Framework and ORM peer versions remain unresolved until their integration tasks: package owners.
+- Unimplemented framework and ORM peer versions remain unresolved until their integration tasks;
+  AdonisJS 7.3/Lucid 22.4 and Node 24 are fixed by ADR-0013 for the active slice.
 - Shallow tenant snapshots do not freeze custom nested metadata: host applications must treat nested
   values as application-owned and avoid mutating security-relevant metadata during a scope.

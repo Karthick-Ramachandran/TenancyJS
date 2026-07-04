@@ -3,9 +3,10 @@
 ## Status
 
 Active and incremental. Core async context, fail-closed tenant access, explicit central scope,
-lifecycle cleanup, tenant resolution, Prisma row-level isolation, Express and Next.js request
-lifecycle boundaries, and the reference safe CLI foundation are implemented and tested. Other
-adapters, framework integrations, and operational CLI commands remain requirements for later tasks.
+lifecycle cleanup, tenant resolution, Prisma and Knex/PostgreSQL row-level isolation, Express and
+Next.js request lifecycle boundaries, and the reference safe CLI foundation are implemented and
+tested. The Lucid 22 boundary and PostgreSQL suite are implemented pending real-database CI evidence.
+Other adapters, framework integrations, and operational CLI commands remain later tasks.
 
 ## Baseline Rules
 
@@ -87,6 +88,35 @@ only to locally installed, allowlisted ORM executables using argument arrays rat
 - Query callbacks delegate exactly once through Prisma's provided callback so transactions retain scope.
 - Errors contain model/operation identifiers but never query arguments, rows, tenants, or database URLs.
 - The tenancy extension must be registered last so later query extensions cannot remove scoped arguments.
+
+## Implemented Knex Adapter Controls
+
+- The initial guarantee is Knex 3.3 with PostgreSQL 17 forced RLS on Node 24; other SQL providers
+  remain unsupported until equivalent enforcement and real-database evidence exist.
+- Protected execution stays locked until startup validation confirms enabled/forced policies, reviewed
+  `USING`/`WITH CHECK` expressions, and a runtime role that is not owner, superuser, or `BYPASSRLS`.
+- Tenant work uses parameterized transaction-local settings and a callback-scoped protected client;
+  commit, rollback, savepoints, failure, and pooled reuse are covered by PostgreSQL tests.
+- Supported builders add or validate the discriminator and compose only reviewed AND filters. Raw SQL,
+  raw values, schema/migration/client/connection access, unsafe OR/clear, joins, unions, CTEs,
+  subqueries, streams, truncate, caller transactions, and unknown tables/operations are rejected.
+- The base Knex client and migration role remain private and outside the guarantee. Runtime never
+  installs schema or policies automatically.
+
+## Implemented Lucid Adapter Controls
+
+- The initial guarantee targets Lucid 22.4, AdonisJS 7.3, PostgreSQL 17, and Node 24. Non-PostgreSQL
+  providers and AdonisJS 6 remain unsupported.
+- `createLucidTenancy` stays locked until forced-policy validation passes, then owns a managed Lucid
+  transaction with parameterized transaction-local tenant/central settings.
+- Explicitly registered models receive find/fetch/paginate/save/delete hooks. Reads add the tenant
+  predicate; creates inject or validate the discriminator; updates cannot move rows between tenants;
+  all normal model work attaches to the active transaction.
+- `.pojo()`, quiet persistence, bulk/direct builders, and unsupported relationship writes skip model
+  hooks by Lucid design. They receive no protected transaction and must fail closed through forced RLS;
+  they are not advertised as supported operations.
+- The application-owned Lucid database service, unregistered models, privileged roles, and unforced
+  schemas are outside the adapter guarantee. Runtime never installs schema or policies.
 
 ## Implemented Express Integration Controls
 

@@ -17,6 +17,8 @@
     "strict": true,
     "target": "ES2023",
     "paths": {
+      "@tenancyjs/adapter-knex": ["./packages/adapter-knex/src/index.ts"],
+      "@tenancyjs/adapter-lucid": ["./packages/adapter-lucid/src/index.ts"],
       "@tenancyjs/adapter-prisma": ["./packages/adapter-prisma/src/index.ts"],
       "@tenancyjs/cli": ["./packages/cli/src/index.ts"],
       "@tenancyjs/core": ["./packages/core/src/index.ts"],

@@ -13,7 +13,7 @@ request-controlled central mode.
 pnpm add @tenancyjs/core @tenancyjs/identifiers @tenancyjs/integration-express express
 ```
 
-The initial tested target is Express 5.2.x on Node 22 and Node 24.
+The supported target is Express 5.2.x on the repository's Node 24 baseline.
 
 ## Usage
 

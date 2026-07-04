@@ -6,10 +6,13 @@ import process from "node:process";
 
 const destination = await mkdtemp(join(tmpdir(), "tenancyjs-pack-"));
 const packages = [
+  { name: "@tenancyjs/adapter-knex", directory: "adapter-knex" },
+  { name: "@tenancyjs/adapter-lucid", directory: "adapter-lucid" },
   { name: "@tenancyjs/core", directory: "core" },
   { name: "@tenancyjs/adapter-prisma", directory: "adapter-prisma" },
   { name: "@tenancyjs/cli", directory: "cli" },
   { name: "@tenancyjs/identifiers", directory: "identifiers" },
+  { name: "@tenancyjs/integration-adonis", directory: "integration-adonis" },
   { name: "@tenancyjs/integration-express", directory: "integration-express" },
   { name: "@tenancyjs/integration-next", directory: "integration-next" },
   { name: "@tenancyjs/testing", directory: "testing" },
@@ -93,10 +96,13 @@ try {
       "--eval",
       [
         'import { TenancyManager, defineConfig } from "@tenancyjs/core";',
+        'import { KNEX_ADAPTER_CAPABILITIES, createKnexTenancy } from "@tenancyjs/adapter-knex";',
+        'import { LUCID_ADAPTER_CAPABILITIES, createLucidTenancy } from "@tenancyjs/adapter-lucid";',
         'import { PRISMA_ADAPTER_CAPABILITIES, createPrismaAdapter } from "@tenancyjs/adapter-prisma";',
         'import { redactText } from "@tenancyjs/cli";',
         'import { HeaderTenantResolver, TenantResolutionChain } from "@tenancyjs/identifiers";',
         'import { createExpressTenancyMiddleware } from "@tenancyjs/integration-express";',
+        'import { TenancyMiddleware, TenancyProvider, defineAdonisTenancyConfig } from "@tenancyjs/integration-adonis";',
         'import { createNextTenancy } from "@tenancyjs/integration-next";',
         'import { createNextTenantHint } from "@tenancyjs/integration-next/edge";',
         'import { createCoreTenancyContract, createTenantFixture } from "@tenancyjs/testing";',
@@ -107,7 +113,7 @@ try {
         'const chain = new TenantResolutionChain({ resolvers: [new HeaderTenantResolver()], store: { find: async () => [{ tenant: fixture, status: "active" }] } });',
         'const outcome = await chain.resolve({ headers: { "x-tenant-id": "consumer" } });',
         "for (const contractCase of createCoreTenancyContract()) await contractCase.run();",
-        'if (tenantId !== "consumer" || outcome.status !== "resolved" || defineConfig({ strategy: "rowLevel" }).strategy !== "rowLevel" || prismaAdapter.name !== "prisma" || PRISMA_ADAPTER_CAPABILITIES.rawQueries !== "rejected" || typeof createExpressTenancyMiddleware !== "function" || typeof createNextTenancy !== "function" || createNextTenantHint(new Headers({ "x-tenant-id": "consumer" })) === null || redactText("postgresql://user:pass@localhost/db").includes("pass")) process.exit(1);',
+        'if (tenantId !== "consumer" || outcome.status !== "resolved" || defineConfig({ strategy: "rowLevel" }).strategy !== "rowLevel" || prismaAdapter.name !== "prisma" || PRISMA_ADAPTER_CAPABILITIES.rawQueries !== "rejected" || typeof createKnexTenancy !== "function" || KNEX_ADAPTER_CAPABILITIES.rawQueries !== "rejected" || typeof createLucidTenancy !== "function" || LUCID_ADAPTER_CAPABILITIES.rawQueries !== "rejected" || typeof createExpressTenancyMiddleware !== "function" || typeof defineAdonisTenancyConfig !== "function" || typeof TenancyMiddleware !== "function" || typeof TenancyProvider !== "function" || typeof createNextTenancy !== "function" || createNextTenantHint(new Headers({ "x-tenant-id": "consumer" })) === null || redactText("postgresql://user:pass@localhost/db").includes("pass")) process.exit(1);',
       ].join("\n"),
     ],
     consumer,

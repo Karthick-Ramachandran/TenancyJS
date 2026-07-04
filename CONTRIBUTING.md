@@ -18,7 +18,7 @@ pnpm install
 pnpm check
 ```
 
-Supported CI runtimes are Node.js 22 and 24 LTS. Use the pinned pnpm version from `package.json`.
+The supported CI runtime is Node.js 24 LTS. Use the pinned pnpm version from `package.json`.
 
 ## Pull requests
 

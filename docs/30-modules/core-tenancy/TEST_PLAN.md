@@ -28,4 +28,4 @@
 - Core source coverage: 100% statements, functions, and lines; 94.11% branches.
 - The packed tarball installs with scripts disabled into a fresh temporary consumer and executes the
   public `TenancyManager` and `defineConfig` APIs.
-- Node 22/24 CI remains required when this change is pushed.
+- Node 24 CI remains required when this change is pushed.

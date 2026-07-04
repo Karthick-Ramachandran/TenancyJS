@@ -16,10 +16,20 @@ preferences.
 - `TenancyAdapter`: implemented ORM-neutral capability and validation contract owned by core.
 - `createPrismaTenancyExtension`: canonical Prisma row-level extension factory; never expose a base
   Prisma client as the protected application client.
+- `createKnexTenancy`: canonical Knex protected-callback factory; execution stays locked until forced
+  PostgreSQL RLS validation passes, and the base Knex client is never application-facing.
+- `createLucidTenancy`: canonical Lucid 22 managed-transaction factory; registered models use native
+  hooks for normal operations while forced PostgreSQL RLS denies hook-skipping paths.
 - `createExpressTenancyMiddleware`: canonical Express 5 request-lifecycle bridge; it composes an
   application-owned `TenancyManager` and tenant resolver and never creates hidden tenant state.
 - `createNextTenancy`: canonical Next.js App Router Node bridge for Route Handlers and Server Actions;
   its separate Edge helper transports only untrusted identity hints for Node revalidation.
+- `defineAdonisTenancyConfig`: canonical typed AdonisJS 7 config factory; it validates and freezes one
+  application-owned manager, resolver, and Lucid tenancy service and creates no hidden database client.
+- `TenancyMiddleware`: canonical AdonisJS 7 tenant-route middleware; it resolves once and runs each
+  request inside `runWithTenant` and the Lucid managed transaction, with sanitized failure mapping and
+  no central fallback. `TenancyProvider` is its companion provider that registers the binding and
+  validates the Lucid policy fail-closed at `ready`.
 - `createRowLevelAdapterContract`: runner-neutral two-tenant adapter conformance suite.
 - `ProjectChangePlan`: canonical immutable CLI preview/apply contract; content is never printed in
   normal output and every action is revalidated before commit.
@@ -29,9 +39,10 @@ preferences.
 - `pnpm check`: canonical repository gate for lint, format, types, tests, package verification, and
   Persist memory validation.
 
-Core, resolver, outcome, contract-case, adapter, Prisma-extension, and Express-middleware names above
-are implemented contracts. `TenancyIntegration` remains the framework-neutral planned vocabulary; do
-not introduce a competing name without updating the feature plan and an ADR where applicable.
+Core, resolver, outcome, contract-case, adapter, Prisma-extension, Knex, Lucid, Express, Next, and
+AdonisJS names above are implemented contracts. `TenancyIntegration` remains the framework-neutral
+planned vocabulary; do not introduce a competing name without updating the feature plan and an ADR
+where applicable.
 
 ## Naming Conventions
 

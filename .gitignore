@@ -11,3 +11,6 @@ examples/next-prisma/generated/
 .env
 .env.*
 !.env.example
+
+# Local-only AdonisJS reference example (built + tested locally, never pushed; see F-007)
+examples/adonis-lucid/

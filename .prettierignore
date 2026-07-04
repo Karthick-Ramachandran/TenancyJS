@@ -10,4 +10,5 @@ coverage/
 **/.next/
 examples/express-prisma/src/generated/
 examples/next-prisma/generated/
+examples/adonis-lucid/
 pnpm-lock.yaml

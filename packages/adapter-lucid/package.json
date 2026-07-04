@@ -1,0 +1,50 @@
+{
+  "name": "@tenancyjs/adapter-lucid",
+  "version": "0.0.0",
+  "description": "Fail-closed PostgreSQL row-level tenancy for AdonisJS Lucid.",
+  "type": "module",
+  "license": "MIT",
+  "sideEffects": false,
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "engines": {
+    "node": ">=24"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@tenancyjs/core": "workspace:*"
+  },
+  "peerDependencies": {
+    "@adonisjs/core": ">=7.3.0 <8",
+    "@adonisjs/lucid": ">=22.4.0 <23",
+    "luxon": ">=3.7.0 <4",
+    "pg": ">=8.20.0 <9"
+  },
+  "devDependencies": {
+    "@adonisjs/core": "7.3.4",
+    "@adonisjs/lucid": "22.4.2",
+    "luxon": "3.7.2",
+    "pg": "8.20.0",
+    "youch": "4.1.1"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --pretty false"
+  }
+}

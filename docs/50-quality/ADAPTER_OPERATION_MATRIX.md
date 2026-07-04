@@ -10,8 +10,8 @@ secured client fails before execution. `Not implemented` makes no compatibility 
 |---|---|---|---|---|
 | Prisma | Prisma 7.8 + PostgreSQL 17 | Experimental; supported top-level matrix | Not implemented | `packages/adapter-prisma/README.md` |
 | Sequelize | Not implemented | Not implemented | Not implemented | Required when implemented |
-| Knex | Not implemented | Not implemented | Not implemented | Required when implemented |
-| Lucid | Not implemented | Not implemented | Not implemented | Required when implemented |
+| Knex | Knex 3.3 + PostgreSQL 17 | Experimental; supported protected-client matrix | Not implemented | `packages/adapter-knex/README.md` |
+| Lucid | Lucid 22.4 + PostgreSQL 17 suite implemented; hosted evidence pending | Experimental; local unit evidence only | Not implemented | `packages/adapter-lucid/README.md` |
 
 ## Prisma 7.8/PostgreSQL 17
 
@@ -35,3 +35,33 @@ secured client fails before execution. `Not implemented` makes no compatibility 
 
 The guarantee conditions and expansion rules are defined in
 `docs/20-security/ADAPTER_SECURITY_CONTRACT.md`.
+
+## Knex 3.3/PostgreSQL 17
+
+| Operation family | State | Enforcement/evidence |
+|---|---|---|
+| select/first/count/basic aggregates | Supported | protected AND predicates plus forced RLS |
+| insert/bulk insert | Supported | discriminator injected/validated plus RLS `WITH CHECK` |
+| update/delete | Supported | tenant predicate plus forced RLS; discriminator update rejected |
+| managed transactions/savepoints | Supported | transaction-local context, rollback and pooled cleanup tested |
+| explicit central context/central tables | Supported | adapter-owned central flag and explicit allowlist |
+| raw/schema/migration/client/connection | Rejected | outside callback-scoped protected-client boundary |
+| OR/clear/join/union/CTE/subquery/stream/truncate | Rejected | mutable composition is not yet proven safe |
+| unclassified tables/unknown operations | Rejected | exhaustive classification and runtime proxy rejection |
+| non-PostgreSQL/database-per-tenant | Unsupported | requires a separate enforcement capability and evidence |
+
+## Lucid 22.4/PostgreSQL 17
+
+The implementation and real-database suite exist, but no operation is promoted to `Supported` until
+the Node 24/PostgreSQL lane passes in hosted CI.
+
+| Operation family | State | Enforcement/evidence |
+|---|---|---|
+| find/fetch/paginate/aggregate | Evidence pending | model hook attaches the managed transaction and tenant predicate; forced RLS is final boundary |
+| create/save/delete | Evidence pending | transaction attachment, discriminator injection/immutability, and RLS `WITH CHECK` |
+| relationship preload | Evidence pending | every registered related model receives the same fetch hook and transaction scope |
+| managed transactions/savepoints | Evidence pending | transaction-local context and async-local transaction ownership; unit-tested |
+| explicit central context | Evidence pending | adapter-owned central transaction setting; unit-tested |
+| `.pojo()`/quiet/bulk/direct builder | Rejected/fail-closed | hook-skipping paths receive no protected transaction and forced RLS must deny access |
+| unregistered models/base database service | Outside guarantee | application-retained Lucid surfaces bypass adapter hooks |
+| non-PostgreSQL/database-per-tenant | Unsupported | requires a separate enforcement capability and evidence |
