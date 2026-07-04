@@ -1,6 +1,10 @@
 import type { TenancyConfig } from "./types.js";
 
-const STRATEGIES = new Set(["rowLevel", "databasePerTenant"]);
+const STRATEGIES = new Set([
+  "rowLevel",
+  "schemaPerTenant",
+  "databasePerTenant",
+]);
 
 export function defineConfig<const TConfig extends TenancyConfig>(
   config: TConfig,
@@ -11,7 +15,7 @@ export function defineConfig<const TConfig extends TenancyConfig>(
     !STRATEGIES.has(config.strategy)
   ) {
     throw new TypeError(
-      'Tenancy strategy must be "rowLevel" or "databasePerTenant".',
+      'Tenancy strategy must be "rowLevel", "schemaPerTenant", or "databasePerTenant".',
     );
   }
 

@@ -467,9 +467,15 @@ describe("defineConfig", () => {
     expect(Object.isFrozen(config)).toBe(true);
   });
 
+  it("accepts the schema-per-tenant strategy", () => {
+    expect(defineConfig({ strategy: "schemaPerTenant" }).strategy).toBe(
+      "schemaPerTenant",
+    );
+  });
+
   it("rejects unsupported strategies at the runtime boundary", () => {
     expect(() =>
-      defineConfig({ strategy: "schemaPerTenant" } as never),
+      defineConfig({ strategy: "notARealStrategy" } as never),
     ).toThrow(TypeError);
   });
 });

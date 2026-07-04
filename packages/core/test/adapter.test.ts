@@ -10,6 +10,7 @@ describe("TenancyAdapter contract", () => {
   it("describes capabilities and validation without an ORM dependency", async () => {
     const capabilities = {
       rowLevel: "supported",
+      schemaPerTenant: "unsupported",
       databasePerTenant: "unsupported",
       centralModels: "supported",
       transactions: "supported",

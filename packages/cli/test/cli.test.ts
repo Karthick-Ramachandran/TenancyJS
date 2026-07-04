@@ -700,7 +700,7 @@ describe("CLI v0.1 interactive init", () => {
     const banner = capabilityBanner("24.0.0");
     expect(banner).toContain("Express 5.2 + Prisma 7.8");
     expect(banner).toContain("Next.js 16 + Prisma 7.8");
-    expect(banner).toContain("single-database row-level");
+    expect(banner).toContain("shared-schema, row-level");
     expect(banner).toContain("Node.js >= 24");
   });
 
