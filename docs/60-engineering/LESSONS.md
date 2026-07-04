@@ -78,3 +78,7 @@ model preferences.
   exists after the packages are published. This is why the runnable examples were moved OUT of this
   monorepo into a separate repository (see ADR-0015): they will install from the published npm
   packages. The monorepo keeps only `packages/*`, their tests, and an `examples/README.md` placeholder.
+- The Prisma MySQL integration lane runs real-DB Vitest files concurrently with the PostgreSQL Prisma
+  suites. They are schema-isolated, so contention is load/timing, not cross-test corruption. Watch CI;
+  if a real-DB file flakes, cap real-DB file concurrency (`poolOptions`/`maxConcurrency`) rather than
+  weakening the tests.

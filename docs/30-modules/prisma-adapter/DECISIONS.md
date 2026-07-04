@@ -15,5 +15,9 @@
   validation emits a warning and schema changes require review; apply the tenancy extension last.
 - CR-001 makes the supported operation matrix the product/security contract, requires educational
   fail-closed errors, migration guidance, and overhead evidence, and leaves static doctor analysis to T-06.
+- The extension rewrites query arguments, not database SQL, so isolation is database-agnostic. It is
+  proven against both PostgreSQL and MySQL (two-tenant integration suites). MySQL lacks SQL RETURNING,
+  so Prisma's `createManyAndReturn`/`updateManyAndReturn` are unavailable there — a Prisma/MySQL
+  limitation, not a tenancy gap.
 
 Feature source: `docs/40-features/F-003-prisma-adapter/`.
