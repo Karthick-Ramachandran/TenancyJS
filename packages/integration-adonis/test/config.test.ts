@@ -33,6 +33,30 @@ describe("defineAdonisTenancyConfig", () => {
     expect(config.onError).toBe(onError);
   });
 
+  it("accepts a lazy tenancy factory and resolves it only on first access", () => {
+    const tenancy = recordingTenancy();
+    let calls = 0;
+    const config = defineAdonisTenancyConfig({
+      ...validOptions(),
+      tenancy: () => {
+        calls += 1;
+        return tenancy;
+      },
+    });
+    expect(calls).toBe(0);
+    expect(config.tenancy).toBe(tenancy);
+    expect(config.tenancy).toBe(tenancy);
+    expect(calls).toBe(1);
+  });
+
+  it("throws when the tenancy factory returns an invalid service", () => {
+    const config = defineAdonisTenancyConfig({
+      ...validOptions(),
+      tenancy: () => ({}) as never,
+    });
+    expect(() => config.tenancy).toThrowError(AdonisTenancyConfigurationError);
+  });
+
   it.each([null, undefined, 42, "config"])(
     "rejects non-object options (%s)",
     (options) => {

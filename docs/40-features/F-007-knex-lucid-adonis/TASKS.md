@@ -64,13 +64,17 @@ Acceptance: AC-ADONIS-01.
 
 Tests: Provider/container, resolver outcomes, concurrent scope, rollback, cleanup, and error tests.
 
-Evidence: 32 unit tests pass (config/errors/middleware/provider/Lucid-runner compatibility). Full
-`pnpm check` with all DB lanes active is green — 25 files, 293 tests, exit 0 — on local Node 26. The
-compiled-app Japa + PostgreSQL end-to-end evidence is delivered in T6.
+Evidence: 37 unit tests pass (config/errors/middleware/provider/testing/Lucid-runner compatibility).
+Full `pnpm check` with all DB lanes active is green — 26 files, 298 tests, exit 0 — on local Node 26.
+The real compiled-app Japa + PostgreSQL end-to-end evidence is delivered in T6. Building that example
+refined the package: `defineAdonisTenancyConfig` now accepts a lazy tenancy factory (AdonisJS loads
+config before providers boot), and the provider gates fail-closed policy validation to the `web`
+environment (so console migrations and tests can provision the schema the check requires).
 
 ## T6: Add Japa, Ace, CLI Templates, And Reference Example
 
-Status: Todo
+Status: In Progress — Japa helper and the reference example are complete (local); Ace wrappers and safe
+CLI init templates remain.
 
 Scope: Japa helper/plugin, thin Ace wrappers, safe Adonis/Lucid init plan, and production example.
 
@@ -78,6 +82,14 @@ Acceptance: AC-ADONIS-02, AC-ADONIS-03, and AC-COMPAT-KLA-01.
 
 Tests: Japa HTTP/plugin, Ace delegation, CLI malicious/conflict fixtures, production Adonis/Lucid E2E,
 clean package consumers, and the common Node 24 CI lane.
+
+Evidence: `withTenant` helper (part 1) unit-tested. Reference example `examples/adonis-lucid`
+(scaffolded from the official AdonisJS 7 `api` starter kit; kept local/gitignored/standalone) passes
+4/4 Japa + `@japa/api-client` E2E against live PostgreSQL 17 with forced RLS and a non-privileged
+runtime role — two-tenant isolation, tenant injection on create, and sanitized 400/404. Ace wrappers,
+CLI init templates + v6→v7 fixture, and published/hosted example evidence remain. The example is
+local-only for now (demos are maintained as clone-able apps, not published); see the ADONISJS_V7 note
+in the module memory.
 
 ## T7: Review And Promote Evidence
 

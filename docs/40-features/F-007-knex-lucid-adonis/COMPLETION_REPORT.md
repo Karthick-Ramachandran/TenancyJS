@@ -3,9 +3,12 @@
 ## Status
 
 Planning and the Knex (T2/T3) and Lucid (T4) slices are complete, each with hosted Node 24 /
-PostgreSQL 17 CI evidence. The AdonisJS provider/middleware (T5) is implemented and unit-tested with a
-local full gate green; hosted CI evidence for it is pending a push. The Japa/Ace/CLI templates and
-reference example (T6) remain the remaining work.
+PostgreSQL 17 CI evidence. The AdonisJS provider/middleware (T5) is implemented and unit-tested (37
+tests) with a local full gate green; hosted CI evidence for it is pending a push. A real AdonisJS 7 +
+Lucid + PostgreSQL 17 reference example (`examples/adonis-lucid`, scaffolded from the official `api`
+starter kit, kept local/gitignored) passes 4/4 Japa + `@japa/api-client` E2E against live RLS —
+end-to-end proof of the integration. Building it refined the package (lazy tenancy factory,
+web-environment-gated policy validation). Remaining in T6: Ace wrappers and safe CLI init templates.
 
 ## Files Changed
 

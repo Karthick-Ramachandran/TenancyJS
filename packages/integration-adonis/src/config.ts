@@ -5,7 +5,17 @@ import type {
   AdonisTenancyConfig,
   AdonisTenancyErrorHandler,
   AdonisTenancyOptions,
+  AdonisTenancyRunner,
 } from "./types.js";
+
+function isRunner(value: unknown): value is AdonisTenancyRunner {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    typeof (value as AdonisTenancyRunner).run === "function" &&
+    typeof (value as AdonisTenancyRunner).validate === "function"
+  );
+}
 
 /**
  * Container/config key under which the application registers its tenancy config
@@ -44,14 +54,9 @@ export function defineAdonisTenancyConfig<
       "AdonisJS tenancy configuration requires a tenant resolver.",
     );
   }
-  if (
-    options.tenancy === null ||
-    typeof options.tenancy !== "object" ||
-    typeof options.tenancy.run !== "function" ||
-    typeof options.tenancy.validate !== "function"
-  ) {
+  if (typeof options.tenancy !== "function" && !isRunner(options.tenancy)) {
     throw new AdonisTenancyConfigurationError(
-      "AdonisJS tenancy configuration requires a Lucid tenancy service.",
+      "AdonisJS tenancy configuration requires a Lucid tenancy service or a factory that returns one.",
     );
   }
   if (options.onError !== undefined && typeof options.onError !== "function") {
@@ -60,11 +65,33 @@ export function defineAdonisTenancyConfig<
     );
   }
 
+  // The Lucid tenancy service may be supplied lazily as a factory. AdonisJS loads
+  // config before providers boot, so the Lucid database service is not live at
+  // config time; the factory is resolved once, on first use (the provider does
+  // this during `ready()`, after the Lucid provider has booted).
+  const tenancyInput = options.tenancy;
+  let resolvedTenancy: AdonisTenancyRunner | undefined;
+  const resolveTenancy = (): AdonisTenancyRunner => {
+    if (resolvedTenancy === undefined) {
+      const candidate =
+        typeof tenancyInput === "function" ? tenancyInput() : tenancyInput;
+      if (!isRunner(candidate)) {
+        throw new AdonisTenancyConfigurationError(
+          "The AdonisJS tenancy factory must return a Lucid tenancy service.",
+        );
+      }
+      resolvedTenancy = candidate;
+    }
+    return resolvedTenancy;
+  };
+
   return Object.freeze({
     manager: options.manager,
     resolver: options.resolver,
-    tenancy: options.tenancy,
     onError: options.onError ?? defaultErrorHandler,
+    get tenancy(): AdonisTenancyRunner {
+      return resolveTenancy();
+    },
   });
 }
 

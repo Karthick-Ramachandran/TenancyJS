@@ -24,6 +24,13 @@ export default class TenancyProvider {
   }
 
   async ready(): Promise<void> {
+    // Fail-closed policy validation guards HTTP serving. It is skipped outside
+    // the `web` environment so that console commands can run the migrations that
+    // create the very schema and policies this validates, and so test suites can
+    // provision their own schema before exercising the routes.
+    if (this.app.getEnvironment() !== "web") {
+      return;
+    }
     const result = await this.#config().tenancy.validate();
     if (!result.valid) {
       throw new AdonisTenancyConfigurationError(

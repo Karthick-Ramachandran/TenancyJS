@@ -32,6 +32,14 @@ export interface AdonisTenancyRunner {
   run<TResult>(callback: () => MaybePromise<TResult>): Promise<TResult>;
 }
 
+/**
+ * A deferred Lucid tenancy service. AdonisJS loads config files before service
+ * providers boot, so the Lucid database service is not live when config is
+ * evaluated. Supplying a factory lets the provider build the tenancy service at
+ * `ready()`, after the Lucid provider has booted.
+ */
+export type AdonisTenancyRunnerFactory = () => AdonisTenancyRunner;
+
 export type AdonisTenancyResolutionFailure =
   "no-identifier" | "invalid" | "not-found" | "suspended" | "ambiguous";
 
@@ -45,7 +53,7 @@ export interface AdonisTenancyOptions<
 > {
   readonly manager: TenancyManager<TTenant>;
   readonly resolver: AdonisTenantResolver<TTenant>;
-  readonly tenancy: AdonisTenancyRunner;
+  readonly tenancy: AdonisTenancyRunner | AdonisTenancyRunnerFactory;
   readonly onError?: AdonisTenancyErrorHandler;
 }
 

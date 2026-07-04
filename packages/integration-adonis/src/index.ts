@@ -13,5 +13,6 @@ export type {
   AdonisTenancyOptions,
   AdonisTenancyResolutionFailure,
   AdonisTenancyRunner,
+  AdonisTenancyRunnerFactory,
   AdonisTenantResolver,
 } from "./types.js";

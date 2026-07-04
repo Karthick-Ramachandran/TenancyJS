@@ -51,3 +51,13 @@ model preferences.
   a framework integration must import every peer (`@adonisjs/*`, express, etc.) as `import type` so the
   compiled JS has no runtime peer import, or the bare-consumer smoke import fails. Adonis error classes
   therefore extend plain `Error` with a `status` field rather than importing Adonis's `Exception`.
+- AdonisJS loads `config/*` before service providers boot, so the Lucid database service is not live
+  when `config/tenancy.ts` is evaluated; constructing `createLucidTenancy(db)` there throws "requires a
+  Lucid Database service". `defineAdonisTenancyConfig` therefore accepts the Lucid service as a
+  factory `() => LucidTenancyAdapter`, resolved lazily (the provider triggers it at `ready()`). Only a
+  real booted app surfaced this — unit tests with fakes could not.
+- The Adonis provider's fail-closed policy validation must run only in the `web` environment
+  (`app.getEnvironment() === 'web'`). Validating in `console` would block the very `migration:run` that
+  creates the schema/policies it checks; validating in `test` would fail before the suite provisions
+  its schema. In tests, run migrations then call `tenancyConfig.tenancy.validate()` before serving —
+  the adapter's `run()` refuses until `validate()` has passed, mirroring production startup order.

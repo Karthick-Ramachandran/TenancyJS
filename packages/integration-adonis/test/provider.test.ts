@@ -51,6 +51,16 @@ describe("TenancyProvider", () => {
     );
   });
 
+  it("skips policy validation outside the web environment", async () => {
+    const tenancy = recordingTenancy();
+    tenancy.setValid(false);
+    const { app } = fakeApp(buildConfig(tenancy), "console");
+
+    // Console/test environments run migrations and provision schema, so the
+    // fail-closed check must not block them even when the policy is not yet valid.
+    await expect(new TenancyProvider(app).ready()).resolves.toBeUndefined();
+  });
+
   it("shuts down without owning resources", async () => {
     const { app } = fakeApp(buildConfig(recordingTenancy()));
     await expect(new TenancyProvider(app).shutdown()).resolves.toBeUndefined();

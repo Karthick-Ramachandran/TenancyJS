@@ -120,12 +120,16 @@ export function nextSpy(impl?: () => void | Promise<void>): NextSpy {
   return fn;
 }
 
-export function fakeApp(config: AdonisTenancyConfig<TestTenant>): {
+export function fakeApp(
+  config: AdonisTenancyConfig<TestTenant>,
+  environment: "web" | "console" | "test" | "repl" = "web",
+): {
   app: ApplicationService;
   bindings: Map<unknown, () => unknown>;
 } {
   const bindings = new Map<unknown, () => unknown>();
   const app = {
+    getEnvironment: () => environment,
     config: {
       get: (key: string) => (key === "tenancy" ? config : undefined),
     },
