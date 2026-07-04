@@ -2,18 +2,34 @@
 
 ## Approach
 
-Deliver in increments; each is independently tested and gate-green.
+**Structure: a dialect-organized shared strategy engine, not per-adapter reimplementation.** The strategy
+mechanism is mostly a database concern, not an ORM concern, so it is factored as:
 
-1. **Foundation (this slice):** add `schemaPerTenant` to `TenancyStrategy` and the adapter capability
-   matrix; validate all three strategies in `defineConfig`; update every adapter's capability declaration
-   to `schemaPerTenant: "unsupported"`. Record ADR-0017. No behavior change.
-2. **Routing/placement contract:** define `TenantPlacement` (schema name | connection reference) resolved
-   by the host `TenantStore`; thread it into the adapter execution path. Designed with its first consumer.
-3. **Database-per-tenant** (Prisma-friendly, first behavior): per-tenant connection/client cache on
-   Knex/Lucid/Prisma + provisioning + adversarial cross-database isolation tests.
-4. **Schema-per-tenant** on Knex/Lucid via `search_path` + provisioning + adversarial tests. Prisma
-   deferred.
-5. **Prisma schema-per-tenant** (deferred): per-schema client cache.
+- `TenantStrategyEngine` — a dialect-neutral contract (`applyContext`, `provision`, `deprovision`,
+  `validate`).
+- **Per-dialect implementations** written once and shared across every ORM on that engine:
+  `postgres` (RLS / `search_path` / separate DB), `mysql` (query-scoping / separate DB — schema-per-tenant
+  ≡ database-per-tenant, since MySQL schema == database), and later `mongo`.
+- **Thin per-ORM bindings** (Knex, Lucid, Prisma): run the engine's operations on the ORM's
+  transaction/connection and address tables per the strategy. Prisma stays special (no native
+  `search_path`).
+
+This keeps the isolation-critical SQL in one place per dialect, adversarially tested once, and is not
+Postgres-locked — MySQL/Mongo are additional dialect modules. Refines ADR-0017/ADR-0018 (same mechanism,
+factored as a shared engine).
+
+Deliver in increments; each independently tested and gate-green.
+
+1. **Foundation (done):** `schemaPerTenant` in `TenancyStrategy` + capability matrix; config validates all
+   three; adapters declare `schemaPerTenant: "unsupported"`. ADR-0017. No behavior change.
+2. **Strategy-engine contract + Postgres dialect (schema-per-tenant)** + thin **Knex binding**:
+   transaction-local `search_path`, unqualified addressing, schema-per-tenant validation, provisioning
+   (`CREATE SCHEMA`) + real-Postgres two-tenant adversarial test. Flip Knex capability only then.
+3. **Thin Lucid binding** reusing the same Postgres dialect + adversarial test.
+4. **Database-per-tenant**: per-tenant connection/client routing across dialects + adapters + provisioning
+   + adversarial tests.
+5. **Database-enforced schema-per-tenant** (opt-in per-tenant role, ADR-0018) and **Prisma per-schema
+   client cache** (deferred).
 
 ## Boundaries
 
