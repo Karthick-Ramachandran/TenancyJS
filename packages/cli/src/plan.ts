@@ -1,6 +1,6 @@
 import { lstat, readFile } from "node:fs/promises";
 
-import { CliProjectError, CliSecurityError } from "./errors.js";
+import { CliSecurityError } from "./errors.js";
 import {
   assertNoSymlinkPath,
   isMissing,
@@ -9,35 +9,43 @@ import {
 import {
   ADONIS_LUCID_TEMPLATES,
   EXPRESS_PRISMA_TEMPLATES,
+  NEXT_PRISMA_TEMPLATES,
 } from "./templates.js";
 import type {
+  InitFramework,
+  InitOrm,
   ProjectChangeAction,
   ProjectChangePlan,
-  ProjectDetection,
 } from "./types.js";
 
+type TemplateSet = readonly Readonly<{ path: string; content: string }>[];
+
+const TEMPLATES: Readonly<Record<InitFramework, TemplateSet>> = Object.freeze({
+  express: EXPRESS_PRISMA_TEMPLATES,
+  adonis: ADONIS_LUCID_TEMPLATES,
+  next: NEXT_PRISMA_TEMPLATES,
+});
+
+export interface ResolvedInitStack {
+  readonly root: string;
+  readonly framework: InitFramework;
+  readonly orm: InitOrm;
+}
+
 export async function createInitPlan(
-  detection: ProjectDetection,
+  stack: ResolvedInitStack,
 ): Promise<ProjectChangePlan> {
-  if (!detection.supported) {
-    throw new CliProjectError(
-      "The initial CLI supports Express 5.2 with Prisma Client 7.8, or AdonisJS 7.3 with Lucid 22.4.",
-    );
-  }
-  const isAdonis = detection.framework.name === "adonis";
-  const templates = isAdonis
-    ? ADONIS_LUCID_TEMPLATES
-    : EXPRESS_PRISMA_TEMPLATES;
+  const templates = TEMPLATES[stack.framework];
   const actions = await Promise.all(
     templates.map(async ({ path, content }) =>
-      inspectAction(detection.root, path, content),
+      inspectAction(stack.root, path, content),
     ),
   );
   return Object.freeze({
     schemaVersion: 1,
-    root: detection.root,
-    framework: isAdonis ? "adonis" : "express",
-    orm: isAdonis ? "lucid" : "prisma",
+    root: stack.root,
+    framework: stack.framework,
+    orm: stack.orm,
     strategy: "rowLevel",
     actions: Object.freeze(actions),
   });

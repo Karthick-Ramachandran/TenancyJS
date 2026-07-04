@@ -49,7 +49,7 @@ describe("tenancy binary", () => {
   it("returns exit code 2 for usage errors", () => {
     const result = runBinary(["unknown"]);
     expect(result.status).toBe(2);
-    expect(result.stderr).toContain("TENANCY_CLI_USAGE");
+    expect(result.stderr).toContain("Unknown command: unknown");
   });
 });
 

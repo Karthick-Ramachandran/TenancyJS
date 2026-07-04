@@ -16,16 +16,26 @@ import {
   CliConflictError,
   CliProjectError,
   CliSecurityError,
+  FRAMEWORK_CHOICES,
   applyChangePlan,
+  capabilityBanner,
+  checkNodeVersion,
   createInitPlan,
   detectProject,
+  ormForFramework,
+  parseNodeMajor,
   redactText,
   runCli,
   runDoctor,
   runLeakTest,
 } from "../src/index.js";
 import { applyChangePlanWithHooks } from "../src/apply.js";
-import type { ProjectChangePlan } from "../src/index.js";
+import type {
+  CliIo,
+  InitFramework,
+  InitOrm,
+  ProjectChangePlan,
+} from "../src/index.js";
 import { appendBounded } from "../src/leak-test.js";
 import {
   formatDoctor,
@@ -76,7 +86,7 @@ describe("CLI project detection and init", () => {
       supported: true,
     });
 
-    const plan = await createInitPlan(await detectProject(root));
+    const plan = await planFor(root);
     expect(plan).toMatchObject({
       framework: "adonis",
       orm: "lucid",
@@ -124,9 +134,9 @@ describe("CLI project detection and init", () => {
       orm: { name: "unknown", supported: false },
       supported: false,
     });
-    await expect(createInitPlan(detection)).rejects.toBeInstanceOf(
-      CliProjectError,
-    );
+    const output = captureIo(missing);
+    await expect(runCli(["init"], output.io)).resolves.toBe(2);
+    expect(output.stderr.join("")).toContain("--framework");
   });
 
   it("rejects a file or blank value as project root", async () => {
@@ -139,7 +149,7 @@ describe("CLI project detection and init", () => {
 
   it("previews, applies, and repeats an idempotent fixed plan", async () => {
     const root = await fixture();
-    const plan = await createInitPlan(await detectProject(root));
+    const plan = await planFor(root);
 
     expect(plan.actions.map(({ path, status }) => ({ path, status }))).toEqual([
       { path: "tenancy.config.ts", status: "create" },
@@ -160,7 +170,7 @@ describe("CLI project detection and init", () => {
       ],
       unchanged: [],
     });
-    const repeated = await createInitPlan(await detectProject(root));
+    const repeated = await planFor(root);
     expect(repeated.actions.every(({ status }) => status === "unchanged")).toBe(
       true,
     );
@@ -177,7 +187,7 @@ describe("CLI project detection and init", () => {
   it("reports conflicts without overwriting user files", async () => {
     const root = await fixture();
     await writeFile(join(root, "tenancy.config.ts"), "// user owned\n");
-    const plan = await createInitPlan(await detectProject(root));
+    const plan = await planFor(root);
 
     expect(plan.actions[0]).toMatchObject({ status: "conflict" });
     await expect(applyChangePlan(plan)).rejects.toBeInstanceOf(
@@ -209,9 +219,7 @@ describe("CLI project detection and init", () => {
     const outside = await temporaryDirectory();
     await symlink(outside, join(root, "src"));
 
-    await expect(
-      createInitPlan(await detectProject(root)),
-    ).rejects.toBeInstanceOf(CliSecurityError);
+    await expect(planFor(root)).rejects.toBeInstanceOf(CliSecurityError);
     await expect(
       readFile(join(outside, "tenancy/register.ts"), "utf8"),
     ).rejects.toMatchObject({
@@ -221,7 +229,7 @@ describe("CLI project detection and init", () => {
 
   it("rolls back every generated file and directory after an interrupted commit", async () => {
     const root = await fixture();
-    const plan = await createInitPlan(await detectProject(root));
+    const plan = await planFor(root);
 
     await expect(
       applyChangePlanWithHooks(plan, {
@@ -242,7 +250,7 @@ describe("CLI project detection and init", () => {
 
   it("rejects stale, duplicate, non-canonical, and raced plans", async () => {
     const root = await fixture();
-    const initial = await createInitPlan(await detectProject(root));
+    const initial = await planFor(root);
     const nonCanonical = { ...initial, root: `${root}/.` };
     await expect(applyChangePlan(nonCanonical)).rejects.toBeInstanceOf(
       CliSecurityError,
@@ -265,14 +273,12 @@ describe("CLI project detection and init", () => {
   it("detects a file where a generated parent directory is required", async () => {
     const root = await fixture();
     await writeFile(join(root, "src"), "not a directory");
-    await expect(
-      createInitPlan(await detectProject(root)),
-    ).rejects.toBeInstanceOf(CliSecurityError);
+    await expect(planFor(root)).rejects.toBeInstanceOf(CliSecurityError);
   });
 
   it("rolls back when another process creates a destination during commit", async () => {
     const root = await fixture();
-    const plan = await createInitPlan(await detectProject(root));
+    const plan = await planFor(root);
     await expect(
       applyChangePlanWithHooks(plan, {
         async beforeCommit(action, index) {
@@ -290,7 +296,7 @@ describe("CLI project detection and init", () => {
 describe("CLI doctor", () => {
   it("inventories wiring, unsafe Prisma surfaces, classification, and migration effort", async () => {
     const root = await fixture();
-    await applyChangePlan(await createInitPlan(await detectProject(root)));
+    await applyChangePlan(await planFor(root));
     await mkdir(join(root, "test"));
     await writeFile(
       join(root, "test/tenancy.leak.test.mjs"),
@@ -400,7 +406,7 @@ await prisma.post.create({ data: { comments: { create: { body: "x" } } } });
 
   it("reports missing classification fields and missing Prisma schema", async () => {
     const root = await fixture();
-    await applyChangePlan(await createInitPlan(await detectProject(root)));
+    await applyChangePlan(await planFor(root));
     await writeFile(
       join(root, "src/tenancy/register.ts"),
       "export const config = {};\n",
@@ -539,7 +545,7 @@ describe("CLI leak test and command runner", () => {
     await expect(runCli(["doctor", "--root"], output.io)).resolves.toBe(2);
     await expect(runCli(["doctor", "--unknown"], output.io)).resolves.toBe(2);
     await expect(runCli(["unknown"], output.io)).resolves.toBe(2);
-    expect(output.stderr.join("")).toContain("TENANCY_CLI_USAGE");
+    expect(output.stderr.join("")).toContain("Unknown command: unknown");
 
     output.stderr.length = 0;
     await expect(runCli(["unknown", "--json"], output.io)).resolves.toBe(2);
@@ -552,7 +558,7 @@ describe("CLI leak test and command runner", () => {
 
   it("formats every public output without exposing plan contents", async () => {
     const root = await healthyFixture();
-    const plan = await createInitPlan(await detectProject(root));
+    const plan = await planFor(root);
     const doctor = await runDoctor(root);
     const leak = await runLeakTest(root, "test/tenancy.leak.test.mjs");
 
@@ -590,7 +596,7 @@ model Post {
 
 async function healthyFixture(): Promise<string> {
   const root = await fixture();
-  await applyChangePlan(await createInitPlan(await detectProject(root)));
+  await applyChangePlan(await planFor(root));
   await writeFile(
     join(root, "src/tenancy/register.ts"),
     `export const config = {
@@ -628,16 +634,194 @@ function maliciousPlan(root: string, path: string): ProjectChangePlan {
   };
 }
 
-function captureIo(cwd: string) {
+interface CaptureOptions {
+  readonly nodeVersion?: string;
+  readonly isInteractive?: boolean;
+  readonly answers?: readonly string[];
+}
+
+function captureIo(cwd: string, options: CaptureOptions = {}) {
   const stdout: string[] = [];
   const stderr: string[] = [];
-  return {
-    stdout,
-    stderr,
-    io: {
-      cwd,
-      writeStdout: (value: string) => stdout.push(value),
-      writeStderr: (value: string) => stderr.push(value),
-    },
+  const selectQuestions: {
+    question: string;
+    choices: readonly { value: string; label: string }[];
+  }[] = [];
+  const queue = options.answers === undefined ? [] : [...options.answers];
+  const io: CliIo = {
+    cwd,
+    writeStdout: (value: string) => stdout.push(value),
+    writeStderr: (value: string) => stderr.push(value),
+    ...(options.nodeVersion === undefined
+      ? {}
+      : { nodeVersion: options.nodeVersion }),
+    ...(options.isInteractive ? { isInteractive: true } : {}),
+    ...(options.answers === undefined
+      ? {}
+      : {
+          select: async (
+            question: string,
+            choices: readonly { value: string; label: string }[],
+          ) => {
+            selectQuestions.push({ question, choices });
+            return queue.shift() ?? "";
+          },
+        }),
   };
+  return { stdout, stderr, selectQuestions, io };
 }
+
+async function planFor(root: string) {
+  const detection = await detectProject(root);
+  return createInitPlan({
+    root: detection.root,
+    framework: detection.framework.name as InitFramework,
+    orm: detection.orm.name as InitOrm,
+  });
+}
+
+describe("CLI v0.1 interactive init", () => {
+  it("exposes capability metadata and a Node version gate", () => {
+    expect(FRAMEWORK_CHOICES.map((choice) => choice.value)).toEqual([
+      "express",
+      "adonis",
+      "next",
+    ]);
+    expect(ormForFramework("adonis")).toBe("lucid");
+    expect(ormForFramework("express")).toBe("prisma");
+    expect(ormForFramework("next")).toBe("prisma");
+    expect(parseNodeMajor("v24.13.2")).toBe(24);
+    expect(parseNodeMajor("not-a-version")).toBe(0);
+    expect(checkNodeVersion("24.0.0")).toMatchObject({
+      ok: true,
+      requiredMajor: 24,
+    });
+    expect(checkNodeVersion("20.11.0").ok).toBe(false);
+    const banner = capabilityBanner("24.0.0");
+    expect(banner).toContain("Express 5.2 + Prisma 7.8");
+    expect(banner).toContain("Next.js 16 + Prisma 7.8");
+    expect(banner).toContain("single-database row-level");
+    expect(banner).toContain("Node.js >= 24");
+  });
+
+  it("detects Next.js 16 + Prisma and plans the Next templates", async () => {
+    const root = await temporaryDirectory();
+    await writeJson(join(root, "package.json"), {
+      dependencies: {
+        next: "16.2.10",
+        react: "19.2.7",
+        "@prisma/client": "7.8.0",
+      },
+    });
+    await expect(detectProject(root)).resolves.toMatchObject({
+      framework: { name: "next", version: "16.2.10", supported: true },
+      orm: { name: "prisma", supported: true },
+      supported: true,
+    });
+    const plan = await planFor(root);
+    expect(plan).toMatchObject({
+      framework: "next",
+      orm: "prisma",
+      strategy: "rowLevel",
+    });
+    expect(plan.actions.map((action) => action.path)).toEqual([
+      "tenancy.config.ts",
+      "lib/tenancy/register.ts",
+      "lib/tenancy/server.ts",
+    ]);
+  });
+
+  it("prints the capability banner and refuses Node below 24 without writing files", async () => {
+    const root = await fixture();
+    const output = captureIo(root, { nodeVersion: "20.11.0" });
+    await expect(runCli(["init"], output.io)).resolves.toBe(2);
+    expect(output.stderr.join("")).toContain("Supported stacks:");
+    expect(output.stderr.join("")).toContain("requires Node.js >= 24");
+    await expect(
+      readFile(join(root, "tenancy.config.ts"), "utf8"),
+    ).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
+  it("asks for the framework when it cannot be detected and uses the choice", async () => {
+    const root = await temporaryDirectory();
+    await writeJson(join(root, "package.json"), {
+      dependencies: { lodash: "4.17.21", "@prisma/client": "7.8.0" },
+    });
+    const output = captureIo(root, { isInteractive: true, answers: ["next"] });
+    await expect(runCli(["init", "--apply"], output.io)).resolves.toBe(0);
+    expect(output.selectQuestions).toHaveLength(1);
+    expect(
+      output.selectQuestions[0]!.choices.map((choice) => choice.value),
+    ).toEqual(["express", "adonis", "next"]);
+    expect(output.stderr.join("")).toContain("No supported framework");
+    await expect(
+      readFile(join(root, "lib/tenancy/server.ts"), "utf8"),
+    ).resolves.toContain("createNextTenancy");
+  });
+
+  it("explains an unsupported detected version before prompting, and derives Lucid for Adonis", async () => {
+    const root = await temporaryDirectory();
+    await writeJson(join(root, "package.json"), {
+      dependencies: { "@adonisjs/core": "6.18.0" },
+    });
+    const output = captureIo(root, {
+      isInteractive: true,
+      answers: ["adonis"],
+    });
+    await expect(runCli(["init", "--apply"], output.io)).resolves.toBe(0);
+    expect(output.stderr.join("")).toContain("outside the supported range");
+    await expect(
+      readFile(join(root, "config/tenancy.ts"), "utf8"),
+    ).resolves.toContain("createLucidTenancy");
+  });
+
+  it("rejects an invalid interactive choice", async () => {
+    const root = await temporaryDirectory();
+    await writeJson(join(root, "package.json"), {
+      dependencies: { lodash: "4.17.21" },
+    });
+    const output = captureIo(root, {
+      isInteractive: true,
+      answers: ["banana"],
+    });
+    await expect(runCli(["init"], output.io)).resolves.toBe(2);
+    expect(output.stderr.join("")).toContain('Unknown framework "banana"');
+  });
+
+  it("does not prompt when --yes is set even on a TTY", async () => {
+    const root = await temporaryDirectory();
+    await writeJson(join(root, "package.json"), {
+      dependencies: { lodash: "4.17.21" },
+    });
+    const output = captureIo(root, { isInteractive: true, answers: ["next"] });
+    await expect(runCli(["init", "--yes"], output.io)).resolves.toBe(2);
+    expect(output.selectQuestions).toHaveLength(0);
+    expect(output.stderr.join("")).toContain("--framework");
+  });
+
+  it("honors --framework as a non-interactive escape hatch", async () => {
+    const root = await fixture();
+    const output = captureIo(root);
+    await expect(
+      runCli(["init", "--framework", "next", "--json"], output.io),
+    ).resolves.toBe(0);
+    expect(JSON.parse(output.stdout.join(""))).toMatchObject({
+      framework: "next",
+      orm: "prisma",
+      mode: "dry-run",
+    });
+  });
+
+  it("validates --framework values and init-only flags", async () => {
+    const output = captureIo(await temporaryDirectory());
+    await expect(runCli(["init", "--framework"], output.io)).resolves.toBe(2);
+    await expect(
+      runCli(["init", "--framework", "django"], output.io),
+    ).resolves.toBe(2);
+    expect(output.stderr.join("")).toContain('Unknown framework "django"');
+    await expect(
+      runCli(["doctor", "--framework", "next"], output.io),
+    ).resolves.toBe(2);
+    await expect(runCli(["doctor", "--yes"], output.io)).resolves.toBe(2);
+  });
+});
