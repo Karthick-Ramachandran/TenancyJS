@@ -1,5 +1,5 @@
-export type DetectedFramework = "express" | "unknown";
-export type DetectedOrm = "prisma" | "unknown";
+export type DetectedFramework = "express" | "adonis" | "unknown";
+export type DetectedOrm = "prisma" | "lucid" | "unknown";
 
 export interface DetectedComponent<TName extends string> {
   readonly name: TName;
@@ -25,8 +25,8 @@ export interface ProjectChangeAction {
 export interface ProjectChangePlan {
   readonly schemaVersion: 1;
   readonly root: string;
-  readonly framework: "express";
-  readonly orm: "prisma";
+  readonly framework: "express" | "adonis";
+  readonly orm: "prisma" | "lucid";
   readonly strategy: "rowLevel";
   readonly actions: readonly ProjectChangeAction[];
 }

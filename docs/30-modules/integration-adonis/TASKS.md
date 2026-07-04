@@ -15,5 +15,7 @@
   tenant injection on create, and sanitized 400/404 against real forced RLS on PostgreSQL 17 (4/4 green).
 - Complete: package refinements the real app surfaced — a lazy tenancy factory in
   `defineAdonisTenancyConfig` and `web`-environment-gated policy validation in the provider.
-- Todo: Ace wrappers, safe CLI init templates + v6→v7 fixture, reviews, and published/hosted evidence
-  when the example moves to its own repository.
+- Complete: safe CLI `init` Adonis/Lucid detection and templates in `@tenancyjs/cli`
+  (`config/tenancy.ts` + `app/middleware/tenant_middleware.ts`), unit-tested and verified end-to-end.
+- Todo: Ace command wrappers, v6→v7 CLI fixture, reviews, and published/hosted example evidence when the
+  example moves to its own repository.

@@ -3,33 +3,64 @@ import { join } from "node:path";
 
 import { CliProjectError } from "./errors.js";
 import { resolveProjectRoot } from "./paths.js";
-import type { ProjectDetection } from "./types.js";
+import type {
+  DetectedComponent,
+  DetectedFramework,
+  DetectedOrm,
+  ProjectDetection,
+} from "./types.js";
 
 export async function detectProject(root: string): Promise<ProjectDetection> {
   const resolvedRoot = await resolveProjectRoot(root);
   const manifest = await readManifest(join(resolvedRoot, "package.json"));
   const dependencies = dependencyMap(manifest);
-  const expressVersion = dependencies.express;
-  const prismaVersion = dependencies["@prisma/client"];
-  const framework = Object.freeze({
-    name: expressVersion === undefined ? "unknown" : "express",
-    ...(expressVersion === undefined ? {} : { version: expressVersion }),
-    supported:
-      expressVersion !== undefined &&
-      /(?:^|\D)5\.2(?:\D|$)/u.test(expressVersion),
-  } as const);
-  const orm = Object.freeze({
-    name: prismaVersion === undefined ? "unknown" : "prisma",
-    ...(prismaVersion === undefined ? {} : { version: prismaVersion }),
-    supported:
-      prismaVersion !== undefined &&
-      /(?:^|\D)7\.8(?:\D|$)/u.test(prismaVersion),
-  } as const);
+  const framework: DetectedComponent<DetectedFramework> =
+    dependencies["@adonisjs/core"] !== undefined
+      ? detectComponent(
+          "adonis",
+          dependencies["@adonisjs/core"],
+          /(?:^|\D)7\.3(?:\D|$)/u,
+        )
+      : detectComponent(
+          "express",
+          dependencies.express,
+          /(?:^|\D)5\.2(?:\D|$)/u,
+        );
+  const orm: DetectedComponent<DetectedOrm> =
+    dependencies["@adonisjs/lucid"] !== undefined
+      ? detectComponent(
+          "lucid",
+          dependencies["@adonisjs/lucid"],
+          /(?:^|\D)22\.4(?:\D|$)/u,
+        )
+      : detectComponent(
+          "prisma",
+          dependencies["@prisma/client"],
+          /(?:^|\D)7\.8(?:\D|$)/u,
+        );
   return Object.freeze({
     root: resolvedRoot,
     framework,
     orm,
     supported: framework.supported && orm.supported,
+  });
+}
+
+function detectComponent<TName extends string>(
+  name: TName,
+  version: string | undefined,
+  supportedPattern: RegExp,
+): DetectedComponent<TName | "unknown"> {
+  if (version === undefined) {
+    return Object.freeze({
+      name: "unknown",
+      supported: false,
+    }) as DetectedComponent<TName | "unknown">;
+  }
+  return Object.freeze({
+    name,
+    version,
+    supported: supportedPattern.test(version),
   });
 }
 

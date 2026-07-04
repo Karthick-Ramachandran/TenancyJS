@@ -73,8 +73,8 @@ environment (so console migrations and tests can provision the schema the check 
 
 ## T6: Add Japa, Ace, CLI Templates, And Reference Example
 
-Status: In Progress — Japa helper and the reference example are complete (local); Ace wrappers and safe
-CLI init templates remain.
+Status: In Progress — Japa helper, the reference example, and the safe CLI `init` Adonis/Lucid
+templates are complete; Ace wrappers and reviews (T7) remain.
 
 Scope: Japa helper/plugin, thin Ace wrappers, safe Adonis/Lucid init plan, and production example.
 
@@ -86,8 +86,10 @@ clean package consumers, and the common Node 24 CI lane.
 Evidence: `withTenant` helper (part 1) unit-tested. Reference example `examples/adonis-lucid`
 (scaffolded from the official AdonisJS 7 `api` starter kit; kept local/gitignored/standalone) passes
 4/4 Japa + `@japa/api-client` E2E against live PostgreSQL 17 with forced RLS and a non-privileged
-runtime role — two-tenant isolation, tenant injection on create, and sanitized 400/404. Ace wrappers,
-CLI init templates + v6→v7 fixture, and published/hosted example evidence remain. The example is
+runtime role — two-tenant isolation, tenant injection on create, and sanitized 400/404. The safe CLI
+now detects AdonisJS 7.3 + Lucid 22.4 and scaffolds `config/tenancy.ts` +
+`app/middleware/tenant_middleware.ts` (unit-tested and verified end-to-end via the built binary). Ace
+wrappers, the v6→v7 CLI fixture, and published/hosted example evidence remain. The example is
 local-only for now (demos are maintained as clone-able apps, not published); see the ADONISJS_V7 note
 in the module memory.
 
