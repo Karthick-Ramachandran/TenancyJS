@@ -2,6 +2,7 @@ import type {
   MaybePromise,
   TenancyAdapter,
   TenancyAdapterValidationResult,
+  TenantContext,
   TenantRecord,
 } from "@tenancyjs/core";
 import { TenantContextError } from "@tenancyjs/core";
@@ -9,6 +10,7 @@ import {
   PostgresStrategyValidationError,
   applyPostgresRowContext,
   createPostgresStrategyEngine,
+  createTenantResourceCache,
   type PostgresExecutor,
   type PostgresSchemaStrategyEngine,
 } from "@tenancyjs/adapter-shared";
@@ -33,11 +35,12 @@ export interface KnexTenancyAdapter<
   TTenant extends TenantRecord = TenantRecord,
 > extends TenancyAdapter {
   readonly name: "knex";
-  readonly strategy: "rowLevel" | "schemaPerTenant";
+  readonly strategy: "rowLevel" | "schemaPerTenant" | "databasePerTenant";
   readonly config: KnexTenancyConfig<TTenant>;
   run<TResult>(
     callback: (client: ProtectedKnexClient) => MaybePromise<TResult>,
   ): Promise<TResult>;
+  close(): Promise<void>;
 }
 
 export function createKnexTenancy<TTenant extends TenantRecord = TenantRecord>(
@@ -45,9 +48,23 @@ export function createKnexTenancy<TTenant extends TenantRecord = TenantRecord>(
 ): KnexTenancyAdapter<TTenant> {
   const config = defineKnexTenancyConfig(options);
   const schemaEngine = createSchemaEngine(config);
+  const connectionCache =
+    config.strategy === "databasePerTenant"
+      ? createTenantResourceCache<Knex>({
+          capacity: config.maxConnections,
+          destroy: (client) => client.destroy(),
+        })
+      : undefined;
   let validated = false;
 
   async function validate(): Promise<TenancyAdapterValidationResult> {
+    // Database-per-tenant isolation is structural (separate databases); there
+    // is no RLS/schema contract to introspect, so the strategy is valid once
+    // configured. Per-tenant connectivity fails closed at first lease.
+    if (config.strategy === "databasePerTenant") {
+      validated = true;
+      return Object.freeze({ valid: true, issues: Object.freeze([]) });
+    }
     try {
       const result =
         config.strategy === "rowLevel"
@@ -59,6 +76,37 @@ export function createKnexTenancy<TTenant extends TenantRecord = TenantRecord>(
       validated = false;
       return validationFailure(config.strategy);
     }
+  }
+
+  async function runScope<TResult>(
+    client: Knex,
+    context: TenantContext<TTenant>,
+    callback: (client: ProtectedKnexClient) => MaybePromise<TResult>,
+  ): Promise<TResult> {
+    const applyContext = config.strategy !== "databasePerTenant";
+    return client.transaction(async (transaction) => {
+      if (applyContext) {
+        await setTransactionContext(transaction, context, schemaEngine);
+      }
+      const createSavepoint = async <TSavepoint>(
+        parent: Knex.Transaction,
+        savepointCallback: (savepoint: Knex.Transaction) => Promise<TSavepoint>,
+      ): Promise<TSavepoint> =>
+        parent.transaction(async (savepoint) => {
+          if (applyContext) {
+            await setTransactionContext(savepoint, context, schemaEngine);
+          }
+          return savepointCallback(savepoint);
+        });
+      const protectedClient = createProtectedKnexClient(
+        transaction,
+        context,
+        (name) => classifyKnexTable(config, name),
+        createSavepoint,
+        config.strategy,
+      );
+      return callback(protectedClient);
+    });
   }
 
   async function run<TResult>(
@@ -73,25 +121,20 @@ export function createKnexTenancy<TTenant extends TenantRecord = TenantRecord>(
     const context = config.manager.getContext();
     if (context === undefined) throw new TenantContextError("missing");
 
-    return config.knex.transaction(async (transaction) => {
-      await setTransactionContext(transaction, context, schemaEngine);
-      const createSavepoint = async <TSavepoint>(
-        parent: Knex.Transaction,
-        savepointCallback: (savepoint: Knex.Transaction) => Promise<TSavepoint>,
-      ): Promise<TSavepoint> =>
-        parent.transaction(async (savepoint) => {
-          await setTransactionContext(savepoint, context, schemaEngine);
-          return savepointCallback(savepoint);
-        });
-      const client = createProtectedKnexClient(
-        transaction,
-        context,
-        (name) => classifyKnexTable(config, name),
-        createSavepoint,
-        config.strategy,
+    if (config.strategy === "databasePerTenant" && context.mode === "tenant") {
+      const placement = config.connection!(context.tenant);
+      return connectionCache!.lease(
+        context.tenant.id,
+        placement.key,
+        placement.create,
+        (leased) => runScope(leased, context, callback),
       );
-      return callback(client);
-    });
+    }
+    return runScope(config.knex, context, callback);
+  }
+
+  async function close(): Promise<void> {
+    if (connectionCache !== undefined) await connectionCache.close();
   }
 
   return Object.freeze({
@@ -101,11 +144,12 @@ export function createKnexTenancy<TTenant extends TenantRecord = TenantRecord>(
     config,
     validate,
     run,
+    close,
   });
 }
 
 function validationFailure(
-  strategy: "rowLevel" | "schemaPerTenant",
+  strategy: "rowLevel" | "schemaPerTenant" | "databasePerTenant",
 ): TenancyAdapterValidationResult {
   return Object.freeze({
     valid: false,
@@ -150,7 +194,7 @@ function knexExecutor(client: Pick<Knex, "raw">): PostgresExecutor {
 function createSchemaEngine<TTenant extends TenantRecord>(
   config: KnexTenancyConfig<TTenant>,
 ): PostgresSchemaStrategyEngine<TTenant> | undefined {
-  if (config.strategy === "rowLevel") return undefined;
+  if (config.strategy !== "schemaPerTenant") return undefined;
   return createPostgresStrategyEngine({
     codePrefix: "TENANCY_KNEX",
     adapterName: "Knex",

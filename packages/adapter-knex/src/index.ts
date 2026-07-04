@@ -9,6 +9,7 @@ export {
 } from "./config.js";
 export type {
   KnexCentralTableConfig,
+  KnexDatabasePlacement,
   KnexTablePolicy,
   KnexTenantTableConfig,
   KnexTenancyConfig,
