@@ -56,6 +56,12 @@ model preferences.
   Lucid Database service". `defineAdonisTenancyConfig` therefore accepts the Lucid service as a
   factory `() => LucidTenancyAdapter`, resolved lazily (the provider triggers it at `ready()`). Only a
   real booted app surfaced this — unit tests with fakes could not.
+- AdonisJS's `@flags`/`@args` (Ace) and `@column` (Lucid) are legacy/experimental decorators, but the
+  repository's TypeScript config uses standard decorators (no `experimentalDecorators`). A native Ace
+  command using `@flags.boolean() declare apply` fails to build (`TS1206: Decorators are not valid
+  here`). The Lucid adapter already sidesteps this by not using `@column`; native Ace commands are
+  therefore built with the operational CLI (one decorator/tsconfig decision for all of them), not
+  standalone. `npx tenancy init` already covers AdonisJS scaffolding.
 - The Adonis provider's fail-closed policy validation must run only in the `web` environment
   (`app.getEnvironment() === 'web'`). Validating in `console` would block the very `migration:run` that
   creates the schema/policies it checks; validating in `test` would fail before the suite provisions

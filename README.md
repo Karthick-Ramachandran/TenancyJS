@@ -21,9 +21,10 @@ framework or ORM that already owns your application.
 [Contributing](CONTRIBUTING.md)
 
 > **Pre-alpha:** core, identifiers, testing contracts, Prisma, Express 5, Next.js App Router, the safe
-> CLI foundation, and the Knex/PostgreSQL boundary have hosted evidence. The Lucid 22 adapter and its
-> PostgreSQL suite are in progress; AdonisJS 7 integration follows. The project is not production-ready.
-> Follow the
+> CLI foundation, and the Knex and Lucid 22 PostgreSQL boundaries have hosted evidence. The AdonisJS 7
+> integration (provider, middleware, config, and `tenancy init` scaffolding) with Lucid on PostgreSQL is
+> ready to use, proven end-to-end by a two-tenant example test. The project is still pre-alpha and not
+> production-ready. Follow the
 > [delivery plan](docs/40-features/F-001-tenancyjs-platform/PLAN.md) for implementation state.
 
 ---
@@ -136,15 +137,15 @@ reporting, and recovery tests before it is called stable.
 Packages are introduced as **experimental** and become **stable** only after their complete evidence
 lane passes.
 
-| Vertical slice                 | Target milestone | Current state             |
-| ------------------------------ | ---------------: | ------------------------- |
-| Express + Prisma               |             v0.1 | PR evidence complete      |
-| Next.js App Router + Prisma    |             v0.2 | PR evidence complete      |
-| AdonisJS 7 + Lucid 22          |             v0.3 | In progress               |
-| Express + Knex                 |             v0.3 | Adapter evidence complete |
-| NestJS + Prisma                |             v0.4 | Planned                   |
-| NestJS + Sequelize             |             v0.4 | Planned                   |
-| Database-per-tenant operations |             v0.5 | Planned                   |
+| Vertical slice                 | Target milestone | Current state                               |
+| ------------------------------ | ---------------: | ------------------------------------------- |
+| Express + Prisma               |             v0.1 | PR evidence complete                        |
+| Next.js App Router + Prisma    |             v0.2 | PR evidence complete                        |
+| AdonisJS 7 + Lucid 22          |             v0.3 | Stable — integration + CLI + two-tenant E2E |
+| Express + Knex                 |             v0.3 | Adapter evidence complete                   |
+| NestJS + Prisma                |             v0.4 | Planned                                     |
+| NestJS + Sequelize             |             v0.4 | Planned                                     |
+| Database-per-tenant operations |             v0.5 | Planned                                     |
 
 Combinations not listed above are not implied to work merely because their individual packages exist.
 See the [test matrix](docs/40-features/F-001-tenancyjs-platform/TEST_PLAN.md).
@@ -213,8 +214,8 @@ Read the [security model](docs/20-security/SECURITY_MODEL.md),
 3. **Identification/testing — complete** — fail-closed resolvers and portable conformance contracts.
 4. **Reference slice — complete** — Prisma row-level isolation, Express integration, and safe
    init/Doctor/leak-test CLI foundation have hosted evidence.
-5. **Framework depth — in progress** — Next.js App Router is proven; Knex is proven; Lucid 22 and
-   AdonisJS 7 are the active vertical slice.
+5. **Framework depth — in progress** — Next.js App Router, Knex, and Lucid 22 are proven; the AdonisJS 7
+   integration with Lucid on PostgreSQL is ready to use.
 6. **Backend breadth** — NestJS + Prisma/Sequelize and tested adapter combinations.
 7. **Physical isolation** — database provisioning and delegated migrations per tenant.
 8. **v1 hardening** — compatibility audit, benchmarks, security review, and stable API commitment.
