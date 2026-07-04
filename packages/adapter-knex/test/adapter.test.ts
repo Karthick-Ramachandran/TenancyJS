@@ -291,17 +291,98 @@ describe("Knex tenancy configuration", () => {
         centralTables: { posts: {} },
       },
     ],
+    [
+      "unknown strategy",
+      {
+        manager: new TenancyManager(),
+        knex: createKnexDouble().knex,
+        tenantTables: { posts: {} },
+        strategy: "mystery",
+      },
+    ],
+    [
+      "database-per-tenant without connection",
+      {
+        manager: new TenancyManager(),
+        knex: createKnexDouble().knex,
+        tenantTables: { posts: {} },
+        strategy: "databasePerTenant",
+      },
+    ],
+    [
+      "connection on row-level",
+      {
+        manager: new TenancyManager(),
+        knex: createKnexDouble().knex,
+        tenantTables: { posts: {} },
+        connection: () => ({ key: "k", create: () => createKnexDouble().knex }),
+      },
+    ],
+    [
+      "maxConnections on row-level",
+      {
+        manager: new TenancyManager(),
+        knex: createKnexDouble().knex,
+        tenantTables: { posts: {} },
+        maxConnections: 5,
+      },
+    ],
+    [
+      "non-positive maxConnections",
+      {
+        manager: new TenancyManager(),
+        knex: createKnexDouble().knex,
+        tenantTables: { posts: {} },
+        strategy: "databasePerTenant",
+        connection: () => ({ key: "k", create: () => createKnexDouble().knex }),
+        maxConnections: 0,
+      },
+    ],
+    [
+      "database-per-tenant tenant column",
+      {
+        manager: new TenancyManager(),
+        knex: createKnexDouble().knex,
+        strategy: "databasePerTenant",
+        connection: () => ({ key: "k", create: () => createKnexDouble().knex }),
+        tenantTables: { posts: { tenantColumn: "tenant_id" } },
+      },
+    ],
   ])("rejects invalid %s configuration", (_name, input) => {
     expect(() => defineKnexTenancyConfig(input as never)).toThrow(
       KnexTenancyConfigurationError,
     );
   });
 
+  it("accepts database-per-tenant with a connection resolver and qualified tables", () => {
+    const manager = new TenancyManager();
+    const { knex } = createKnexDouble();
+    const config = defineKnexTenancyConfig({
+      manager,
+      knex,
+      strategy: "databasePerTenant",
+      connection: () => ({
+        key: "acme",
+        create: () => createKnexDouble().knex,
+      }),
+      maxConnections: 10,
+      tenantTables: { "public.posts": {} },
+    });
+    expect(config.strategy).toBe("databasePerTenant");
+    expect(config.maxConnections).toBe(10);
+    expect(typeof config.connection).toBe("function");
+    expect(config.tenantTables["public.posts"]).toMatchObject({
+      schema: "public",
+      table: "posts",
+      qualifiedName: "public.posts",
+    });
+  });
+
   it("publishes a conservative capability matrix", () => {
     expect(KNEX_ADAPTER_CAPABILITIES).toEqual({
       rowLevel: "supported",
       schemaPerTenant: "supported",
-      databasePerTenant: "unsupported",
+      databasePerTenant: "supported",
       centralModels: "supported",
       transactions: "supported",
       nestedReads: "rejected",

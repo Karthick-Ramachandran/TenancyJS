@@ -1,4 +1,8 @@
-import type { TenancyManager, TenantRecord } from "@tenancyjs/core";
+import type {
+  MaybePromise,
+  TenancyManager,
+  TenantRecord,
+} from "@tenancyjs/core";
 import {
   POSTGRES_CENTRAL_SETTING,
   POSTGRES_TENANT_SETTING,
@@ -13,6 +17,7 @@ import {
 } from "./errors.js";
 
 const DEFAULT_TENANT_COLUMN = "tenant_id";
+const DEFAULT_MAX_CONNECTIONS = 25;
 
 export const KNEX_TENANT_SETTING = POSTGRES_TENANT_SETTING;
 export const KNEX_CENTRAL_SETTING = POSTGRES_CENTRAL_SETTING;
@@ -24,6 +29,11 @@ export interface KnexTenantTableConfig {
 
 export type KnexCentralTableConfig = Readonly<Record<string, never>>;
 
+export interface KnexDatabasePlacement {
+  readonly key: string;
+  readonly create: () => MaybePromise<Knex>;
+}
+
 export interface KnexTenancyOptions<
   TTenant extends TenantRecord = TenantRecord,
 > {
@@ -31,9 +41,11 @@ export interface KnexTenancyOptions<
   readonly knex: Knex;
   readonly tenantTables: Readonly<Record<string, KnexTenantTableConfig>>;
   readonly centralTables?: Readonly<Record<string, KnexCentralTableConfig>>;
-  readonly strategy?: "rowLevel" | "schemaPerTenant";
+  readonly strategy?: "rowLevel" | "schemaPerTenant" | "databasePerTenant";
   readonly schema?: (tenant: TTenant) => string;
   readonly centralSchema?: string;
+  readonly connection?: (tenant: TTenant) => KnexDatabasePlacement;
+  readonly maxConnections?: number;
 }
 
 export interface NormalizedKnexTenantTableConfig {
@@ -55,9 +67,11 @@ export interface KnexTenancyConfig<
 > {
   readonly manager: TenancyManager<TTenant>;
   readonly knex: Knex;
-  readonly strategy: "rowLevel" | "schemaPerTenant";
+  readonly strategy: "rowLevel" | "schemaPerTenant" | "databasePerTenant";
   readonly schema: ((tenant: TTenant) => string) | undefined;
   readonly centralSchema: string;
+  readonly connection: ((tenant: TTenant) => KnexDatabasePlacement) | undefined;
+  readonly maxConnections: number;
   readonly tenantTables: Readonly<
     Record<string, Readonly<NormalizedKnexTenantTableConfig>>
   >;
@@ -97,9 +111,13 @@ export function defineKnexTenancyConfig<
   }
 
   const strategy = options.strategy ?? "rowLevel";
-  if (strategy !== "rowLevel" && strategy !== "schemaPerTenant") {
+  if (
+    strategy !== "rowLevel" &&
+    strategy !== "schemaPerTenant" &&
+    strategy !== "databasePerTenant"
+  ) {
     throw new KnexTenancyConfigurationError(
-      "Knex tenancy strategy must be rowLevel or schemaPerTenant.",
+      "Knex tenancy strategy must be rowLevel, schemaPerTenant, or databasePerTenant.",
     );
   }
   if (strategy === "schemaPerTenant" && typeof options.schema !== "function") {
@@ -107,14 +125,44 @@ export function defineKnexTenancyConfig<
       "Knex schema-per-tenant requires a schema resolver.",
     );
   }
-  if (strategy === "rowLevel" && options.schema !== undefined) {
+  if (strategy !== "schemaPerTenant" && options.schema !== undefined) {
     throw new KnexTenancyConfigurationError(
-      "Knex row-level tenancy does not accept a schema resolver.",
+      "Only Knex schema-per-tenant accepts a schema resolver.",
     );
   }
-  if (strategy === "rowLevel" && options.centralSchema !== undefined) {
+  if (strategy !== "schemaPerTenant" && options.centralSchema !== undefined) {
     throw new KnexTenancyConfigurationError(
-      "Knex row-level tenancy does not accept a central schema placement.",
+      "Only Knex schema-per-tenant accepts a central schema placement.",
+    );
+  }
+  if (
+    strategy === "databasePerTenant" &&
+    typeof options.connection !== "function"
+  ) {
+    throw new KnexTenancyConfigurationError(
+      "Knex database-per-tenant requires a connection resolver.",
+    );
+  }
+  if (strategy !== "databasePerTenant" && options.connection !== undefined) {
+    throw new KnexTenancyConfigurationError(
+      "Only Knex database-per-tenant accepts a connection resolver.",
+    );
+  }
+  if (
+    strategy !== "databasePerTenant" &&
+    options.maxConnections !== undefined
+  ) {
+    throw new KnexTenancyConfigurationError(
+      "Only Knex database-per-tenant accepts maxConnections.",
+    );
+  }
+  const maxConnections = options.maxConnections ?? DEFAULT_MAX_CONNECTIONS;
+  if (
+    strategy === "databasePerTenant" &&
+    (!Number.isSafeInteger(maxConnections) || maxConnections <= 0)
+  ) {
+    throw new KnexTenancyConfigurationError(
+      "Knex database-per-tenant requires a positive maxConnections.",
     );
   }
   const centralSchema = assertKnexIdentifier(
@@ -139,6 +187,8 @@ export function defineKnexTenancyConfig<
     strategy,
     schema: options.schema,
     centralSchema,
+    connection: options.connection,
+    maxConnections,
     tenantTables,
     centralTables,
   });
@@ -162,7 +212,7 @@ export function classifyKnexTable<TTenant extends TenantRecord>(
 
 function normalizeTenantTables(
   input: Readonly<Record<string, KnexTenantTableConfig>>,
-  strategy: "rowLevel" | "schemaPerTenant",
+  strategy: "rowLevel" | "schemaPerTenant" | "databasePerTenant",
 ): Readonly<Record<string, Readonly<NormalizedKnexTenantTableConfig>>> {
   if (input === null || typeof input !== "object" || Array.isArray(input)) {
     throw new KnexTenancyConfigurationError(
@@ -182,11 +232,11 @@ function normalizeTenantTables(
       );
     }
     if (
-      strategy === "schemaPerTenant" &&
+      strategy !== "rowLevel" &&
       (value.tenantColumn !== undefined || value.policyName !== undefined)
     ) {
       throw new KnexTenancyConfigurationError(
-        `Knex schema-per-tenant table "${name}" cannot configure row-level tenant columns or RLS policies.`,
+        `Knex ${strategy} table "${name}" cannot configure row-level tenant columns or RLS policies.`,
       );
     }
     const table = normalizeTableName(name, strategy);
@@ -213,7 +263,7 @@ function normalizeTenantTables(
 
 function normalizeCentralTables(
   input: Readonly<Record<string, KnexCentralTableConfig>>,
-  strategy: "rowLevel" | "schemaPerTenant",
+  strategy: "rowLevel" | "schemaPerTenant" | "databasePerTenant",
 ): Readonly<Record<string, Readonly<NormalizedKnexCentralTableConfig>>> {
   if (input === null || typeof input !== "object" || Array.isArray(input)) {
     throw new KnexTenancyConfigurationError(
@@ -237,17 +287,17 @@ function normalizeCentralTables(
 
 function normalizeTableName(
   name: string,
-  strategy: "rowLevel" | "schemaPerTenant",
+  strategy: "rowLevel" | "schemaPerTenant" | "databasePerTenant",
 ): NormalizedKnexCentralTableConfig {
   const normalized = normalizeQualifiedTable(name, {
     label: "Knex table name",
-    allowQualified: strategy === "rowLevel",
-    ...(strategy === "rowLevel" ? { defaultSchema: "public" } : {}),
+    allowQualified: strategy !== "schemaPerTenant",
+    ...(strategy !== "schemaPerTenant" ? { defaultSchema: "public" } : {}),
     createError: () =>
       new KnexTenancyConfigurationError(
-        strategy === "rowLevel"
-          ? "Knex table names must be an unaliased identifier or schema-qualified identifier."
-          : "Knex schema-per-tenant table names must be unqualified identifiers.",
+        strategy === "schemaPerTenant"
+          ? "Knex schema-per-tenant table names must be unqualified identifiers."
+          : "Knex table names must be an unaliased identifier or schema-qualified identifier.",
       ),
   });
   return Object.freeze({

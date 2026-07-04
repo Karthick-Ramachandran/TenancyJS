@@ -33,7 +33,7 @@ type Operation =
 interface QueryState {
   readonly transaction: Knex.Transaction;
   readonly context: TenantContext;
-  readonly strategy: "rowLevel" | "schemaPerTenant";
+  readonly strategy: "rowLevel" | "schemaPerTenant" | "databasePerTenant";
   readonly policy: KnexTablePolicy;
   readonly where: readonly Readonly<{
     column: string;
@@ -58,7 +58,7 @@ export function createProtectedKnexClient(
     transaction: Knex.Transaction,
     callback: (transaction: Knex.Transaction) => Promise<TResult>,
   ) => Promise<TResult>,
-  strategy: "rowLevel" | "schemaPerTenant",
+  strategy: "rowLevel" | "schemaPerTenant" | "databasePerTenant",
 ): ProtectedKnexClient {
   const client: ProtectedKnexClient = {
     table(name) {
@@ -271,7 +271,7 @@ class KnexQuery<TResult> implements ProtectedKnexQuery<TResult> {
   async #execute(): Promise<unknown> {
     const { policy, context, operation } = this.#state;
     if (
-      this.#state.strategy === "schemaPerTenant" &&
+      this.#state.strategy !== "rowLevel" &&
       ((context.mode === "tenant" && policy.kind === "central") ||
         (context.mode === "central" && policy.kind === "tenant"))
     ) {
@@ -348,7 +348,7 @@ function scopeInsert(
   policy: KnexTablePolicy,
   context: TenantContext,
   data: KnexDataRecord,
-  strategy: "rowLevel" | "schemaPerTenant",
+  strategy: "rowLevel" | "schemaPerTenant" | "databasePerTenant",
 ): KnexDataRecord {
   if (
     strategy !== "rowLevel" ||
@@ -375,7 +375,7 @@ function scopeUpdate(
   policy: KnexTablePolicy,
   context: TenantContext,
   data: KnexDataRecord,
-  strategy: "rowLevel" | "schemaPerTenant",
+  strategy: "rowLevel" | "schemaPerTenant" | "databasePerTenant",
 ): KnexDataRecord {
   if (
     strategy === "rowLevel" &&
