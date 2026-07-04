@@ -82,99 +82,6 @@ importers:
         specifier: 4.1.9
         version: 4.1.9(@types/node@24.13.2)(@vitest/coverage-v8@4.1.9)(jiti@2.7.0)
 
-  examples/express-prisma:
-    dependencies:
-      '@prisma/adapter-pg':
-        specifier: 7.8.0
-        version: 7.8.0
-      '@prisma/client':
-        specifier: 7.8.0
-        version: 7.8.0(prisma@7.8.0(@types/react@19.2.17)(magicast@0.5.3)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@6.0.3))(typescript@6.0.3)
-      '@tenancyjs/adapter-prisma':
-        specifier: workspace:*
-        version: link:../../packages/adapter-prisma
-      '@tenancyjs/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      '@tenancyjs/identifiers':
-        specifier: workspace:*
-        version: link:../../packages/identifiers
-      '@tenancyjs/integration-express':
-        specifier: workspace:*
-        version: link:../../packages/integration-express
-      express:
-        specifier: 5.2.1
-        version: 5.2.1
-    devDependencies:
-      '@types/express':
-        specifier: 5.0.6
-        version: 5.0.6
-      prisma:
-        specifier: 7.8.0
-        version: 7.8.0(@types/react@19.2.17)(magicast@0.5.3)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@6.0.3)
-      typescript:
-        specifier: 6.0.3
-        version: 6.0.3
-
-  examples/knex-postgres:
-    dependencies:
-      '@tenancyjs/adapter-knex':
-        specifier: workspace:*
-        version: link:../../packages/adapter-knex
-      '@tenancyjs/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      knex:
-        specifier: 3.3.0
-        version: 3.3.0(pg@8.22.0)
-      pg:
-        specifier: 8.22.0
-        version: 8.22.0
-    devDependencies:
-      typescript:
-        specifier: 6.0.3
-        version: 6.0.3
-
-  examples/next-prisma:
-    dependencies:
-      '@prisma/adapter-pg':
-        specifier: 7.8.0
-        version: 7.8.0
-      '@prisma/client':
-        specifier: 7.8.0
-        version: 7.8.0(prisma@7.8.0(@types/react@19.2.17)(magicast@0.5.3)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@6.0.3))(typescript@6.0.3)
-      '@tenancyjs/adapter-prisma':
-        specifier: workspace:*
-        version: link:../../packages/adapter-prisma
-      '@tenancyjs/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      '@tenancyjs/identifiers':
-        specifier: workspace:*
-        version: link:../../packages/identifiers
-      '@tenancyjs/integration-next':
-        specifier: workspace:*
-        version: link:../../packages/integration-next
-      next:
-        specifier: 16.2.10
-        version: 16.2.10(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
-      react:
-        specifier: 19.2.7
-        version: 19.2.7
-      react-dom:
-        specifier: 19.2.7
-        version: 19.2.7(react@19.2.7)
-    devDependencies:
-      '@types/react':
-        specifier: 19.2.17
-        version: 19.2.17
-      prisma:
-        specifier: 7.8.0
-        version: 7.8.0(@types/react@19.2.17)(magicast@0.5.3)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@6.0.3)
-      typescript:
-        specifier: 6.0.3
-        version: 6.0.3
-
   packages/adapter-knex:
     dependencies:
       '@tenancyjs/core':
@@ -2544,15 +2451,6 @@ packages:
 
   pg@8.20.0:
     resolution: {integrity: sha512-ldhMxz2r8fl/6QkXnBD3CR9/xg694oT6DZQ2s6c/RI28OjtSOpxnPrUCGOBJ46RCUxcWdx3p6kw/xnDHjKvaRA==}
-    engines: {node: '>= 16.0.0'}
-    peerDependencies:
-      pg-native: '>=3.0.1'
-    peerDependenciesMeta:
-      pg-native:
-        optional: true
-
-  pg@8.22.0:
-    resolution: {integrity: sha512-8wih1vVIBMxoUM2oB4soJsD9tDnDpLv4OXBJ+EJzFsvycD+lfyIreC2gGHq78f8jbLLt+bvlPTFdFZfJkOuzAA==}
     engines: {node: '>= 16.0.0'}
     peerDependencies:
       pg-native: '>=3.0.1'
@@ -5144,27 +5042,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  knex@3.3.0(pg@8.22.0):
-    dependencies:
-      colorette: 2.0.19
-      commander: 10.0.1
-      debug: 4.3.4
-      escalade: 3.2.0
-      esm: 3.2.25
-      get-package-type: 0.1.0
-      getopts: 2.3.0
-      interpret: 2.2.0
-      lodash: 4.18.1
-      pg-connection-string: 2.6.2
-      rechoir: 0.8.0
-      resolve-from: 5.0.0
-      tarn: 3.1.0
-      tildify: 2.0.0
-    optionalDependencies:
-      pg: 8.22.0
-    transitivePeerDependencies:
-      - supports-color
-
   levn@0.4.1:
     dependencies:
       prelude-ls: 1.2.1
@@ -5448,10 +5325,6 @@ snapshots:
     dependencies:
       pg: 8.20.0
 
-  pg-pool@3.14.0(pg@8.22.0):
-    dependencies:
-      pg: 8.22.0
-
   pg-protocol@1.15.0: {}
 
   pg-types@2.2.0:
@@ -5476,16 +5349,6 @@ snapshots:
     dependencies:
       pg-connection-string: 2.14.0
       pg-pool: 3.14.0(pg@8.20.0)
-      pg-protocol: 1.15.0
-      pg-types: 2.2.0
-      pgpass: 1.0.5
-    optionalDependencies:
-      pg-cloudflare: 1.4.0
-
-  pg@8.22.0:
-    dependencies:
-      pg-connection-string: 2.14.0
-      pg-pool: 3.14.0(pg@8.22.0)
       pg-protocol: 1.15.0
       pg-types: 2.2.0
       pgpass: 1.0.5

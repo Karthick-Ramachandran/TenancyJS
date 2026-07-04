@@ -63,11 +63,7 @@ export default defineConfig({
         statements: 95,
       },
     },
-    include: [
-      "examples/**/*.test.ts",
-      "tests/**/*.test.ts",
-      "packages/**/*.test.ts",
-    ],
+    include: ["tests/**/*.test.ts", "packages/**/*.test.ts"],
     passWithNoTests: false,
   },
 });

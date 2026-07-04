@@ -35,9 +35,6 @@ describe("workspace foundation", () => {
       "packages/integration-express/package.json",
       "packages/integration-next/package.json",
       "packages/testing/package.json",
-      "examples/express-prisma/package.json",
-      "examples/knex-postgres/package.json",
-      "examples/next-prisma/package.json",
     ]) {
       await expect(readJson(path)).resolves.toMatchObject({
         engines: { node: ">=24" },

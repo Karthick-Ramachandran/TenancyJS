@@ -8,11 +8,7 @@ if (process.env.TEST_DATABASE_URL === undefined) {
   process.exit(0);
 }
 
-for (const packageName of [
-  "@tenancyjs/adapter-prisma",
-  "@tenancyjs/example-express-prisma",
-  "@tenancyjs/example-next-prisma",
-]) {
+for (const packageName of ["@tenancyjs/adapter-prisma"]) {
   const result = spawnSync(
     "pnpm",
     ["--filter", packageName, "prisma:test:push"],

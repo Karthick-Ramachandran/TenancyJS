@@ -8,8 +8,6 @@ export default tseslint.config(
       "**/coverage/**",
       "**/.next/**",
       ".artifacts/**",
-      "examples/next-prisma/generated/**",
-      "examples/adonis-lucid/**",
       ".agents/**",
       ".claude/**",
       ".cursor/**",
