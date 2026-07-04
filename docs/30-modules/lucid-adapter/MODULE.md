@@ -28,4 +28,6 @@ AdonisJS support.
   relationship, and direct query paths. ADR-0010 controls the guarantee.
 - The package requires Node 24 and peers on AdonisJS 7.3, Lucid 22.4, Luxon 3.7, and PostgreSQL driver
   8.20. Framework/provider lifecycle remains owned by `integration-adonis` under ADR-0014.
+- ADR-0019 adds adapter-enforced schema-per-tenant through adapter-shared. Registered models use
+  unqualified tables; central tenant-table shadowing is forbidden so hook-skipping paths fail closed.
 - Linked delivery: `docs/40-features/F-007-knex-lucid-adonis/`.

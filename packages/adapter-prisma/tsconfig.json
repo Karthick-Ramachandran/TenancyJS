@@ -6,5 +6,5 @@
     "tsBuildInfoFile": "../../.artifacts/tsbuild/adapter-prisma.tsbuildinfo"
   },
   "include": ["src/**/*.ts"],
-  "references": [{ "path": "../core" }]
+  "references": [{ "path": "../adapter-shared" }, { "path": "../core" }]
 }

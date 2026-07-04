@@ -2,12 +2,12 @@
 
 ## Purpose
 
-Provide a fail-closed, native-fluent Knex row-level boundary for shared PostgreSQL databases.
+Provide fail-closed, native-fluent Knex row-level and schema-per-tenant boundaries for PostgreSQL.
 
 ## Owns
 
-- Table classification, protected builders, discriminator enforcement, managed transaction/RLS
-  context, policy validation, typed failures, capability metadata, and the Knex operation matrix.
+- Table classification, protected builders, discriminator enforcement, managed transaction binding,
+  typed failures, capability metadata, and the Knex operation matrix.
 
 ## Does Not Own
 
@@ -16,12 +16,14 @@ Provide a fail-closed, native-fluent Knex row-level boundary for shared PostgreS
 
 ## Public Interfaces
 
-- Proposed `createKnexTenancy`, `KnexTenancy`, protected client/builder types, config/table metadata,
-  RLS validation results, capability constants, and sanitized errors.
+- Implemented `createKnexTenancy`, `KnexTenancy`, protected client/builder types, config/table metadata,
+  isolation validation results, capability constants, and sanitized errors.
 
 ## Boundaries
 
-- Depends on core and peers on Knex 3.3. Initial compatibility is PostgreSQL 17 only.
+- Depends on core and adapter-shared and peers on Knex 3.3. Compatibility is PostgreSQL 17 only.
 - The protected callback client is the security boundary. Raw/schema/migration/connection/client and
   unproven fluent composition are unavailable or rejected. ADR-0010 controls expansion.
 - Linked delivery: `docs/40-features/F-007-knex-lucid-adonis/`.
+- F-009/ADR-0019 add adapter-enforced schema-per-tenant through the shared PostgreSQL engine; the base
+  client, provisioning, and database-enforced per-tenant roles remain outside this module.

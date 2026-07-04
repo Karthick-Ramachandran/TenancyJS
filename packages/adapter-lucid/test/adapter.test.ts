@@ -16,6 +16,11 @@ import {
 
 type Hook = (value: unknown) => void | Promise<void>;
 
+interface Tenant {
+  readonly id: string;
+  readonly name: string;
+}
+
 interface FakeModelHarness {
   readonly model: LucidModel;
   hook(event: string): Hook;
@@ -35,7 +40,7 @@ describe("createLucidTenancy", () => {
   it("defines a frozen AdonisJS 7/Lucid 22 capability boundary", () => {
     expect(LUCID_ADAPTER_CAPABILITIES).toEqual({
       rowLevel: "supported",
-      schemaPerTenant: "unsupported",
+      schemaPerTenant: "supported",
       databasePerTenant: "unsupported",
       centralModels: "supported",
       transactions: "supported",
@@ -125,6 +130,83 @@ describe("createLucidTenancy", () => {
         ),
       ).toThrow(LucidTenancyConfigurationError);
     }
+  });
+
+  it("normalizes schema-per-tenant models as unqualified placement names", () => {
+    const manager = new TenancyManager<Tenant>();
+    const database = createFakeDatabase().database;
+    const model = createFakeModel("Post", "posts").model;
+    const config = defineLucidTenancyConfig({
+      manager,
+      database,
+      strategy: "schemaPerTenant",
+      schema: (tenant) => `tenant_${tenant.id}`,
+      centralSchema: "central",
+      tenantModels: [{ model }],
+    });
+
+    expect(config.strategy).toBe("schemaPerTenant");
+    expect(config.tenantModels[0]).toMatchObject({
+      schema: undefined,
+      table: "posts",
+      qualifiedName: "posts",
+    });
+    expect(config.schema?.({ id: "a", name: "A" })).toBe("tenant_a");
+  });
+
+  it.each([
+    ["missing schema resolver", { strategy: "schemaPerTenant" }],
+    [
+      "qualified model table",
+      {
+        strategy: "schemaPerTenant",
+        schema: (): string => "tenant_a",
+        table: "app.posts",
+      },
+    ],
+    [
+      "row-level schema resolver",
+      { strategy: "rowLevel", schema: (): string => "tenant_a" },
+    ],
+    [
+      "row-level central placement",
+      { strategy: "rowLevel", centralSchema: "central" },
+    ],
+    [
+      "schema-mode row policy",
+      {
+        strategy: "schemaPerTenant",
+        schema: (): string => "tenant_a",
+        tenantColumn: "tenant_id",
+      },
+    ],
+    [
+      "invalid central schema",
+      {
+        strategy: "schemaPerTenant",
+        schema: (): string => "tenant_a",
+        centralSchema: "central-schema",
+      },
+    ],
+    ["unknown strategy", { strategy: "unknown" }],
+  ])("rejects schema strategy configuration with %s", (_name, input) => {
+    const model = createFakeModel("Post", "posts").model;
+    expect(() =>
+      defineLucidTenancyConfig({
+        manager: new TenancyManager(),
+        database: createFakeDatabase().database,
+        tenantModels: [
+          {
+            model,
+            ...("table" in input ? { table: input.table } : {}),
+            ...("tenantColumn" in input
+              ? { tenantColumn: input.tenantColumn }
+              : {}),
+          },
+        ],
+        ...input,
+      } as never),
+    ).toThrow(LucidTenancyConfigurationError);
   });
 
   it("validates forced RLS before entering a transaction", async () => {

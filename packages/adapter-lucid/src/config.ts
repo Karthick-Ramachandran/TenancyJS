@@ -1,15 +1,20 @@
 import type { TenancyManager, TenantRecord } from "@tenancyjs/core";
+import {
+  POSTGRES_CENTRAL_SETTING,
+  POSTGRES_TENANT_SETTING,
+  assertSqlIdentifier,
+  normalizeQualifiedTable,
+} from "@tenancyjs/adapter-shared";
 import type { Database } from "@adonisjs/lucid/database";
 import type { LucidModel } from "@adonisjs/lucid/types/model";
 
 import { LucidTenancyConfigurationError } from "./errors.js";
 
-const IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
 const DEFAULT_TENANT_ATTRIBUTE = "tenantId";
 const DEFAULT_TENANT_COLUMN = "tenant_id";
 
-export const LUCID_TENANT_SETTING = "tenancyjs.tenant_id";
-export const LUCID_CENTRAL_SETTING = "tenancyjs.is_central";
+export const LUCID_TENANT_SETTING = POSTGRES_TENANT_SETTING;
+export const LUCID_CENTRAL_SETTING = POSTGRES_CENTRAL_SETTING;
 
 export interface LucidTenantModelConfig {
   readonly model: LucidModel;
@@ -25,12 +30,15 @@ export interface LucidTenancyOptions<
   readonly manager: TenancyManager<TTenant>;
   readonly database: Database;
   readonly tenantModels: readonly LucidTenantModelConfig[];
+  readonly strategy?: "rowLevel" | "schemaPerTenant";
+  readonly schema?: (tenant: TTenant) => string;
+  readonly centralSchema?: string;
 }
 
 export interface NormalizedLucidTenantModelConfig {
   readonly model: LucidModel;
   readonly modelName: string;
-  readonly schema: string;
+  readonly schema: string | undefined;
   readonly table: string;
   readonly qualifiedName: string;
   readonly tenantAttribute: string;
@@ -43,6 +51,9 @@ export interface LucidTenancyConfig<
 > {
   readonly manager: TenancyManager<TTenant>;
   readonly database: Database;
+  readonly strategy: "rowLevel" | "schemaPerTenant";
+  readonly schema: ((tenant: TTenant) => string) | undefined;
+  readonly centralSchema: string;
   readonly tenantModels: readonly Readonly<NormalizedLucidTenantModelConfig>[];
 }
 
@@ -82,10 +93,36 @@ export function defineLucidTenancyConfig<
     );
   }
 
+  const strategy = options.strategy ?? "rowLevel";
+  if (strategy !== "rowLevel" && strategy !== "schemaPerTenant") {
+    throw new LucidTenancyConfigurationError(
+      "Lucid tenancy strategy must be rowLevel or schemaPerTenant.",
+    );
+  }
+  if (strategy === "schemaPerTenant" && typeof options.schema !== "function") {
+    throw new LucidTenancyConfigurationError(
+      "Lucid schema-per-tenant requires a schema resolver.",
+    );
+  }
+  if (strategy === "rowLevel" && options.schema !== undefined) {
+    throw new LucidTenancyConfigurationError(
+      "Lucid row-level tenancy does not accept a schema resolver.",
+    );
+  }
+  if (strategy === "rowLevel" && options.centralSchema !== undefined) {
+    throw new LucidTenancyConfigurationError(
+      "Lucid row-level tenancy does not accept a central schema placement.",
+    );
+  }
+  const centralSchema = assertIdentifier(
+    options.centralSchema ?? "public",
+    "Central schema",
+  );
+
   const modelSet = new Set<LucidModel>();
   const tableSet = new Set<string>();
   const tenantModels = options.tenantModels.map((entry, index) => {
-    const normalized = normalizeModel(entry, index);
+    const normalized = normalizeModel(entry, index, strategy);
     if (modelSet.has(normalized.model)) {
       throw new LucidTenancyConfigurationError(
         `Lucid model "${normalized.modelName}" is configured more than once.`,
@@ -104,6 +141,9 @@ export function defineLucidTenancyConfig<
   return Object.freeze({
     manager: options.manager,
     database: options.database,
+    strategy,
+    schema: options.schema,
+    centralSchema,
     tenantModels: Object.freeze(tenantModels),
   });
 }
@@ -111,8 +151,19 @@ export function defineLucidTenancyConfig<
 function normalizeModel(
   entry: LucidTenantModelConfig,
   index: number,
+  strategy: "rowLevel" | "schemaPerTenant",
 ): NormalizedLucidTenantModelConfig {
   if (entry === null || typeof entry !== "object") invalidModel(index);
+  if (
+    strategy === "schemaPerTenant" &&
+    (entry.tenantAttribute !== undefined ||
+      entry.tenantColumn !== undefined ||
+      entry.policyName !== undefined)
+  ) {
+    throw new LucidTenancyConfigurationError(
+      `Lucid schema-per-tenant model at index ${index} cannot configure row-level tenant attributes, columns, or RLS policies.`,
+    );
+  }
   const model = entry.model;
   if (
     typeof model !== "function" ||
@@ -123,7 +174,15 @@ function normalizeModel(
   }
   const modelName = model.name || `model-${index}`;
   const tableName = entry.table ?? model.table;
-  const table = normalizeTableName(tableName, modelName);
+  const table = normalizeTableName(tableName, modelName, strategy);
+  if (
+    strategy === "schemaPerTenant" &&
+    (typeof model.table !== "string" || model.table !== table.table)
+  ) {
+    throw new LucidTenancyConfigurationError(
+      `Lucid model "${modelName}" must use the same unqualified table name configured for schema-per-tenant.`,
+    );
+  }
   const tenantAttribute = entry.tenantAttribute ?? DEFAULT_TENANT_ATTRIBUTE;
   const tenantColumn = entry.tenantColumn ?? DEFAULT_TENANT_COLUMN;
   const policyName = entry.policyName ?? `${table.table}_tenant_isolation`;
@@ -149,36 +208,42 @@ function normalizeModel(
 function normalizeTableName(
   name: unknown,
   modelName: string,
-): Readonly<{ schema: string; table: string; qualifiedName: string }> {
-  if (typeof name !== "string") invalidTable(modelName);
-  const parts = name.split(".");
-  if (parts.length > 2 || parts.some((part) => !IDENTIFIER.test(part))) {
-    invalidTable(modelName);
-  }
-  const [schema, table] =
-    parts.length === 1 ? ["public", parts[0]!] : [parts[0]!, parts[1]!];
-  return Object.freeze({ schema, table, qualifiedName: `${schema}.${table}` });
+  strategy: "rowLevel" | "schemaPerTenant",
+): Readonly<{
+  schema: string | undefined;
+  table: string;
+  qualifiedName: string;
+}> {
+  const normalized = normalizeQualifiedTable(name, {
+    label: `Table for Lucid model "${modelName}"`,
+    allowQualified: strategy === "rowLevel",
+    ...(strategy === "rowLevel" ? { defaultSchema: "public" } : {}),
+    createError: () =>
+      new LucidTenancyConfigurationError(
+        strategy === "rowLevel"
+          ? `Table for Lucid model "${modelName}" must be an unaliased PostgreSQL identifier or schema-qualified identifier.`
+          : `Table for Lucid model "${modelName}" must be an unqualified PostgreSQL identifier in schema-per-tenant mode.`,
+      ),
+  });
+  return Object.freeze({
+    schema: normalized.schema,
+    table: normalized.table,
+    qualifiedName: normalized.qualifiedName,
+  });
 }
 
-function assertIdentifier(
-  value: unknown,
-  label: string,
-): asserts value is string {
-  if (typeof value !== "string" || !IDENTIFIER.test(value)) {
-    throw new LucidTenancyConfigurationError(
-      `${label} must be a valid identifier.`,
-    );
-  }
+function assertIdentifier(value: unknown, label: string): string {
+  return assertSqlIdentifier(value, {
+    label,
+    createError: () =>
+      new LucidTenancyConfigurationError(
+        `${label} must be a valid identifier.`,
+      ),
+  });
 }
 
 function invalidModel(index: number): never {
   throw new LucidTenancyConfigurationError(
     `Lucid tenant model at index ${index} must be a Lucid model constructor.`,
-  );
-}
-
-function invalidTable(modelName: string): never {
-  throw new LucidTenancyConfigurationError(
-    `Table for Lucid model "${modelName}" must be an unaliased PostgreSQL identifier or schema-qualified identifier.`,
   );
 }

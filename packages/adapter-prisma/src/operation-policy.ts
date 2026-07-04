@@ -1,5 +1,6 @@
 import type { TenantRecord } from "@tenancyjs/core";
 import { TenantContextError } from "@tenancyjs/core";
+import { decideTenantDiscriminator } from "@tenancyjs/adapter-shared";
 
 import {
   type PrismaTenancyConfig,
@@ -94,12 +95,12 @@ function transformTenantOperation(
   }
 
   if (UPDATE_OPERATIONS.has(operation)) {
-    rejectTenantFieldUpdate(args.data, policy, operation);
+    rejectTenantFieldUpdate(args.data, policy, operation, tenantId);
     return withTenantWhere(args, policy.tenantField, tenantId);
   }
 
   if (operation === "upsert") {
-    rejectTenantFieldUpdate(args.update, policy, operation);
+    rejectTenantFieldUpdate(args.update, policy, operation, tenantId);
     return {
       ...withTenantWhere(args, policy.tenantField, tenantId),
       create: withTenantCreateData(args.create, policy, operation, tenantId),
@@ -159,22 +160,38 @@ function withTenantCreateEntry(
     `Prisma ${policy.model}.${operation} requires object data.`,
   );
   const suppliedTenant = entry[policy.tenantField];
-  if (suppliedTenant !== undefined && suppliedTenant !== tenantId) {
+  const decision = decideTenantDiscriminator(
+    tenantId,
+    "create",
+    Object.hasOwn(entry, policy.tenantField),
+    suppliedTenant,
+  );
+  if (decision.kind === "reject") {
     throw new PrismaTenantFieldConflictError(policy.model, operation);
   }
-  return { ...entry, [policy.tenantField]: tenantId };
+  return decision.kind === "inject"
+    ? { ...entry, [policy.tenantField]: decision.value }
+    : entry;
 }
 
 function rejectTenantFieldUpdate(
   rawData: unknown,
   policy: Extract<PrismaModelPolicy, { kind: "tenant" }>,
   operation: string,
+  tenantId: string,
 ): void {
   const data = requireRecord(
     rawData,
     `Prisma ${policy.model}.${operation} requires object data.`,
   );
-  if (Object.hasOwn(data, policy.tenantField)) {
+  if (
+    decideTenantDiscriminator(
+      tenantId,
+      "update",
+      Object.hasOwn(data, policy.tenantField),
+      data[policy.tenantField],
+    ).kind === "reject"
+  ) {
     throw new PrismaTenantFieldConflictError(policy.model, operation);
   }
 }

@@ -2,10 +2,10 @@
 
 ## Status
 
-Active and incremental. Core context, tenant resolution, Prisma/Knex row-level adapters, Express and
-Next.js request lifecycles, and reference CLI safety controls are implemented. The Lucid 22 adapter
-boundary is implemented pending hosted PostgreSQL evidence; other adapter, integration, and
-operational CLI controls remain delivery requirements.
+Active and incremental. Core context, tenant resolution, Prisma/Knex/Lucid row-level adapters,
+Knex/Lucid adapter-enforced PostgreSQL schema-per-tenant, Express and Next.js request lifecycles, and
+reference CLI safety controls are implemented. Other adapter, integration, database-per-tenant,
+provisioning, and operational CLI controls remain delivery requirements.
 
 ## Assets
 
@@ -68,6 +68,14 @@ operational CLI controls remain delivery requirements.
 - Lucid intentionally exposes hook-skipping model/database paths and application-owned transaction
   clients. TenancyJS guarantees registered normal model operations only; forced PostgreSQL RLS denies
   missing-context paths, while retained/raw/privileged capabilities remain outside the guarantee.
+- Adapter-enforced schema-per-tenant relies on validated unqualified addressing and transaction-local
+  `search_path`; a retained shared-role raw client can qualify another schema. The protected Knex
+  surface rejects that path, and Lucid validation requires tenant-table names to be absent centrally
+  and across the effective default search path so hook-skipping unqualified paths fail closed.
+  Per-tenant roles remain the stronger future tier.
+- Database-per-tenant pools risk cardinality exhaustion, placement-key collisions, use-after-eviction,
+  and secret leakage in creation failures. ADR-0021 mitigates these with bounded idle-only LRU,
+  reference-counted leases, one-to-one active mappings, sanitized errors, and retryable destruction.
 - Raw SQL cannot be made universally safe: adapter/documentation owners; explicit escape policy needed.
 - Atomic rollback across filesystem and database operations is impossible: CLI owner; staged,
   idempotent operations and recovery output required.

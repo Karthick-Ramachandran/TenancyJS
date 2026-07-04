@@ -1,6 +1,7 @@
 {
   "files": [],
   "references": [
+    { "path": "./packages/adapter-shared" },
     { "path": "./packages/core" },
     { "path": "./packages/adapter-knex" },
     { "path": "./packages/adapter-lucid" },

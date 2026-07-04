@@ -13,7 +13,7 @@ Acceptance:
 
 ## T2: Knex schema-per-tenant, adapter-enforced (ADR-0018)
 
-Status: Todo
+Status: Done
 
 Scope:
 - `config`: schema-per-tenant mode + `schema(tenant) => string` resolver (validated identifier).
@@ -29,22 +29,59 @@ Acceptance:
 Tests:
 - Real-PG two-schema adversarial isolation; config validation; capability flip.
 
+Evidence:
+- Shared engine unit/security suite and Knex schema configuration tests pass.
+- Three Knex schema-per-tenant PostgreSQL 17 tests pass, including concurrent read/write isolation,
+  mutation denial, central placement, rollback, raw/qualified rejection, and pool cleanup.
+
 ## T3: Lucid schema-per-tenant, adapter-enforced
 
+Status: Done
+
+Scope:
+- Same shared `search_path` mechanism on Lucid model transactions; hook-skipping paths fail closed.
+
+Evidence:
+- Four Lucid schema-per-tenant PostgreSQL 17 tests pass alongside the four row-level tests, including
+  relationships, create/read isolation, cross-tenant mutation denial, central rejection, rollback,
+  hook-bypass rejection, and pool cleanup.
+
+## T4: Database-per-tenant shared resource cache
+
+Status: Done
+
+Scope:
+- Bounded, single-flight, reference-counted LRU resource cache in adapter-shared; tenant/placement
+  collision rejection; deterministic shutdown and sanitized failures. ADR-0021.
+
+Evidence:
+- Ten focused cache tests cover configuration, mapping collision, single-flight creation, active
+  capacity, idle LRU, callback cleanup, sanitized create/destroy failures, retention/retry, and shutdown.
+- Full no-database workspace gate passes 322 tests with coverage and package-consumer checks.
+
+## T5: Knex database-per-tenant binding
+
 Status: Todo
 
 Scope:
-- Same mechanism on Lucid (searchPath / named connection); adversarial test.
+- Host placement/client factory, connected-database identity validation, protected client reuse, and
+  real two-database isolation/cache lifecycle evidence. Flip Knex capability only after evidence.
 
-## T4: Database-enforced (opt-in per-tenant role)
+## T6: Lucid and Prisma database-per-tenant bindings
 
 Status: Todo
 
 Scope:
-- Per-tenant role + `USAGE`-only grants; tenant scope `SET ROLE`s; DB blocks cross-schema. Provisioning
-  role/grant lifecycle.
+- Thin Lucid and Prisma bindings over the shared cache with separate real-database evidence.
 
-## T5: Provisioning
+## T7: Database-enforced schema mode (opt-in per-tenant role)
+
+Status: Todo
+
+Scope:
+- Per-tenant role + `USAGE`-only grants; tenant scope `SET ROLE`s; database blocks cross-schema.
+
+## T8: Provisioning
 
 Status: Todo
 

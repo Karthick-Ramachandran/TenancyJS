@@ -29,6 +29,7 @@ describe("workspace foundation", () => {
       "packages/adapter-knex/package.json",
       "packages/adapter-lucid/package.json",
       "packages/adapter-prisma/package.json",
+      "packages/adapter-shared/package.json",
       "packages/cli/package.json",
       "packages/core/package.json",
       "packages/identifiers/package.json",
@@ -67,6 +68,7 @@ describe("workspace foundation", () => {
     const manifest = await readJson("packages/adapter-prisma/package.json");
 
     expect(manifest.dependencies).toEqual({
+      "@tenancyjs/adapter-shared": "workspace:*",
       "@tenancyjs/core": "workspace:*",
     });
     expect(manifest.peerDependencies).toEqual({

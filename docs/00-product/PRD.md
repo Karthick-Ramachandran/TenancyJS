@@ -25,13 +25,15 @@ seed, tenant-operation, and database-per-tenant commands remain deferred. The so
 Next.js App Router integration is implemented under F-006 and follows accepted ADR-0009; hosted
 Node 24 PostgreSQL compatibility evidence passes on PR #7. The Knex/Lucid/AdonisJS vertical slice is
 in progress under F-007 and follows accepted ADR-0010/ADR-0013. ADR-0013 sets Node 24 as the common
-repository baseline and carries forward the AdonisJS 7 contract.
+repository baseline and carries forward the AdonisJS 7 contract. F-009 now implements
+adapter-enforced PostgreSQL schema-per-tenant isolation for Knex and Lucid through the shared strategy
+engine accepted in ADR-0019; database-per-tenant and provisioning remain pending.
 
 ## Initial Supported Surface
 
 - Frameworks: Express, Next.js App Router, NestJS, and AdonisJS.
 - Data layers: Prisma, Sequelize, Knex, and Lucid.
-- Isolation: row-level tenancy first; database-per-tenant after the row-level contract is proven.
+- Isolation: row-level and PostgreSQL schema-per-tenant for Knex/Lucid; database-per-tenant follows.
 - Runtime: Node.js 24 or newer; no Edge-runtime tenant database access guarantee.
 - Distribution: separate npm packages in one monorepo, with a `tenancy` CLI.
 
@@ -57,6 +59,6 @@ lifecycle and migration conventions.
 ## Non-Goals For The Initial Platform
 
 - Billing, subscription UI, hosted control planes, DNS/SSL automation, or admin dashboards.
-- PostgreSQL schema-per-tenant, cache/storage isolation, impersonation, or resource syncing.
+- Cache/storage isolation, impersonation, or resource syncing.
 - Mongoose, Drizzle, TypeORM, Fastify, or non-Node runtimes in the initial support commitment.
 - Transparent protection for arbitrary raw SQL; unsafe escape hatches must be explicit and documented.

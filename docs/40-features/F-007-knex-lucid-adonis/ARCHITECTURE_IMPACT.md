@@ -10,7 +10,7 @@
 ## Dependency Impact
 
 - `adapter-knex` depends on core and peers on Knex 3.3; PostgreSQL is compatibility-test/example only.
-- `adapter-lucid` depends on core and reviewed Knex enforcement primitives, peers on Lucid 22.4, and
+- `adapter-lucid` depends on core and reviewed adapter-shared enforcement primitives, peers on Lucid 22.4, and
   does not import the Adonis integration.
 - `integration-adonis` depends on core, identifiers, and Lucid adapter and peers on AdonisJS 7.3 and
   Lucid 22.4 with Node 24. Ace factories accept a structural CLI service port; the integration does not depend on

@@ -1,6 +1,6 @@
 # @tenancyjs/adapter-lucid
 
-**Fail-closed Lucid 22 row-level tenancy for AdonisJS 7 and PostgreSQL 17.**
+**Fail-closed Lucid 22 row-level and schema-per-tenant isolation for AdonisJS 7 and PostgreSQL 17.**
 
 ![Node](https://img.shields.io/badge/Node.js-%3E%3D24-brightgreen)
 ![AdonisJS](https://img.shields.io/badge/AdonisJS-7-5A45FF)
@@ -101,3 +101,26 @@ with check (
 ```
 
 See the repository security model and ADR-0010/ADR-0013 for the complete operational contract.
+
+## Schema per tenant
+
+Schema mode is **adapter-enforced**. Registered Lucid models use unqualified table names and the
+shared PostgreSQL engine validates and applies a transaction-local `search_path`.
+
+```ts
+const lucidTenancy = createLucidTenancy({
+  manager,
+  database: db,
+  strategy: "schemaPerTenant",
+  schema: (tenant) => tenant.schema,
+  centralSchema: "public",
+  tenantModels: [{ model: Post }, { model: Comment }],
+});
+```
+
+Every configured model's actual `table` must be the same unqualified name. The central schema and every
+schema on the runtime role's effective default `search_path` must not contain those tenant-table names:
+`.pojo()`, quiet, bulk, and direct builder paths skip Lucid hooks and therefore receive no managed
+`search_path`; keeping the names absent makes those paths fail closed.
+Retained or qualified base-database access remains outside the guarantee. Per-tenant roles and schema
+provisioning are not yet implemented.

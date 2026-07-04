@@ -1,7 +1,7 @@
 {
   "name": "@tenancyjs/adapter-lucid",
   "version": "0.0.0",
-  "description": "Fail-closed PostgreSQL row-level tenancy for AdonisJS Lucid.",
+  "description": "Fail-closed PostgreSQL row-level and schema-per-tenant isolation for AdonisJS Lucid.",
   "type": "module",
   "license": "MIT",
   "sideEffects": false,
@@ -28,6 +28,7 @@
     "provenance": true
   },
   "dependencies": {
+    "@tenancyjs/adapter-shared": "workspace:*",
     "@tenancyjs/core": "workspace:*"
   },
   "peerDependencies": {

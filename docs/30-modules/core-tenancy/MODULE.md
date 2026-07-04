@@ -30,7 +30,8 @@ other TenancyJS packages depend.
   `getTenantOrFail`, `isInitialized`, and `on`.
 - `TenantRecord`, `TenantContext`, `TenantExecutionContext`, and `CentralContext`.
 - `TenancyBootstrapper` and typed lifecycle event/listener contracts.
-- `defineConfig`, `TenancyConfig`, and `TenancyStrategy` for `rowLevel` and `databasePerTenant`.
+- `defineConfig`, `TenancyConfig`, and `TenancyStrategy` for `rowLevel`, `schemaPerTenant`, and
+  `databasePerTenant`.
 - Typed `TenancyError` subclasses for context, tenant, bootstrapper, and lifecycle failures.
 - `TenancyAdapter`, `TenancyAdapterCapabilities`, and adapter validation types.
 

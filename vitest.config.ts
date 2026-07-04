@@ -4,6 +4,9 @@ import { fileURLToPath } from "node:url";
 export default defineConfig({
   resolve: {
     alias: {
+      "@tenancyjs/adapter-shared": fileURLToPath(
+        new URL("./packages/adapter-shared/src/index.ts", import.meta.url),
+      ),
       "@tenancyjs/adapter-knex": fileURLToPath(
         new URL("./packages/adapter-knex/src/index.ts", import.meta.url),
       ),
@@ -43,6 +46,7 @@ export default defineConfig({
     coverage: {
       exclude: ["**/dist/**", "packages/cli/src/bin.ts"],
       include: [
+        "packages/adapter-shared/src/**/*.ts",
         "packages/adapter-knex/src/**/*.ts",
         "packages/adapter-lucid/src/**/*.ts",
         "packages/adapter-prisma/src/**/*.ts",

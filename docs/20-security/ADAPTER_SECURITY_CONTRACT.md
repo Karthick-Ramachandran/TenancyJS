@@ -29,7 +29,8 @@ and cannot observe or mutate a different tenant in the conformance suite.
 
 - Missing tenant context fails before a tenant-owned query executes.
 - Caller filters cannot replace the adapter's tenant predicate.
-- Creates receive or validate the active tenant discriminator; updates cannot move a record between tenants.
+- Row-level creates receive or validate the active tenant discriminator; updates cannot move a record
+  between tenants. Schema/database placement strategies instead validate and bind the active placement.
 - Bulk, aggregate, unique, and transaction behavior is scoped wherever the matrix marks it supported.
 - Central models and administrative context are explicit, reviewed capabilities.
 - Errors disclose operation/model identifiers and remediation, not rows, arguments, SQL, tenants, or credentials.
@@ -62,6 +63,11 @@ when an adapter has a reliable interception mechanism and negative isolation tes
 - `unsupported`: the adapter does not implement the capability and makes no guarantee.
 
 Unknown models and operations are always rejected. There is no best-effort state.
+
+Capability state does not describe enforcement strength. Published matrices and adapter documentation
+must separately label a supported combination as **database-enforced** or **adapter-enforced**. Current
+forced PostgreSQL RLS is database-enforced; Prisma query rewriting and shared-role schema `search_path`
+are adapter-enforced.
 
 ## Evidence Required To Expand Support
 
