@@ -1,305 +1,59 @@
 # TenancyJS
 
-**Fail-closed, TypeScript-first multi-tenancy for the Node.js ecosystem—from one database to one
-database per tenant.**
+**Fail-closed, TypeScript-first multi-tenancy for Node.js.**
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Node](https://img.shields.io/badge/Node.js-%3E%3D24-brightgreen)
-![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6)
 ![Status](https://img.shields.io/badge/status-pre--alpha-orange)
 ![Isolation](https://img.shields.io/badge/isolation-fail--closed-success)
-![Telemetry](https://img.shields.io/badge/telemetry-none-success)
 
-TenancyJS is an open-source tenancy toolkit for teams building SaaS products with **Next.js,
-NestJS, Express, or AdonisJS** and **Prisma, Sequelize, Knex, or Lucid**. It gives every stack the
-same tenant context, isolation contract, test suite, and operational model without replacing the
-framework or ORM that already owns your application.
+TenancyJS gives every framework and ORM the same tenant context and isolation contract — without
+replacing the framework or ORM you already use. Tenant identity follows the async execution scope; any
+tenant-aware access without valid context **fails closed** (throws) instead of returning unscoped data.
 
-[Vision](#the-vision) · [Strategies](#three-strategies-one-contract) ·
-[Compatibility](#compatibility-roadmap) · [Architecture](#architecture) ·
-[Roadmap](#delivery-roadmap) · [Development](#development) ·
-[Contributing](CONTRIBUTING.md)
-
-> **Pre-alpha:** core, identifiers, testing contracts, Prisma, Express 5, Next.js App Router, the safe
-> CLI foundation, and the Knex and Lucid 22 PostgreSQL boundaries have hosted evidence. The AdonisJS 7
-> integration (provider, middleware, config, and `tenancy init` scaffolding) with Lucid on PostgreSQL is
-> ready to use, proven end-to-end by a two-tenant example test. Knex/Lucid schema-per-tenant also passes
-> local PostgreSQL 17 adversarial and package-consumer gates; hosted evidence is pending. The project is
-> still pre-alpha and not
-> production-ready. Follow the
-> [delivery plan](docs/40-features/F-001-tenancyjs-platform/PLAN.md) for implementation state.
-
----
-
-Multi-tenancy looks simple until one forgotten filter exposes another customer's data. Node.js teams
-currently rebuild tenant resolution, async context, query scoping, migration loops, and leak tests for
-every framework and ORM combination.
-
-TenancyJS turns those concerns into one explicit, testable system:
-
-```txt
-Resolve tenant -> enter isolated context -> scope data access -> run application -> always clean up
-```
-
-No process-global tenant. No silent fallback to unscoped access. No compatibility badge without an
-integration test proving it.
-
-## The vision
-
-The target developer experience is intentionally small:
-
-```bash
-pnpm add @tenancyjs/core @tenancyjs/adapter-prisma @tenancyjs/integration-next
-pnpm add -D @tenancyjs/cli @tenancyjs/testing
-
-pnpm tenancy init
-pnpm tenancy doctor
-pnpm tenancy test:leak
-```
-
-Those commands describe the planned public experience; they are not available from npm yet.
-
-Application code should use one mental model everywhere:
+> **Pre-alpha** — not yet published to npm and not production-ready.
 
 ```ts
 await tenancy.runWithTenant(tenant, async () => {
-  // Registered adapters scope supported operations to this tenant.
-  // Missing context fails closed by default.
+  // Every registered adapter scopes data access to this tenant.
+  // No tenant context => it throws. No silent fallback to unscoped data.
 });
 ```
 
-The core remains framework-neutral. Integrations translate request or job lifecycles into core
-context; adapters translate that context into enforceable data-layer behavior.
+## Three isolation strategies, one contract
 
-V1 is aimed primarily at greenfield services that can adopt a secured ORM client from day one.
-Existing applications use an incremental inventory-and-test migration path; they are not considered
-protected while tenant-aware code can still reach an unextended client.
+| Strategy                        | What it means                                                                                                                     | Adapters              |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| **Single database** (row-level) | Shared tables, `tenant_id` + forced Postgres RLS or query-scoping                                                                 | Knex · Lucid · Prisma |
+| **Schema per tenant**           | One Postgres schema per tenant via transaction-local `search_path` (optionally a per-tenant role for database-enforced isolation) | Knex · Lucid          |
+| **Database per tenant**         | A separate database per tenant, routed through a bounded connection cache                                                         | Knex · Lucid · Prisma |
 
-## Why TenancyJS
+Each supported cell is backed by a two-tenant adversarial isolation test on a real database. Prisma
+schema-per-tenant is not supported (Prisma resolves tables from the datasource, not `search_path`).
 
-- **Fail closed by default.** Tenant-aware access without valid context throws instead of returning
-  unscoped data.
-- **Concurrency-safe context.** Tenant identity follows the async execution scope, never a mutable
-  process-global variable.
-- **Three isolation strategies.** Use shared rows, PostgreSQL schemas, or dedicated tenant databases
-  without changing the application-level context model.
-- **Framework-native integration.** Next.js wrappers, NestJS modules, Express middleware, and AdonisJS
-  providers follow the lifecycle conventions of each framework.
-- **ORM-native operations.** Prisma, Sequelize, Knex, and Lucid keep ownership of migrations and
-  schema behavior; the TenancyJS CLI orchestrates rather than reimplements them.
-- **Compatibility backed by evidence.** Stable means conformance tests, a runnable example, supported
-  peer versions, and a two-tenant no-leak E2E test.
-- **One monorepo, separate packages.** Applications install only the integrations and adapters they
-  use while the entire project shares one security and release discipline.
+## Supported stacks
 
-## Three strategies, one contract
-
-### Single database
-
-Tenant-owned rows share a database and carry a tenant discriminator such as `tenantId`.
-
-```txt
-application database
-├── tenants
-├── posts       -> tenantId
-├── invoices    -> tenantId
-└── projects    -> tenantId
-```
-
-This is the first delivery target because it gives most SaaS products the lowest operational cost.
-Adapters must scope supported create, read, update, delete, aggregate, bulk, nested, and transaction
-operations—and fail explicitly where safe interception is impossible.
-
-### Schema per tenant
-
-Knex and Lucid can route each tenant transaction to one PostgreSQL schema through validated,
-transaction-local `search_path` and unqualified table names.
-
-```txt
-application database
-├── public           -> central tables only
-├── tenant_acme      -> posts, invoices, projects
-└── tenant_globex    -> posts, invoices, projects
-```
-
-This tier is **adapter-enforced** by default: protected clients reject raw/qualified cross-schema
-access, but a retained shared-role raw client is outside the guarantee. It is not equivalent to forced
-RLS. Database-enforced per-tenant roles and automatic provisioning remain planned work.
-
-### Database per tenant
-
-The central registry resolves a tenant to a dedicated database connection. TenancyJS provisions and
-iterates tenants while native ORM tools continue to own migrations and seeds.
-
-```txt
-central database             tenant databases
-├── tenants              ->  acme
-├── tenant_domains       ->  globex
-└── connection metadata  ->  initech
-```
-
-Database-per-tenant support follows the proven row-level contract. It adds bounded concurrency,
-connection lifecycle, idempotent provisioning, dry runs, redacted diagnostics, partial-failure
-reporting, and recovery tests before it is called stable.
-
-| Concern           | Shared rows         | Schema per tenant           | Database per tenant                   |
-| ----------------- | ------------------- | --------------------------- | ------------------------------------- |
-| Isolation         | Row/policy boundary | Adapter-routed DB namespace | Physical database boundary            |
-| Operational cost  | Lower               | Medium                      | Higher                                |
-| Tenant migrations | One schema set      | Per-schema iteration        | Bounded database iteration            |
-| Best fit          | Most SaaS products  | Stronger logical separation | Regulated or high-isolation workloads |
-| Delivery          | Implemented         | Knex/Lucid implemented      | Planned                               |
-
-## Compatibility roadmap
-
-Packages are introduced as **experimental** and become **stable** only after their complete evidence
-lane passes.
-
-| Vertical slice                 | Target milestone | Current state                               |
-| ------------------------------ | ---------------: | ------------------------------------------- |
-| Express + Prisma               |             v0.1 | PR evidence complete                        |
-| Next.js App Router + Prisma    |             v0.2 | PR evidence complete                        |
-| AdonisJS 7 + Lucid 22          |             v0.3 | Stable — integration + CLI + two-tenant E2E |
-| Express + Knex                 |             v0.3 | Adapter evidence complete                   |
-| Knex/Lucid schema-per-tenant   |             v0.4 | Local PostgreSQL 17 evidence complete       |
-| NestJS + Prisma                |             v0.4 | Planned                                     |
-| NestJS + Sequelize             |             v0.4 | Planned                                     |
-| Database-per-tenant operations |             v0.5 | Planned                                     |
-
-Combinations not listed above are not implied to work merely because their individual packages exist.
-See the [test matrix](docs/40-features/F-001-tenancyjs-platform/TEST_PLAN.md).
-
-**Databases:** the Prisma adapter is database-agnostic — it rewrites query arguments rather than SQL —
-and is proven on **PostgreSQL and MySQL** with two-tenant integration suites. The Knex and Lucid
-adapters support PostgreSQL forced-RLS row isolation and adapter-enforced schema-per-tenant; they are
-PostgreSQL-only by design.
-
-## Architecture
-
-```mermaid
-flowchart TB
-  App[Node.js application]
-  Next[Next.js integration]
-  Nest[NestJS integration]
-  Express[Express integration]
-  Adonis[AdonisJS integration]
-  Core["@tenancyjs/core<br/>tenant context + lifecycle"]
-  Prisma[Prisma adapter]
-  Sequelize[Sequelize adapter]
-  Knex[Knex adapter]
-  Lucid[Lucid adapter]
-  AdapterShared["adapter-shared<br/>dialect strategy engine"]
-  Shared[(Shared database)]
-  Dedicated[(Tenant databases)]
-
-  App --> Next & Nest & Express & Adonis
-  Next & Nest & Express & Adonis --> Core
-  Core --> Prisma & Sequelize & Knex & Lucid
-  Prisma & Knex & Lucid --> AdapterShared
-  Prisma & Sequelize & Knex & Lucid --> Shared & Dedicated
-```
-
-The dependency direction is enforced: integrations and adapters depend on core, while core imports no
-framework or ORM. Lucid remains a dedicated public adapter because its model hooks, IoC lifecycle, Ace
-commands, and Japa tests are not generic Knex behavior.
+- **Frameworks:** Express 5, Next.js (App Router), AdonisJS 7 — plus a framework-neutral core.
+- **ORMs / databases:** Prisma (PostgreSQL + MySQL), Knex & Lucid 22 (PostgreSQL). PostgreSQL 17,
+  Node.js 24+.
 
 ## Packages
 
-| Package                     | Responsibility                                                                 |
-| --------------------------- | ------------------------------------------------------------------------------ |
-| `@tenancyjs/core`           | Tenant context, lifecycle, events, configuration, and errors                   |
-| `@tenancyjs/identifiers`    | Host, subdomain, header, and custom resolver contracts                         |
-| `@tenancyjs/adapter-*`      | Prisma, Sequelize, Knex, and Lucid isolation                                   |
-| `@tenancyjs/adapter-shared` | Internal shared isolation decisions and database-dialect strategy engines      |
-| `@tenancyjs/integration-*`  | Express, Next.js, NestJS, and AdonisJS lifecycle wiring                        |
-| `@tenancyjs/testing`        | Shared isolation and framework conformance suites                              |
-| `@tenancyjs/cli`            | Safe initialization, diagnostics, registry, and native operation orchestration |
+Install only what you use — `@tenancyjs/core`, `@tenancyjs/identifiers`, an `@tenancyjs/adapter-*`
+(Prisma/Knex/Lucid), an `@tenancyjs/integration-*` (Express/Next/Adonis), plus `@tenancyjs/testing`
+and `@tenancyjs/cli` for tooling.
 
-## Security model
+## Security
 
-Tenant identity is not user authorization. TenancyJS resolves and propagates a validated tenant; the
-host application remains responsible for authentication and membership checks.
-
-The accepted invariants are stricter:
-
-- missing, malformed, unknown, suspended, or ambiguous tenants never become central context;
-- central execution and unsafe bypass are explicit privileged APIs;
-- cleanup runs on success, rejection, and partial bootstrap failure;
-- generated project writes are previewable, path-confined, symlink-safe, and conflict-aware;
-- native tools are locally resolved and spawned with argument arrays, never shell command strings;
-- secrets are never written to templates or emitted by diagnostics.
-
-Read the [security model](docs/20-security/SECURITY_MODEL.md),
-[adapter security contract](docs/20-security/ADAPTER_SECURITY_CONTRACT.md),
-[adapter operation matrix](docs/50-quality/ADAPTER_OPERATION_MATRIX.md),
-[threat model](docs/20-security/THREAT_MODEL.md), and [security policy](SECURITY.md).
-
-## Delivery roadmap
-
-1. **Foundation — complete** — workspace, quality gates, release discipline, and repository memory.
-2. **Core contract — complete** — async tenant context, central context, lifecycle, rollback, and tests.
-3. **Identification/testing — complete** — fail-closed resolvers and portable conformance contracts.
-4. **Reference slice — complete** — Prisma row-level isolation, Express integration, and safe
-   init/Doctor/leak-test CLI foundation have hosted evidence.
-5. **Framework depth — in progress** — Next.js App Router, Knex, and Lucid 22 are proven; the AdonisJS 7
-   integration with Lucid on PostgreSQL is ready to use.
-6. **Strategy depth — in progress** — Knex/Lucid PostgreSQL schema-per-tenant passes local adversarial
-   evidence; hosted CI, per-tenant roles, and provisioning follow.
-7. **Backend breadth** — NestJS + Prisma/Sequelize and tested adapter combinations.
-8. **Physical isolation** — database provisioning and delegated migrations per tenant.
-9. **v1 hardening** — compatibility audit, benchmarks, security review, and stable API commitment.
-
-The detailed [plan](docs/40-features/F-001-tenancyjs-platform/PLAN.md),
-[acceptance criteria](docs/40-features/F-001-tenancyjs-platform/ACCEPTANCE.md), and
-[ordered tasks](docs/40-features/F-001-tenancyjs-platform/TASKS.md) are repository source of truth.
+Tenant identity is not authorization — your app still owns auth. TenancyJS guarantees that unknown,
+suspended, or ambiguous tenants never become central context, and that cleanup always runs. See the
+[security model](docs/20-security/SECURITY_MODEL.md).
 
 ## Development
 
-Requirements: Node.js 24 LTS or newer and pnpm 10. Node 24 is the minimum supported runtime for every
-TenancyJS package, reference application, framework integration, and data-layer adapter. The local
-workspace may run on newer Node.js versions, but CI defines Node 24 as the release baseline.
-
-```bash
-corepack enable
-pnpm install
-
-pnpm lint
-pnpm format:check
-pnpm typecheck
-pnpm test:run
-pnpm pack:check
-pnpm memory:check
-```
-
-Run the complete gate before requesting review:
-
-```bash
-pnpm check
-```
-
-The runnable example apps live in a separate repository, published once the `@tenancyjs/*` packages are
-on npm so they install the way a real adopter does — see [`examples/README.md`](examples/README.md).
-Within this repo, the same two-tenant isolation lanes used by CI run against a local PostgreSQL URL:
-
-```bash
-TEST_DATABASE_URL=postgresql://postgres@127.0.0.1:5432/tenancyjs_test pnpm check
-```
-
-Persist OS memory under `docs/` records product intent, accepted architecture, module ownership,
-security invariants, tests, and completion evidence. Repository memory outranks chat history.
-
-## Inspiration
-
-TenancyJS is inspired by the automatic/manual tenancy model and operational discipline of
-[Tenancy for Laravel](https://tenancyforlaravel.com/), adapted to Node.js async context, framework
-lifecycle boundaries, and ORM-specific capabilities. Inspiration does not mean API imitation: the
-project uses native Node.js and TypeScript contracts.
-
-## Contributing
-
-TenancyJS is being built in public. Start with [CONTRIBUTING.md](CONTRIBUTING.md), read the relevant
-feature and module memory, and do not expand a compatibility claim without the corresponding tests and
-example. Security issues should follow [SECURITY.md](SECURITY.md), not a public issue.
+Requires Node.js 24+ and pnpm 10. Run the full gate with `pnpm check` (add `TEST_DATABASE_URL` /
+`MYSQL_TEST_DATABASE_URL` to run the real-database isolation tests). Runnable examples live in a
+separate repo (see [`examples/README.md`](examples/README.md)).
 
 ## License
 
