@@ -56,6 +56,8 @@ export interface LucidTenancyOptions<
   readonly strategy?: "rowLevel" | "schemaPerTenant" | "databasePerTenant";
   readonly schema?: (tenant: TTenant) => string;
   readonly centralSchema?: string;
+  /** Opt-in database-enforced schema-per-tenant: a per-tenant Postgres role. */
+  readonly role?: (tenant: TTenant) => string;
   readonly connection?: (tenant: TTenant) => LucidDatabasePlacement;
   readonly maxConnections?: number;
 }
@@ -79,6 +81,7 @@ export interface LucidTenancyConfig<
   readonly strategy: "rowLevel" | "schemaPerTenant" | "databasePerTenant";
   readonly schema: ((tenant: TTenant) => string) | undefined;
   readonly centralSchema: string;
+  readonly role: ((tenant: TTenant) => string) | undefined;
   readonly connection:
     ((tenant: TTenant) => LucidDatabasePlacement) | undefined;
   readonly maxConnections: number;
@@ -146,6 +149,11 @@ export function defineLucidTenancyConfig<
       "Only Lucid schema-per-tenant accepts a central schema placement.",
     );
   }
+  if (strategy !== "schemaPerTenant" && options.role !== undefined) {
+    throw new LucidTenancyConfigurationError(
+      "Only Lucid schema-per-tenant accepts a role resolver.",
+    );
+  }
   if (
     strategy === "databasePerTenant" &&
     typeof options.connection !== "function"
@@ -206,6 +214,7 @@ export function defineLucidTenancyConfig<
     strategy,
     schema: options.schema,
     centralSchema,
+    role: options.role,
     connection: options.connection,
     maxConnections,
     tenantModels: Object.freeze(tenantModels),
