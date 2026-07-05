@@ -7,10 +7,10 @@
 ![Status](https://img.shields.io/badge/status-0.1.0--beta-blueviolet)
 ![Isolation](https://img.shields.io/badge/isolation-fail--closed-success)
 
-One tenant contract for every framework and ORM you already use — not a replacement for them. Tenant
+One tenant contract for every framework and ORM you already use - not a replacement for them. Tenant
 identity rides the async execution scope, so your queries stay scoped without threading a `tenantId`
 through every call. And the guarantee that matters: **any tenant-aware access without a valid context
-throws — it never returns another tenant's data.**
+throws - it never returns another tenant's data.**
 
 ```ts
 await tenancy.runWithTenant(tenant, async () => {
@@ -21,7 +21,7 @@ await tenancy.runWithTenant(tenant, async () => {
 
 > **Beta (`0.1.0-beta`).** The API surface is stabilising toward 1.0; safe for evaluation and
 > non-critical workloads. Every "supported" cell below is proven by a two-tenant adversarial isolation
-> test on a real database — nothing is marked supported on faith.
+> test on a real database - nothing is marked supported on faith.
 
 ## Install
 
@@ -40,11 +40,11 @@ npm install tenancyjs-adapter-prisma tenancyjs-integration-express
 | **Database per tenant**         | A separate database per tenant, routed through a bounded connection cache                                                         | Knex · Lucid · Prisma                                  |
 
 Prisma schema-per-tenant is intentionally not supported (Prisma resolves tables from the datasource,
-not `search_path`) — and the toolkit tells you so rather than pretending.
+not `search_path`) - and the toolkit tells you so rather than pretending.
 
 ## Supported stacks
 
-- **Frameworks:** Express 5, Next.js (App Router), AdonisJS 7, NestJS 11 (Express or Fastify) — plus a
+- **Frameworks:** Express 5, Next.js (App Router), AdonisJS 7, NestJS 11 (Express or Fastify) - plus a
   framework-neutral core.
 - **ORMs / databases:** Prisma (PostgreSQL + MySQL); Knex, Lucid 22, TypeORM, and Sequelize
   (PostgreSQL); Mongoose 9 (MongoDB replica set). Node.js 24+.
@@ -52,7 +52,7 @@ not `search_path`) — and the toolkit tells you so rather than pretending.
 ## Operational CLI
 
 `tenancyjs-cli` scaffolds and operates a tenancy without ever guessing about your stack. It loads your
-own `tenancy.config.ts` at runtime (Node 24 strips the types — no transpiler dependency) and acts
+own `tenancy.config.ts` at runtime (Node 24 strips the types - no transpiler dependency) and acts
 against your live tenants:
 
 ```bash
@@ -64,12 +64,12 @@ npx tenancy tenant migrate --all       # delegate to your migrator, per tenant
 npx tenancy run ./backfill.ts --tenant acme
 ```
 
-Registry, provisioning, and migrations all go through **your** store and hooks — the CLI orchestrates
+Registry, provisioning, and migrations all go through **your** store and hooks - the CLI orchestrates
 and fails closed, but never invents ORM behaviour it hasn't tested.
 
 ## Security
 
-Tenant identity is not authorization — your app still owns auth. TenancyJS guarantees that unknown,
+Tenant identity is not authorization - your app still owns auth. TenancyJS guarantees that unknown,
 suspended, or ambiguous tenants never become central context, that a misbehaving tenant store cannot
 hand back the wrong tenant, that secrets are redacted from CLI output, and that cleanup always runs.
 See the [security model](docs/20-security/SECURITY_MODEL.md).
@@ -82,4 +82,4 @@ examples live in a separate repo (see [`examples/README.md`](examples/README.md)
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT - see [LICENSE](LICENSE).

@@ -1,0 +1,894 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TenancyJS — Fail-closed multi-tenancy for Node.js</title>
+    <meta
+      name="description"
+      content="Fail-closed, TypeScript-first multi-tenancy for Node.js. One tenant-isolation contract across Express, Next.js, AdonisJS & NestJS with Prisma, Knex, Lucid, TypeORM, Sequelize & Mongoose."
+    />
+    <meta property="og:title" content="TenancyJS" />
+    <meta
+      property="og:description"
+      content="Fail-closed, TypeScript-first multi-tenancy for Node.js — one tenant-isolation contract for the stack you already use."
+    />
+    <meta property="og:type" content="website" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #ffffff;
+        --bg-alt: #f7f8fa;
+        --ink: #0f1115;
+        --text: #1c2027;
+        --muted: #5b616e;
+        --faint: #8a909c;
+        --border: #e7e9ee;
+        --border-strong: #d8dbe2;
+        --accent: #5b50e6;
+        --accent-ink: #4a3fd6;
+        --accent-soft: #edecfe;
+        --ok: #0f9d6b;
+        --warn: #c2751a;
+        --danger: #d64545;
+        --code-bg: #f3f4f7;
+        --shadow:
+          0 1px 2px rgba(16, 24, 40, 0.04), 0 12px 32px rgba(16, 24, 40, 0.06);
+        --maxw: 1080px;
+        --sans:
+          "Geist", "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+        --mono:
+          "Geist Mono", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo,
+          monospace;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0c0d10;
+          --bg-alt: #121419;
+          --ink: #f4f5f7;
+          --text: #d4d7de;
+          --muted: #9aa0ac;
+          --faint: #6b717d;
+          --border: #23262d;
+          --border-strong: #313640;
+          --accent: #8b83ff;
+          --accent-ink: #a49dff;
+          --accent-soft: #1a1830;
+          --code-bg: #16181d;
+          --shadow:
+            0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 32px rgba(0, 0, 0, 0.35);
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--sans);
+        font-size: 16px;
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+      }
+      a {
+        color: var(--accent-ink);
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      code,
+      pre {
+        font-family: var(--mono);
+      }
+      .wrap {
+        max-width: var(--maxw);
+        margin: 0 auto;
+        padding: 0 24px;
+      }
+      h1,
+      h2,
+      h3 {
+        color: var(--ink);
+        letter-spacing: -0.02em;
+        line-height: 1.15;
+      }
+      /* Header */
+      header.nav {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        backdrop-filter: saturate(180%) blur(12px);
+        background: color-mix(in srgb, var(--bg) 82%, transparent);
+        border-bottom: 1px solid var(--border);
+      }
+      .nav .wrap {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 60px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 700;
+        color: var(--ink);
+        font-size: 17px;
+        letter-spacing: -0.02em;
+      }
+      .brand:hover {
+        text-decoration: none;
+      }
+      .hex {
+        width: 22px;
+        height: 22px;
+        color: var(--accent);
+      }
+      .nav-links {
+        display: flex;
+        gap: 22px;
+        align-items: center;
+        font-size: 14.5px;
+      }
+      .nav-links a {
+        color: var(--muted);
+      }
+      .nav-links a:hover {
+        color: var(--ink);
+        text-decoration: none;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 16px;
+        border-radius: 9px;
+        font-weight: 600;
+        font-size: 14.5px;
+        border: 1px solid var(--border-strong);
+        color: var(--ink);
+        background: var(--bg);
+        transition:
+          transform 0.06s ease,
+          border-color 0.15s ease;
+      }
+      .btn:hover {
+        text-decoration: none;
+        border-color: var(--accent);
+      }
+      .btn:active {
+        transform: translateY(1px);
+      }
+      .btn.primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #fff;
+      }
+      .btn.primary:hover {
+        background: var(--accent-ink);
+        border-color: var(--accent-ink);
+      }
+      /* Hero */
+      .hero {
+        padding: 88px 0 64px;
+        text-align: center;
+      }
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--accent-ink);
+        background: var(--accent-soft);
+        border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+        padding: 5px 12px;
+        border-radius: 999px;
+        margin-bottom: 22px;
+      }
+      .hero h1 {
+        font-size: clamp(34px, 6vw, 58px);
+        font-weight: 800;
+        margin: 0 0 18px;
+      }
+      .hero h1 .grad {
+        background: linear-gradient(
+          100deg,
+          var(--accent) 10%,
+          #a855f7 60%,
+          #ec4899 100%
+        );
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      .hero p.lede {
+        font-size: clamp(17px, 2.4vw, 20px);
+        color: var(--muted);
+        max-width: 660px;
+        margin: 0 auto 30px;
+      }
+      .cta {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-bottom: 26px;
+      }
+      .install {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        font-family: var(--mono);
+        font-size: 14px;
+        background: var(--code-bg);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 11px 16px;
+        color: var(--text);
+      }
+      .install .dollar {
+        color: var(--faint);
+        user-select: none;
+      }
+      .install .tag {
+        color: var(--faint);
+        font-size: 12px;
+      }
+      /* Sections */
+      section {
+        padding: 68px 0;
+        border-top: 1px solid var(--border);
+      }
+      section.alt {
+        background: var(--bg-alt);
+      }
+      .sec-head {
+        max-width: 660px;
+        margin: 0 auto 40px;
+        text-align: center;
+      }
+      .sec-head.left {
+        text-align: left;
+        margin-left: 0;
+      }
+      .sec-head h2 {
+        font-size: clamp(26px, 4vw, 36px);
+        font-weight: 700;
+        margin: 0 0 12px;
+      }
+      .sec-head p {
+        color: var(--muted);
+        font-size: 17px;
+        margin: 0;
+      }
+      .kicker {
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--accent-ink);
+        margin-bottom: 10px;
+      }
+      /* Code block */
+      pre.code {
+        background: var(--code-bg);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 20px 22px;
+        overflow-x: auto;
+        font-size: 13.5px;
+        line-height: 1.7;
+        margin: 0;
+        box-shadow: var(--shadow);
+      }
+      pre.code .c {
+        color: var(--faint);
+      }
+      pre.code .k {
+        color: var(--accent-ink);
+        font-weight: 600;
+      }
+      pre.code .s {
+        color: #0f9d6b;
+      }
+      pre.code .t {
+        color: var(--warn);
+      }
+      .demo-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        align-items: center;
+      }
+      /* Cards */
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+      }
+      .card {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 24px;
+        box-shadow: var(--shadow);
+      }
+      .card h3 {
+        font-size: 18px;
+        margin: 0 0 8px;
+      }
+      .card .num {
+        font-family: var(--mono);
+        font-size: 12px;
+        color: var(--accent-ink);
+        font-weight: 600;
+        margin-bottom: 12px;
+      }
+      .card p {
+        color: var(--muted);
+        font-size: 14.5px;
+        margin: 0 0 14px;
+      }
+      .card .who {
+        font-size: 12.5px;
+        color: var(--faint);
+        font-family: var(--mono);
+      }
+      /* Stacks */
+      .stacks {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+      }
+      .stack {
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 22px 24px;
+        background: var(--bg);
+      }
+      .stack h3 {
+        font-size: 15px;
+        margin: 0 0 14px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-weight: 600;
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .chip {
+        font-size: 13px;
+        font-family: var(--mono);
+        padding: 5px 11px;
+        border-radius: 8px;
+        background: var(--code-bg);
+        border: 1px solid var(--border);
+        color: var(--text);
+      }
+      /* Feature rows */
+      .features {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px 40px;
+      }
+      .feat h3 {
+        font-size: 16.5px;
+        margin: 0 0 6px;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+      }
+      .feat .ic {
+        color: var(--accent);
+        flex: none;
+      }
+      .feat p {
+        color: var(--muted);
+        font-size: 14.5px;
+        margin: 0;
+      }
+      /* Packages */
+      .pkgs {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+      }
+      .pkg {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-family: var(--mono);
+        font-size: 13px;
+        padding: 10px 14px;
+        border: 1px solid var(--border);
+        border-radius: 9px;
+        background: var(--bg);
+      }
+      .pkg span {
+        color: var(--faint);
+        font-size: 11px;
+      }
+      /* Footer */
+      footer {
+        border-top: 1px solid var(--border);
+        padding: 44px 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      footer .wrap {
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 16px;
+      }
+      footer a {
+        color: var(--muted);
+      }
+      .foot-links {
+        display: flex;
+        gap: 20px;
+      }
+      .note {
+        font-size: 13px;
+        color: var(--faint);
+        text-align: center;
+        margin-top: 18px;
+      }
+      @media (max-width: 780px) {
+        .demo-grid,
+        .cards,
+        .stacks,
+        .features,
+        .pkgs {
+          grid-template-columns: 1fr;
+        }
+        .nav-links a:not(.btn) {
+          display: none;
+        }
+        .hero {
+          padding: 60px 0 48px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="nav">
+      <div class="wrap">
+        <a class="brand" href="#top">
+          <svg class="hex" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path
+              d="M12 2 21 7v10l-9 5-9-5V7z"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M12 7v10M7.5 9.5v5M16.5 9.5v5"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+              opacity="0.55"
+            />
+          </svg>
+          TenancyJS
+        </a>
+        <nav class="nav-links">
+          <a href="#strategies">Strategies</a>
+          <a href="#stacks">Stacks</a>
+          <a href="#cli">CLI</a>
+          <a href="https://github.com/Karthick-Ramachandran/TenancyJS"
+            >GitHub</a
+          >
+          <a class="btn" href="https://www.npmjs.com/package/tenancyjs-core"
+            >npm</a
+          >
+        </nav>
+      </div>
+    </header>
+
+    <main id="top">
+      <section class="hero" style="border-top: none">
+        <div class="wrap">
+          <span class="eyebrow">● Fail-closed by default · 0.1.0-beta</span>
+          <h1>Multi-tenancy that <span class="grad">refuses to leak</span></h1>
+          <p class="lede">
+            A TypeScript-first tenancy toolkit for Node.js. Tenant identity
+            follows your async execution scope — and any tenant-aware access
+            without a valid context <strong>throws</strong>, instead of
+            returning another tenant's data.
+          </p>
+          <div class="cta">
+            <a
+              class="btn primary"
+              href="https://github.com/Karthick-Ramachandran/TenancyJS"
+              >Get started →</a
+            >
+            <a class="btn" href="https://www.npmjs.com/package/tenancyjs-core"
+              >View on npm</a
+            >
+          </div>
+          <div class="install">
+            <span class="dollar">$</span> npm install tenancyjs-core
+            <span class="tag">@beta</span>
+          </div>
+          <p class="note">
+            Node.js 24+ · MIT · one contract for the framework &amp; ORM you
+            already use
+          </p>
+        </div>
+      </section>
+
+      <section id="problem" class="alt">
+        <div class="wrap">
+          <div class="demo-grid">
+            <div>
+              <div class="kicker">The failure mode</div>
+              <h2 style="font-size: clamp(24px, 3.4vw, 32px); margin: 0 0 14px">
+                A forgotten <code>WHERE</code> clause should be a crash, not a
+                data breach
+              </h2>
+              <p style="color: var(--muted); font-size: 16px">
+                The dangerous bug in multi-tenancy is the one that doesn't
+                throw. A missing tenant filter returns data — silently — and you
+                find out from a support ticket. TenancyJS makes the safe path
+                the default: no valid tenant context, no data.
+              </p>
+            </div>
+            <div>
+              <pre
+                class="code"
+              ><span class="c">// Tenant identity rides AsyncLocalStorage.</span>
+<span class="k">await</span> tenancy.<span class="k">runWithTenant</span>(tenant, <span class="k">async</span> () => {
+  <span class="c">// Every adapter scopes access to this tenant.</span>
+  <span class="k">const</span> orders = <span class="k">await</span> db.<span class="k">order</span>.findMany();
+});
+
+<span class="c">// Outside a tenant scope? It fails closed.</span>
+<span class="k">await</span> db.<span class="k">order</span>.findMany();
+<span class="c">// ✗ throws TenantContextError — never</span>
+<span class="c">//   a silent fallback to unscoped data</span></pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="strategies">
+        <div class="wrap">
+          <div class="sec-head">
+            <div class="kicker">Three strategies, one contract</div>
+            <h2>Pick your isolation. Keep your code.</h2>
+            <p>
+              The same tenant contract drives all three. Every supported cell is
+              backed by a two-tenant adversarial isolation test on a real
+              database.
+            </p>
+          </div>
+          <div class="cards">
+            <div class="card">
+              <div class="num">01 — row-level</div>
+              <h3>Single database</h3>
+              <p>
+                Shared tables keyed by <code>tenant_id</code>, enforced by
+                forced Postgres RLS or query-scoping. The lightest footprint.
+              </p>
+              <div class="who">
+                Knex · Lucid · Prisma · TypeORM · Sequelize · Mongoose
+              </div>
+            </div>
+            <div class="card">
+              <div class="num">02 — schema-per-tenant</div>
+              <h3>Schema per tenant</h3>
+              <p>
+                One Postgres schema per tenant via transaction-local
+                <code>search_path</code>, with an optional per-tenant role for
+                database-enforced isolation.
+              </p>
+              <div class="who">Knex · Lucid</div>
+            </div>
+            <div class="card">
+              <div class="num">03 — database-per-tenant</div>
+              <h3>Database per tenant</h3>
+              <p>
+                A separate database per tenant, routed through a bounded,
+                single-flight connection cache. Hard isolation, no noisy
+                neighbours.
+              </p>
+              <div class="who">Knex · Lucid · Prisma</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="stacks" class="alt">
+        <div class="wrap">
+          <div class="sec-head">
+            <div class="kicker">Bring your own stack</div>
+            <h2>It works with what you already use</h2>
+            <p>
+              TenancyJS sits on top of your framework and ORM — it doesn't
+              replace them.
+            </p>
+          </div>
+          <div class="stacks">
+            <div class="stack">
+              <h3>Frameworks</h3>
+              <div class="chips">
+                <span class="chip">Express 5</span>
+                <span class="chip">Next.js (App Router)</span>
+                <span class="chip">AdonisJS 7</span>
+                <span class="chip">NestJS 11</span>
+                <span class="chip">framework-neutral core</span>
+              </div>
+            </div>
+            <div class="stack">
+              <h3>ORMs &amp; databases</h3>
+              <div class="chips">
+                <span class="chip">Prisma</span>
+                <span class="chip">Knex</span>
+                <span class="chip">Lucid</span>
+                <span class="chip">TypeORM</span>
+                <span class="chip">Sequelize</span>
+                <span class="chip">Mongoose</span>
+                <span class="chip">PostgreSQL</span>
+                <span class="chip">MySQL</span>
+                <span class="chip">MongoDB</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="cli">
+        <div class="wrap">
+          <div class="demo-grid">
+            <div>
+              <pre
+                class="code"
+              ><span class="c"># Loads your tenancy.config.ts at runtime</span>
+<span class="c"># (Node 24 strips the types — zero deps)</span>
+npx tenancy <span class="k">init</span>
+npx tenancy tenant <span class="k">check</span>
+npx tenancy tenant <span class="k">list</span>
+npx tenancy tenant <span class="k">create</span> acme --set plan=pro
+npx tenancy tenant <span class="k">migrate</span> --all
+npx tenancy <span class="k">run</span> ./backfill.ts --tenant acme</pre>
+            </div>
+            <div>
+              <div class="kicker">Operational CLI</div>
+              <h2 style="font-size: clamp(24px, 3.4vw, 32px); margin: 0 0 14px">
+                Operate your tenants, honestly
+              </h2>
+              <p style="color: var(--muted); font-size: 16px">
+                The CLI reaches your live tenants through
+                <em>your</em> store and hooks — it never invents ORM behaviour
+                it hasn't tested. <code>tenant check</code> reads each adapter's
+                own capability report and warns you about any untested
+                combination, rather than pretending it's production-ready.
+                Secrets are redacted from every command's output.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="trust" class="alt">
+        <div class="wrap">
+          <div class="sec-head">
+            <div class="kicker">Honesty over faith</div>
+            <h2>Guarantees, not vibes</h2>
+            <p>
+              Everything here is a property of the system, not of your
+              vigilance.
+            </p>
+          </div>
+          <div class="features">
+            <div class="feat">
+              <h3>
+                <svg
+                  class="ic"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                >
+                  <path
+                    d="M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6z"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linejoin="round"
+                  />
+                  <path
+                    d="M9 12l2 2 4-4"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+                Fail-closed, always
+              </h3>
+              <p>
+                No valid tenant context means an error at the boundary — never a
+                silent read of unscoped data.
+              </p>
+            </div>
+            <div class="feat">
+              <h3>
+                <svg
+                  class="ic"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                >
+                  <path
+                    d="M4 7h16M4 12h16M4 17h10"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                  />
+                </svg>
+                Proven, not claimed
+              </h3>
+              <p>
+                A capability is marked "supported" only after a real two-tenant
+                adversarial test on a real database.
+              </p>
+            </div>
+            <div class="feat">
+              <h3>
+                <svg
+                  class="ic"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                >
+                  <rect
+                    x="4"
+                    y="4"
+                    width="16"
+                    height="16"
+                    rx="3"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                  />
+                  <path
+                    d="M8 12h8"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                  />
+                </svg>
+                Bring your own store
+              </h3>
+              <p>
+                Your registry, hardened at the boundary — a buggy store can't
+                hand back the wrong tenant.
+              </p>
+            </div>
+            <div class="feat">
+              <h3>
+                <svg
+                  class="ic"
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                >
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="8.5"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                  />
+                  <path
+                    d="M12 7v5l3 2"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+                Cleanup always runs
+              </h3>
+              <p>
+                Transaction-scoped context is torn down on every path, including
+                errors — no leaked scope between requests.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="packages">
+        <div class="wrap">
+          <div class="sec-head">
+            <div class="kicker">Composable</div>
+            <h2>Install only what you use</h2>
+            <p>
+              Small <code>tenancyjs-*</code> packages — a core, adapters,
+              integrations, and tooling.
+            </p>
+          </div>
+          <div class="pkgs">
+            <div class="pkg">tenancyjs-core <span>context</span></div>
+            <div class="pkg">tenancyjs-cli <span>tooling</span></div>
+            <div class="pkg">tenancyjs-identifiers <span>resolve</span></div>
+            <div class="pkg">tenancyjs-adapter-prisma <span>orm</span></div>
+            <div class="pkg">tenancyjs-adapter-knex <span>orm</span></div>
+            <div class="pkg">tenancyjs-adapter-lucid <span>orm</span></div>
+            <div class="pkg">tenancyjs-adapter-typeorm <span>orm</span></div>
+            <div class="pkg">tenancyjs-adapter-sequelize <span>orm</span></div>
+            <div class="pkg">tenancyjs-adapter-mongoose <span>orm</span></div>
+            <div class="pkg">
+              tenancyjs-integration-express <span>web</span>
+            </div>
+            <div class="pkg">tenancyjs-integration-next <span>web</span></div>
+            <div class="pkg">tenancyjs-integration-nest <span>web</span></div>
+            <div class="pkg">tenancyjs-integration-adonis <span>web</span></div>
+            <div class="pkg">
+              tenancyjs-adapter-shared <span>internal</span>
+            </div>
+            <div class="pkg">tenancyjs-testing <span>test</span></div>
+          </div>
+          <p class="note">
+            Tenant identity is not authorization — your app still owns auth.
+            TenancyJS owns exactly one thing: one tenant's data never becomes
+            another's.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="wrap">
+        <div>
+          <div class="brand" style="font-size: 15px; margin-bottom: 6px">
+            <svg class="hex" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M12 2 21 7v10l-9 5-9-5V7z"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linejoin="round"
+              />
+            </svg>
+            TenancyJS
+          </div>
+          <span style="color: var(--faint)"
+            >MIT-licensed · built in the open</span
+          >
+        </div>
+        <div class="foot-links">
+          <a href="https://github.com/Karthick-Ramachandran/TenancyJS"
+            >GitHub</a
+          >
+          <a href="https://www.npmjs.com/package/tenancyjs-core">npm</a>
+          <a
+            href="https://github.com/Karthick-Ramachandran/TenancyJS/blob/main/PHILOSOPHY.md"
+            >Philosophy</a
+          >
+          <a
+            href="https://github.com/Karthick-Ramachandran/TenancyJS/blob/main/docs/20-security/SECURITY_MODEL.md"
+            >Security</a
+          >
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
