@@ -81,3 +81,36 @@ export const tenancy = createLucidTenancy({
 
 See [Database per tenant](/docs/strategies/database-per-tenant) and
 [Schema per tenant](/docs/strategies/schema-per-tenant) for how each is enforced.
+
+## Full query freedom: `scope.unrestricted()`
+
+In every other strategy your Lucid models are constrained to the tenant-safe path — it's the only guard,
+so it can't let through what it can't prove is tenant-safe (see
+[Limitations](/docs/concepts/limitations)). **Database-per-tenant is different:** the leased connection
+*is* the tenant's own database, so any query is isolated by construction. There, the `run` callback's
+**scope** argument gives you an escape hatch that returns the leased `TransactionClientContract` — full
+`rawQuery`, query builder, and nested writes:
+
+```ts
+const report = await tenancy.run(async (scope) => {
+  // The raw, tenant-scoped transaction — rawQuery, query builder, nested writes.
+  const trx = scope.unrestricted();
+
+  return trx.rawQuery(
+    "SELECT o.id, c.name FROM orders o JOIN customers c ON c.id = o.customer_id WHERE o.total > ?",
+    [1000],
+  );
+});
+```
+
+Existing zero-arg callbacks (`tenancy.run(() => Order.all())`) keep working unchanged — the `scope`
+argument is optional.
+
+<Callout type="warn">
+  `scope.unrestricted()` is **fail-closed**. It returns the real transaction **only** in a genuinely
+  database-enforced scope — a database-per-tenant config running in tenant mode, where a per-tenant
+  connection was actually leased. It **throws** in row-level and schema-per-tenant scopes, and even in a
+  database-per-tenant config used in central mode (which runs on the shared admin connection, not a
+  tenant's database). The freedom comes from the connection boundary, never from the config name
+  ([ADR-0033](/docs/concepts/limitations#two-enforcement-tiers--and-when-the-restrictions-lift)).
+</Callout>

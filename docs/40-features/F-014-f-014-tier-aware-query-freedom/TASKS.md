@@ -64,12 +64,34 @@ Independent review: CLEAN across all nine checked areas — no CRITICAL/HIGH/MED
 
 ## T3: PostgreSQL row-level + forced RLS full freedom
 
-Status: Todo
+Status: Deferred (Maintainer decision 2026-07-05) — not building now.
+
+Rationale: these are the *shared-connection* tiers (unlike db-per-tenant, which is safe by construction).
+`unrestricted()` here would hand back a raw handle on a connection shared across tenants, safe only if
+forced RLS + a non-bypass role are exactly right — higher risk, and each needs its own reads-before-writes
+adversarial-test + review cycle (ADR-0033). It is also lower value: row-level/schema+role users already
+have working, safe isolation through the scoped facade; full raw freedom is ergonomics, not a capability
+gap. F-014 ships at the database-per-tenant tier. Revisit only if there's real demand.
 
 ## T4: schema-per-tenant + per-tenant role full freedom
 
-Status: Todo
+Status: Deferred (Maintainer decision 2026-07-05) — same rationale as T3 (shared connection, higher risk,
+lower value). Not building now.
 
 ## T5: capability matrix + docs (Limitations, adapters) reflect per-tier freedom
 
-Status: Todo
+Status: Todo — DOCS ARE STALE (marked, deferred per owner 2026-07-05). After T2/T2b, ALL seven adapters
+support `unrestricted()` (full query freedom) in database-per-tenant, but the site still says "Knex only,
+rest on roadmap." Specific edits needed:
+
+- `website/content/docs/concepts/capability-matrix.mdx` — "Query freedom by tier" table + Roadmap: the
+  "Available today" cell should list all db-per-tenant adapters (Knex/Lucid/TypeORM/Sequelize/Drizzle/
+  Mongoose via `unrestricted()`, Prisma via the raw leased client), not just Knex. Drop the "In progress
+  (Knex shipped)" roadmap row for adapter rollout — it's done.
+- `website/content/docs/concepts/limitations.mdx` — the "Available today" callout + the raw/nested
+  workaround notes say "Knex database-per-tenant"; generalize to "any adapter's database-per-tenant".
+- Each `website/content/docs/adapters/*.mdx` — add a short "Full query freedom: unrestricted()" note to
+  Lucid/TypeORM/Sequelize/Drizzle/Mongoose (mirror the Knex page), and note Prisma db-per-tenant already
+  hands back the raw client.
+- `website/content/docs/strategies/database-per-tenant.mdx` — "rolling out to the other adapters" is now
+  done; update.
