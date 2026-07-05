@@ -8,7 +8,7 @@
 
 ## Integration Tests
 
-- MongoDB 8 replica-set two-tenant suite with identical `_id` values covers create/find/findOne/count,
+- MongoDB 8 replica-set two-tenant suite with identical logical `id` values covers create/find/findOne/count,
   update/delete, rollback, concurrent scopes, and session cleanup.
 - Two Mongo databases with identical `_id` values prove routing; collision and eviction/close behavior
   execute through the public adapter.

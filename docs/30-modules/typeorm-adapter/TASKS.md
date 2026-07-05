@@ -6,6 +6,6 @@
 
 ## Tasks
 
-- Ready: config/types/errors/protected CRUD and row-level RLS binding.
+- Complete locally: config/types/errors/protected CRUD and row-level RLS binding with real PostgreSQL.
 - Todo: schema and database strategy bindings.
 - Todo: package consumer, docs, reviews, and release evidence.

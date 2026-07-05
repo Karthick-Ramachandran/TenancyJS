@@ -13,8 +13,17 @@ export default defineConfig({
       "@tenancyjs/adapter-lucid": fileURLToPath(
         new URL("./packages/adapter-lucid/src/index.ts", import.meta.url),
       ),
+      "@tenancyjs/adapter-mongoose": fileURLToPath(
+        new URL("./packages/adapter-mongoose/src/index.ts", import.meta.url),
+      ),
       "@tenancyjs/adapter-prisma": fileURLToPath(
         new URL("./packages/adapter-prisma/src/index.ts", import.meta.url),
+      ),
+      "@tenancyjs/adapter-sequelize": fileURLToPath(
+        new URL("./packages/adapter-sequelize/src/index.ts", import.meta.url),
+      ),
+      "@tenancyjs/adapter-typeorm": fileURLToPath(
+        new URL("./packages/adapter-typeorm/src/index.ts", import.meta.url),
       ),
       "@tenancyjs/cli": fileURLToPath(
         new URL("./packages/cli/src/index.ts", import.meta.url),
@@ -37,6 +46,9 @@ export default defineConfig({
       "@tenancyjs/integration-next": fileURLToPath(
         new URL("./packages/integration-next/src/index.ts", import.meta.url),
       ),
+      "@tenancyjs/integration-nest": fileURLToPath(
+        new URL("./packages/integration-nest/src/index.ts", import.meta.url),
+      ),
       "@tenancyjs/testing": fileURLToPath(
         new URL("./packages/testing/src/index.ts", import.meta.url),
       ),
@@ -49,13 +61,17 @@ export default defineConfig({
         "packages/adapter-shared/src/**/*.ts",
         "packages/adapter-knex/src/**/*.ts",
         "packages/adapter-lucid/src/**/*.ts",
+        "packages/adapter-mongoose/src/**/*.ts",
         "packages/adapter-prisma/src/**/*.ts",
+        "packages/adapter-sequelize/src/**/*.ts",
+        "packages/adapter-typeorm/src/**/*.ts",
         "packages/cli/src/**/*.ts",
         "packages/core/src/**/*.ts",
         "packages/identifiers/src/**/*.ts",
         "packages/integration-adonis/src/**/*.ts",
         "packages/integration-express/src/**/*.ts",
         "packages/integration-next/src/**/*.ts",
+        "packages/integration-nest/src/**/*.ts",
         "packages/testing/src/**/*.ts",
       ],
       provider: "v8",

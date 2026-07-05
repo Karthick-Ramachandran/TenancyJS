@@ -32,6 +32,11 @@ ADR-0022 binds it to Knex, Lucid, and Prisma. All three adapters have separate-d
 evidence and advertise the strategy. The optional per-tenant PostgreSQL role from ADR-0018 is also
 implemented for database-enforced schema isolation. Core remains database-neutral.
 
+F-010/ADR-0023–0025 add a NestJS 11 guard/interceptor lifecycle and protected TypeORM 1/Sequelize 6
+PostgreSQL row-level facades. F-011/ADR-0026 adds an explicitly adapter-enforced Mongoose 9 row-level
+facade with replica-set transaction validation. These new adapters return plain values and never expose
+native managers, models, queries, documents, or raw clients. Their broader strategy tasks remain open.
+
 ## Architecture
 
 The platform uses a layered monorepo with dependency flow:

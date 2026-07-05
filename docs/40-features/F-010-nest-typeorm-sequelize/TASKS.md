@@ -2,7 +2,7 @@
 
 ## T1: NestJS 11 lifecycle
 
-Status: Ready
+Status: Done locally
 
 Scope:
 
@@ -22,7 +22,7 @@ Do Not:
 
 ## T2: TypeORM row-level vertical slice
 
-Status: Todo
+Status: Done locally
 
 Scope:
 - Protected repository facade, exhaustive classification, shared RLS validation/context, CRUD/count.
@@ -39,7 +39,7 @@ Scope:
 
 ## T4: Sequelize row-level vertical slice
 
-Status: Todo
+Status: Done locally
 
 Scope:
 - Stable Sequelize 6 protected model facade with explicit managed transaction and RLS.

@@ -20,10 +20,10 @@ Target: support the most commonly used Node ORMs, at least for **Express and Nes
 | Prisma | ✅ built (row-level, hosted evidence) |
 | Knex | ✅ built (PostgreSQL RLS) |
 | Lucid | ✅ built (AdonisJS/PostgreSQL RLS) |
-| **Sequelize** | Backlog — in accepted supported-surface; not started |
+| **Sequelize** | 🚧 row-level PostgreSQL vertical slice built locally; broader strategies pending |
 | **Drizzle** | Backlog — high Next.js/Express usage |
-| **TypeORM** | Backlog — common with NestJS |
-| **Mongoose / MongoDB** | Backlog — the PRD defers it from the initial commitment; restored here as future scope |
+| **TypeORM** | 🚧 row-level PostgreSQL vertical slice built locally; broader strategies pending |
+| **Mongoose / MongoDB** | 🚧 adapter-enforced row-level replica-set slice built locally; database routing pending |
 
 Note: PRD non-goals list Mongoose/Drizzle/TypeORM "in the initial support commitment"; this backlog
 records them as **future**, so the two are consistent.
@@ -34,8 +34,8 @@ records them as **future**, so the two are consistent.
 | --- | --- |
 | Express, Next.js | ✅ built |
 | AdonisJS | ✅ built — deliberately scoped to **Lucid + PostgreSQL only** (ADR-0014); other Adonis DBs are later |
-| **NestJS** | Backlog — pair with Prisma/Sequelize/TypeORM |
-| Fastify | Backlog (lower priority) |
+| **NestJS** | 🚧 Nest 11 Express/Fastify lifecycle built locally; adapter E2E pending |
+| Fastify | ✅ supported through the NestJS 11 integration; standalone integration remains backlog |
 
 ## Strategies
 

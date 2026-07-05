@@ -6,6 +6,6 @@
 
 ## Tasks
 
-- Ready: config/types/errors/policy/protected model facade and transaction lifecycle.
-- Todo: replica-set adversarial suite and database-per-tenant binding.
+- Complete locally: config/types/errors/policy/protected model facade and transaction lifecycle.
+- Complete locally: replica-set adversarial suite. Todo: database-per-tenant binding.
 - Todo: package consumer, docs, reviews, and release evidence.

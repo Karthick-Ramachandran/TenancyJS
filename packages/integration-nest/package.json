@@ -1,0 +1,48 @@
+{
+  "name": "@tenancyjs/integration-nest",
+  "version": "0.0.0",
+  "description": "Fail-closed NestJS 11 request lifecycle integration for TenancyJS.",
+  "type": "module",
+  "license": "MIT",
+  "sideEffects": false,
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "engines": {
+    "node": ">=24"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@tenancyjs/core": "workspace:*",
+    "@tenancyjs/identifiers": "workspace:*"
+  },
+  "peerDependencies": {
+    "@nestjs/common": ">=11.1.0 <12",
+    "@nestjs/core": ">=11.1.0 <12",
+    "rxjs": ">=7.8.0 <8"
+  },
+  "devDependencies": {
+    "@nestjs/common": "11.1.27",
+    "@nestjs/core": "11.1.27",
+    "rxjs": "7.8.2"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --pretty false"
+  }
+}

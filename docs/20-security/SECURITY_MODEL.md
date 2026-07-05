@@ -129,6 +129,34 @@ only to locally installed, allowlisted ORM executables using argument arrays rat
   `.pojo()`, quiet, bulk, and direct unqualified hook-bypass paths fail closed. The shared engine also
   rejects tenant/schema mapping collisions for the adapter lifetime.
 
+## Implemented TypeORM And Sequelize Controls
+
+- TypeORM 1 and stable Sequelize 6 expose only callback-scoped plain-value CRUD/count facades. Native
+  data sources, managers, repositories/models, instances, query builders, raw SQL, relations/includes,
+  schema sync, and migrations remain outside the boundary.
+- Plain scalar equality is the only initial filter form. Tenant filters are composed, creates inject or
+  validate the discriminator, and updates cannot move rows. Forced PostgreSQL RLS remains the final
+  boundary and startup validation is mandatory.
+- ORM transactions are adapter-owned and transaction-local tenant settings revert on completion.
+
+## Implemented Mongoose Controls
+
+- Mongoose row-level isolation is adapter-enforced. The protected facade accepts plain scalar equality,
+  passes one managed session to every operation, and returns lean plain values rather than live
+  documents. Native models/queries/collections/connections, populate, aggregation, and raw driver access
+  remain outside the boundary.
+- Validation requires a reachable replica set and reports the weaker enforcement tier as a warning.
+  Transactions provide rollback/session lifecycle; they do not turn document filters into a database
+  authorization policy.
+
+## Implemented NestJS Controls
+
+- Marked NestJS 11 routes resolve exactly once in a guard. A private WeakMap carries the frozen result
+  to an interceptor; failures never enter central context.
+- Authorization guards may read resolved identity, while canonical tenant and optional ORM scope cover
+  the handler Observable until completion, error, or cancellation. Express and Fastify platforms share
+  this contract without platform-specific tenant state.
+
 ## Isolation Enforcement Tiers
 
 - Forced PostgreSQL RLS is **database-enforced** for supported row-level Knex/Lucid operations when the

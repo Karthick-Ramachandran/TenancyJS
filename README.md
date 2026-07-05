@@ -22,25 +22,27 @@ await tenancy.runWithTenant(tenant, async () => {
 
 ## Three isolation strategies, one contract
 
-| Strategy                        | What it means                                                                                                                     | Adapters              |
-| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
-| **Single database** (row-level) | Shared tables, `tenant_id` + forced Postgres RLS or query-scoping                                                                 | Knex · Lucid · Prisma |
-| **Schema per tenant**           | One Postgres schema per tenant via transaction-local `search_path` (optionally a per-tenant role for database-enforced isolation) | Knex · Lucid          |
-| **Database per tenant**         | A separate database per tenant, routed through a bounded connection cache                                                         | Knex · Lucid · Prisma |
+| Strategy                        | What it means                                                                                                                     | Adapters                                               |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| **Single database** (row-level) | Shared tables, `tenant_id` + forced Postgres RLS or query-scoping                                                                 | Knex · Lucid · Prisma · TypeORM · Sequelize · Mongoose |
+| **Schema per tenant**           | One Postgres schema per tenant via transaction-local `search_path` (optionally a per-tenant role for database-enforced isolation) | Knex · Lucid                                           |
+| **Database per tenant**         | A separate database per tenant, routed through a bounded connection cache                                                         | Knex · Lucid · Prisma                                  |
 
 Each supported cell is backed by a two-tenant adversarial isolation test on a real database. Prisma
 schema-per-tenant is not supported (Prisma resolves tables from the datasource, not `search_path`).
 
 ## Supported stacks
 
-- **Frameworks:** Express 5, Next.js (App Router), AdonisJS 7 — plus a framework-neutral core.
-- **ORMs / databases:** Prisma (PostgreSQL + MySQL), Knex & Lucid 22 (PostgreSQL). PostgreSQL 17,
-  Node.js 24+.
+- **Frameworks:** Express 5, Next.js (App Router), AdonisJS 7, NestJS 11 (Express or Fastify) — plus a
+  framework-neutral core.
+- **ORMs / databases:** Prisma (PostgreSQL + MySQL); Knex, Lucid 22, TypeORM 1, and Sequelize 6
+  (PostgreSQL); Mongoose 9 (MongoDB replica set). PostgreSQL 17, MongoDB 8, Node.js 24+.
 
 ## Packages
 
 Install only what you use — `@tenancyjs/core`, `@tenancyjs/identifiers`, an `@tenancyjs/adapter-*`
-(Prisma/Knex/Lucid), an `@tenancyjs/integration-*` (Express/Next/Adonis), plus `@tenancyjs/testing`
+(Prisma/Knex/Lucid/TypeORM/Sequelize/Mongoose), an `@tenancyjs/integration-*`
+(Express/Next/Adonis/Nest), plus `@tenancyjs/testing`
 and `@tenancyjs/cli` for tooling.
 
 ## Security
@@ -52,7 +54,7 @@ suspended, or ambiguous tenants never become central context, and that cleanup a
 ## Development
 
 Requires Node.js 24+ and pnpm 10. Run the full gate with `pnpm check` (add `TEST_DATABASE_URL` /
-`MYSQL_TEST_DATABASE_URL` to run the real-database isolation tests). Runnable examples live in a
+`MYSQL_TEST_DATABASE_URL` / `TEST_MONGODB_URL` to run the real-database isolation tests). Runnable examples live in a
 separate repo (see [`examples/README.md`](examples/README.md)).
 
 ## License

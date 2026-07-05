@@ -6,6 +6,6 @@
 
 ## Tasks
 
-- Ready: config, metadata, private resolution store, global guard, and interceptor.
-- Todo: Express/Fastify Nest application tests and adapter E2E.
+- Complete locally: config, metadata, private resolution store, global guard, and interceptor.
+- Complete locally: Express/Fastify Nest application lifecycle tests. Todo: adapter E2E.
 - Todo: docs, package consumer, review, and completion evidence.

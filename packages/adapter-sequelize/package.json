@@ -1,0 +1,44 @@
+{
+  "name": "@tenancyjs/adapter-sequelize",
+  "version": "0.0.0",
+  "description": "Fail-closed Sequelize 6 tenant isolation for PostgreSQL.",
+  "type": "module",
+  "license": "MIT",
+  "sideEffects": false,
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "engines": {
+    "node": ">=24"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dependencies": {
+    "@tenancyjs/adapter-shared": "workspace:*",
+    "@tenancyjs/core": "workspace:*"
+  },
+  "peerDependencies": {
+    "sequelize": ">=6.37.0 <7"
+  },
+  "devDependencies": {
+    "sequelize": "6.37.8"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --pretty false"
+  }
+}

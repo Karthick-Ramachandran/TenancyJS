@@ -6,6 +6,6 @@
 
 ## Tasks
 
-- Ready: config/types/errors/protected CRUD and explicit transaction binding.
+- Complete locally: protected CRUD, explicit transaction binding, and real PostgreSQL RLS evidence.
 - Todo: schema and database strategy bindings.
 - Todo: package consumer, docs, reviews, and release evidence.

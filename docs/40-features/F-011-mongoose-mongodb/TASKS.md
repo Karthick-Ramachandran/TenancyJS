@@ -2,7 +2,7 @@
 
 ## T1: Protected row-level core
 
-Status: Ready
+Status: Done locally
 
 Scope:
 
@@ -22,10 +22,10 @@ Do Not:
 
 ## T2: Replica-set adversarial evidence
 
-Status: Todo
+Status: Done locally
 
 Scope:
-- MongoDB 8 single-node replica set, colliding `_id` CRUD/count, rollback, concurrency, cleanup.
+- MongoDB 8 single-node replica set, colliding logical-ID CRUD/count, rollback, concurrency, cleanup.
 
 ## T3: Database-per-tenant router
 

@@ -7,7 +7,8 @@
 
 ## Integration Tests
 
-- MongoDB 8 replica set row-level suite and two-database routing suite with colliding `_id` values,
+- MongoDB 8 replica-set row-level suite with colliding logical IDs and two-database routing with
+  colliding `_id` values,
   rollback, concurrency, collision, eviction, and shutdown.
 
 ## Security Tests
