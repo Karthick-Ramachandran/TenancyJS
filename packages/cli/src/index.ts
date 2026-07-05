@@ -27,8 +27,15 @@ export {
   TenancyCliError,
 } from "./errors.js";
 export type { CliErrorCode } from "./errors.js";
+export { runTenantList, runTenantShow } from "./commands/tenant.js";
+export type {
+  TenantListResult,
+  TenantRecordView,
+  TenantShowResult,
+} from "./commands/tenant.js";
 export { runLeakTest } from "./leak-test.js";
 export type { LeakTestOptions } from "./leak-test.js";
+export { withRuntime } from "./runtime-command.js";
 export { loadTenancyRuntime } from "./runtime-loader.js";
 export type {
   LoadRuntimeOptions,

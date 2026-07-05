@@ -2,7 +2,7 @@
 
 ## T1: Runtime contract + config loader (Phase 1)
 
-Status: Todo
+Status: Done
 
 Scope:
 
@@ -29,11 +29,18 @@ Do Not:
 
 ## T2: Registry read commands (Phase 2)
 
-Status: Todo
+Status: Done
 
 Scope: `tenant list`, `tenant show` — store-backed, human + `--json`, redacted, graceful degradation.
-Includes the command engine (load runtime → dispatch → dispose) and the `doctor` runtime-load +
-store round-trip check (opt-in; stays safe on projects that cannot connect).
+Includes the command engine (`withRuntime`: load runtime → dispatch → dispose, preserving the command
+error over a disposal error).
+
+Delivered: `withRuntime` engine, `tenant list`/`tenant show` commands, redacted human + `--json`
+output, "no store"/"method unsupported"/"not found" fail-closed errors, `--config` flag.
+
+Deferred to T7 (its own task): the `doctor` runtime-load + store round-trip check — the framework
+`doctor` is Express-detection-specific, so a runtime/store health check is cleaner as a dedicated
+`tenant check` command than retrofitted into it.
 
 ## T3: Registry write commands (Phase 3)
 
@@ -58,3 +65,11 @@ Scope: delegate to native ORM tooling with per-tenant placement; schema/db-per-t
 Status: Todo
 
 Scope: unified help, error taxonomy, `--json` audit, disposal audit, docs.
+
+## T7: tenant check — runtime + store health (split from T2)
+
+Status: Todo
+
+Scope: a `tenant check` command that loads the runtime and round-trips the store (`create`→`find`
+consistency where supported, or a read-only `list`/`find` probe), reporting fail-closed. Kept separate
+from the Express-specific framework `doctor`.

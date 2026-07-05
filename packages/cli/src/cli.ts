@@ -7,6 +7,7 @@ import {
   checkNodeVersion,
   ormForFramework,
 } from "./capabilities.js";
+import { runTenantList, runTenantShow } from "./commands/tenant.js";
 import { detectProject } from "./detection.js";
 import { CliProjectError, CliUsageError, TenancyCliError } from "./errors.js";
 import { runDoctor } from "./doctor.js";
@@ -16,9 +17,13 @@ import {
   formatJson,
   formatLeakTest,
   formatPlan,
+  formatTenantJson,
+  formatTenantList,
+  formatTenantShow,
 } from "./output.js";
 import { createInitPlan } from "./plan.js";
 import { redactText } from "./redaction.js";
+import { withRuntime } from "./runtime-command.js";
 import type {
   InitFramework,
   ProjectChangePlan,
@@ -69,6 +74,9 @@ export async function runCli(
         : report.status === "warnings"
           ? 1
           : 2;
+    }
+    if (parsed.command === "tenant") {
+      return await runTenant(parsed, root, io);
     }
     if (parsed.testFile === undefined) {
       throw new CliUsageError(
@@ -130,6 +138,39 @@ async function runInit(
   return plan.actions.some(({ status }) => status === "conflict") ? 2 : 0;
 }
 
+async function runTenant(
+  parsed: ParsedArguments,
+  root: string,
+  io: CliIo,
+): Promise<number> {
+  const loadOptions = {
+    root,
+    ...(parsed.config === undefined ? {} : { configPath: parsed.config }),
+  };
+  if (parsed.subcommand === "list") {
+    const result = await withRuntime(loadOptions, runTenantList);
+    io.writeStdout(
+      parsed.json ? formatTenantJson(result) : formatTenantList(result),
+    );
+    return 0;
+  }
+  if (parsed.subcommand === "show") {
+    if (parsed.tenantId === undefined) {
+      throw new CliUsageError("tenant show requires <id>.");
+    }
+    const result = await withRuntime(loadOptions, (runtime) =>
+      runTenantShow(runtime, parsed.tenantId!),
+    );
+    io.writeStdout(
+      parsed.json ? formatTenantJson(result) : formatTenantShow(result),
+    );
+    return 0;
+  }
+  throw new CliUsageError(
+    `Unknown tenant subcommand: ${parsed.subcommand ?? "(none)"}. Use "tenant list" or "tenant show <id>".`,
+  );
+}
+
 async function resolveFramework(
   detection: ProjectDetection,
   parsed: ParsedArguments,
@@ -189,14 +230,24 @@ function describeDetection(detection: ProjectDetection): string {
 }
 
 interface ParsedArguments {
-  readonly command: "init" | "doctor" | "test:leak" | "help";
+  readonly command: "init" | "doctor" | "test:leak" | "tenant" | "help";
+  readonly subcommand?: string;
+  readonly tenantId?: string;
   readonly root?: string;
   readonly testFile?: string;
+  readonly config?: string;
   readonly framework?: InitFramework;
   readonly apply: boolean;
   readonly json: boolean;
   readonly yes: boolean;
 }
+
+const VALUE_FLAGS = new Set([
+  "--root",
+  "--test-file",
+  "--framework",
+  "--config",
+]);
 
 function parseArguments(arguments_: readonly string[]): ParsedArguments {
   const commandValue = arguments_[0] ?? "help";
@@ -210,12 +261,15 @@ function parseArguments(arguments_: readonly string[]): ParsedArguments {
   if (
     commandValue !== "init" &&
     commandValue !== "doctor" &&
-    commandValue !== "test:leak"
+    commandValue !== "test:leak" &&
+    commandValue !== "tenant"
   ) {
     throw new CliUsageError(`Unknown command: ${commandValue}`);
   }
+  const positionals: string[] = [];
   let root: string | undefined;
   let testFile: string | undefined;
+  let config: string | undefined;
   let framework: InitFramework | undefined;
   let apply = false;
   let json = false;
@@ -225,17 +279,14 @@ function parseArguments(arguments_: readonly string[]): ParsedArguments {
     if (argument === "--apply") apply = true;
     else if (argument === "--json") json = true;
     else if (argument === "--yes" || argument === "-y") yes = true;
-    else if (
-      argument === "--root" ||
-      argument === "--test-file" ||
-      argument === "--framework"
-    ) {
+    else if (VALUE_FLAGS.has(argument)) {
       const value = arguments_[index + 1];
       if (value === undefined || value.startsWith("--")) {
         throw new CliUsageError(`${argument} requires a value.`);
       }
       if (argument === "--root") root = value;
       else if (argument === "--test-file") testFile = value;
+      else if (argument === "--config") config = value;
       else {
         if (value !== "express" && value !== "adonis" && value !== "next") {
           throw new CliUsageError(
@@ -245,18 +296,31 @@ function parseArguments(arguments_: readonly string[]): ParsedArguments {
         framework = value;
       }
       index += 1;
-    } else {
+    } else if (argument.startsWith("--")) {
       throw new CliUsageError(`Unknown option: ${argument}`);
+    } else {
+      positionals.push(argument);
     }
   }
+  if (commandValue !== "tenant" && positionals.length > 0)
+    throw new CliUsageError(`Unexpected argument: ${positionals[0]}`);
   if (commandValue !== "init" && apply)
     throw new CliUsageError("--apply is valid only for init.");
   if (commandValue !== "init" && (framework !== undefined || yes))
     throw new CliUsageError("--framework and --yes are valid only for init.");
+  if (commandValue !== "tenant" && config !== undefined)
+    throw new CliUsageError("--config is valid only for tenant commands.");
   return {
     command: commandValue,
+    ...(commandValue === "tenant" && positionals[0] !== undefined
+      ? { subcommand: positionals[0] }
+      : {}),
+    ...(commandValue === "tenant" && positionals[1] !== undefined
+      ? { tenantId: positionals[1] }
+      : {}),
     ...(root === undefined ? {} : { root }),
     ...(testFile === undefined ? {} : { testFile }),
+    ...(config === undefined ? {} : { config }),
     ...(framework === undefined ? {} : { framework }),
     apply,
     json,
@@ -283,10 +347,15 @@ Usage:
   tenancy init [--framework <express|adonis|next>] [--root <path>] [--apply] [--yes] [--json]
   tenancy doctor [--root <path>] [--test-file <path>] [--json]
   tenancy test:leak --test-file <path> [--root <path>] [--json]
+  tenancy tenant list [--config <path>] [--root <path>] [--json]
+  tenancy tenant show <id> [--config <path>] [--root <path>] [--json]
 
 init previews changes (dry run) unless --apply is present. It detects your stack and, when it cannot,
 asks you to choose one interactively; pass --framework to skip the prompt in CI. Supported stacks:
 Express 5.2 + Prisma 7.8, AdonisJS 7.3 + Lucid 22.4, or Next.js 16 + Prisma 7.8. Isolation is
 single-database row-level (forced RLS); Node.js >= 24 is required.
+
+tenant commands load your tenancy.config.ts at runtime (Node 24 strips types natively) to reach the
+TenantStore you passed to defineTenancyRuntime. Pass --config to point at a non-default config path.
 `;
 }

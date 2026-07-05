@@ -1,3 +1,8 @@
+import type {
+  TenantListResult,
+  TenantRecordView,
+  TenantShowResult,
+} from "./commands/tenant.js";
 import { redactText } from "./redaction.js";
 import type {
   DoctorReport,
@@ -7,6 +12,54 @@ import type {
 
 export function formatJson(value: unknown): string {
   return `${JSON.stringify(value, null, 2)}\n`;
+}
+
+/** Redact tenant records before serialising — placement fields can hold secrets. */
+export function formatTenantJson(value: unknown): string {
+  return redactText(formatJson(value));
+}
+
+export function formatTenantList(result: TenantListResult): string {
+  if (result.count === 0) return "No tenants found.\n";
+  const lines = result.tenants.map((tenant) => describeTenant(tenant));
+  lines.push(`${result.count} tenant${result.count === 1 ? "" : "s"}.`);
+  return `${redactText(lines.join("\n"))}\n`;
+}
+
+export function formatTenantShow(result: TenantShowResult): string {
+  return `${redactText(describeTenant(result.tenant, true))}\n`;
+}
+
+/**
+ * Render a tenant as its id plus any top-level scalar fields (status, slug,
+ * placement…). Nested/complex values are summarised, never dumped, so output
+ * stays a stable one-liner (or a short block in `show`).
+ */
+function describeTenant(tenant: TenantRecordView, block = false): string {
+  const fields: string[] = [];
+  for (const [key, value] of Object.entries(tenant)) {
+    if (key === "id") continue;
+    fields.push(`${key}=${describeValue(value)}`);
+  }
+  if (block) {
+    return [`id: ${tenant.id}`, ...fields.map((field) => `  ${field}`)].join(
+      "\n",
+    );
+  }
+  return [tenant.id, ...fields].join("  ");
+}
+
+function describeValue(value: unknown): string {
+  if (value === null) return "null";
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return String(value);
+  }
+  if (Array.isArray(value)) return `[${value.length} item(s)]`;
+  return "{…}";
 }
 
 export function formatDoctor(report: DoctorReport): string {
