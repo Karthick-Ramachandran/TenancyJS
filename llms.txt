@@ -28,7 +28,6 @@ Key principles for an agent reading this project:
 ## Start here
 
 - [README](https://raw.githubusercontent.com/Karthick-Ramachandran/TenancyJS/main/README.md): What it is, install, the three strategies, supported stacks, and the operational CLI.
-- [Philosophy](https://raw.githubusercontent.com/Karthick-Ramachandran/TenancyJS/main/PHILOSOPHY.md): Why it exists and the deliberate bet on fail-closed isolation and tested honesty.
 - [Product PRD](https://raw.githubusercontent.com/Karthick-Ramachandran/TenancyJS/main/docs/00-product/PRD.md): The problem, users, scope, and non-goals.
 - [Conventions](https://raw.githubusercontent.com/Karthick-Ramachandran/TenancyJS/main/docs/60-engineering/CONVENTIONS.md): The canonical components, helpers, and patterns to reuse (never reinvent).
 

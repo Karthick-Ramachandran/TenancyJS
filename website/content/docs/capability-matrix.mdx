@@ -1,0 +1,50 @@
+---
+title: Capability matrix
+description: Exactly which adapter and strategy combinations are tested-supported — and which aren't.
+---
+
+TenancyJS only marks a combination **supported** after a real two-tenant adversarial isolation test on a
+real database: tenant A and tenant B with colliding ids, and a test that fails if A can ever read B's
+row. This page is the honest source of truth for what has actually been proven.
+
+## Adapters × strategies
+
+| Adapter | Row-level | Schema-per-tenant | Database-per-tenant |
+| --- | :---: | :---: | :---: |
+| **Knex** | ✅ | ✅ | ✅ |
+| **Lucid** (AdonisJS) | ✅ | ✅ | ✅ |
+| **Prisma** | ✅ | — | ✅ |
+| **TypeORM** | ✅ | — | — |
+| **Sequelize** | ✅ | — | — |
+| **Mongoose** | ✅ ¹ | — | — |
+
+✅ tested-supported · — not available yet
+
+¹ **Mongoose is facade-only.** MongoDB has no row-level security, so isolation is enforced entirely by
+the adapter's query facade — using the native model, collection, or connection bypasses it. Treat it as
+a strong convention, not a database-level guarantee.
+
+## Notes on what's _not_ there
+
+- **Prisma schema-per-tenant** is intentionally unsupported: Prisma resolves tables from the datasource,
+  not the session `search_path`, so a per-schema `search_path` does not route its queries. Rather than
+  ship something that looks like it works, it's marked unavailable. (Database-per-tenant is the
+  Prisma-friendly path for hard isolation.)
+- **TypeORM / Sequelize** ship row-level today; schema- and database-per-tenant for them are on the
+  roadmap, not yet adversarially proven.
+
+## Databases
+
+Row-level runs on **PostgreSQL** (forced RLS) and **MySQL** (query-scoping, via Prisma) and **MongoDB**
+(Mongoose facade). Schema- and database-per-tenant are **PostgreSQL**.
+
+## The CLI tells you too
+
+You don't have to memorise this table. `tenancy tenant check` reads each configured adapter's own
+capability self-report and warns you — to your face — about any combination that isn't tested-supported:
+
+```ansi
+WARN adapter:prisma: schemaPerTenant is reported as "unsupported", not
+     tested-supported — this combination is not in the verified matrix;
+     use at your own risk
+```

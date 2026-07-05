@@ -1,0 +1,49 @@
+---
+title: Integrations
+description: Framework integrations open a tenant scope for the lifetime of each request — automatically.
+---
+
+An **integration** connects tenant context to your web framework's request lifecycle. It resolves the
+tenant from the incoming request and runs the rest of the request inside that tenant's scope, so your
+route handlers and services are automatically scoped — you never open a scope by hand in a controller.
+
+All integrations share the same idea: give them your `manager` and a `resolve` function that turns a
+request into a tenant. If resolution fails (unknown, suspended, or ambiguous tenant), the request fails
+closed before your handler runs.
+
+## Express
+
+```ts
+import { createExpressTenancyMiddleware } from "tenancyjs-integration-express";
+
+app.use(
+  createExpressTenancyMiddleware({
+    manager,
+    resolve: (req) => ({ id: req.subdomains.at(-1) ?? "" }),
+  }),
+);
+```
+
+Everything downstream of the middleware runs inside the resolved tenant scope.
+
+## Next.js
+
+`tenancyjs-integration-next` supports the App Router. Because Next runs middleware on the Edge and
+handlers on Node, the integration handles the identity hand-off across that boundary so your Server
+Components and Route Handlers see the tenant.
+
+## NestJS
+
+`tenancyjs-integration-nest` provides a module + interceptor. Register the module, and requests are
+scoped for you; inject the tenant where you need it. Works with both the Express and Fastify platforms.
+
+## AdonisJS
+
+`tenancyjs-integration-adonis` wires Lucid tenancy into the Adonis request lifecycle via a provider and
+middleware — a natural fit with the Lucid adapter's full strategy support.
+
+## Resolving the tenant
+
+The `resolve` function is yours to define — subdomain, header, path segment, JWT claim, whatever your
+app uses. `tenancyjs-identifiers` provides helpers and consistent resolution-failure semantics
+(400 for a bad/missing identifier, 404 for not-found/suspended) if you'd rather not hand-roll it.

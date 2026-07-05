@@ -1,0 +1,38 @@
+---
+title: Security model
+description: What TenancyJS guarantees, what it doesn't, and where the boundaries are.
+---
+
+TenancyJS owns exactly one thing and tries to own it completely: **one tenant's data never becomes
+another's.** Everything else is explicitly out of scope, and saying so is part of the design.
+
+## What it guarantees
+
+- **Fail-closed isolation.** Tenant-aware access without a valid context throws; there is no silent
+  fallback to unscoped data.
+- **No accidental central context.** Unknown, suspended, or ambiguous tenants never become central
+  scope. Cross-tenant work must be opened explicitly with `runInCentralContext`.
+- **A hardened store boundary.** A bring-your-own `TenantStore` that returns a mismatched tenant, or a
+  `list()` with duplicate ids, is rejected before any command or query acts on it.
+- **Cleanup always runs.** Transaction-scoped context is torn down on every path, including errors.
+- **Redacted tooling output.** The CLI redacts secrets (connection strings, passwords, tokens) from
+  both human and `--json` output.
+
+## What it is NOT
+
+- **Not authorization.** Tenant identity is not permission. Your app still decides what a user may do
+  _within_ a tenant. TenancyJS decides _which_ tenant, and keeps tenants apart.
+- **Not a database.** It doesn't host your tenants or run your migrations — it orchestrates and
+  delegates to your store and your migrator.
+
+## Enforcement depth
+
+| Strategy | Enforced by |
+| --- | --- |
+| Row-level (Postgres) | Forced Postgres **RLS** — the database rejects cross-tenant rows even under raw SQL |
+| Row-level (Prisma/Mongoose) | Adapter **query-scoping** / facade |
+| Schema-per-tenant | Transaction-local `search_path`, optionally a **per-tenant role** for database-enforced isolation |
+| Database-per-tenant | Physically separate databases, cache-routed per tenant |
+
+Report a vulnerability via the repository's
+[security policy](https://github.com/Karthick-Ramachandran/TenancyJS/blob/main/SECURITY.md).

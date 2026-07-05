@@ -1,0 +1,64 @@
+---
+title: CLI
+description: Inspect, manage, migrate, and run against your live tenants — from one command.
+---
+
+The `tenancy` CLI (`tenancyjs-cli`) is how you _operate_ a tenancy. It loads your
+[`tenancy.config.ts`](/docs/configuration) at runtime — Node 24 strips the types, so there's no
+transpiler dependency — and acts against your real tenants through **your** store and hooks. It
+orchestrates and fails closed, but never invents ORM behaviour it hasn't tested.
+
+```bash
+npx tenancy <command>
+```
+
+## Set up your project
+
+```bash
+npx tenancy init      # scaffold config + wiring for your framework and ORM
+npx tenancy tenant check   # verify the runtime loads and the store works
+```
+
+`tenant check` is the honest one: it reads each adapter's own capability report and **warns** about any
+adapter/strategy combination that isn't tested-supported, instead of pretending it's production-ready.
+
+## Manage tenants
+
+These read and write your bring-your-own [tenant store](/docs/configuration#bring-your-own-tenant-store).
+Output is redacted (no leaked secrets) and available as `--json`.
+
+```bash
+npx tenancy tenant list
+npx tenancy tenant show acme
+npx tenancy tenant create acme --set plan=pro --set region=eu
+npx tenancy tenant suspend acme
+npx tenancy tenant activate acme
+```
+
+## Run a script in a tenant scope
+
+Run a one-off script — a backfill, an admin task — inside a resolved tenant (or the central) scope. The
+script's top-level code and its default export both see the active context.
+
+```bash
+npx tenancy run ./backfill.ts --tenant acme
+npx tenancy run ./rollup.ts --central
+```
+
+## Provision & migrate
+
+For schema- and database-per-tenant, these delegate to the `provisioner` hooks in your config — the CLI
+never runs an ORM itself. `--all` fans out across every tenant (only `migrate` may; `deprovision` always
+needs an explicit id, so a destructive drop can't fan out by accident).
+
+```bash
+npx tenancy tenant provision acme
+npx tenancy tenant migrate acme
+npx tenancy tenant migrate --all
+npx tenancy tenant deprovision acme
+```
+
+<Callout type="info">
+  Every operational command supports `--json`, redacts secrets, resolves tenants through the hardened
+  store, and disposes connections on exit — including on failure.
+</Callout>

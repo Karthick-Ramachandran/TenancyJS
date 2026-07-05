@@ -1,0 +1,41 @@
+---
+title: Introduction
+description: Fail-closed, TypeScript-first multi-tenancy for Node.js — one tenant-isolation contract for the framework and ORM you already use.
+---
+
+**TenancyJS** gives every framework and ORM the same tenant-context and isolation contract — without
+replacing the framework or ORM you already use. Tenant identity follows the async execution scope, so
+your queries stay scoped without threading a `tenantId` through every call.
+
+And the guarantee that matters:
+
+> Any tenant-aware data access without a valid tenant context **throws** — it never returns another
+> tenant's data.
+
+## Why it exists
+
+The dangerous bug in multi-tenancy is the one that _doesn't_ throw. Forget a `WHERE tenant_id = ?` and
+nothing breaks in the demo — you just quietly returned one customer's data to another. TenancyJS makes
+the safe path the default: no valid tenant context, no data.
+
+## What you get
+
+- **Three isolation strategies behind one contract** — [row-level](/docs/row-level),
+  [schema-per-tenant](/docs/schema-per-tenant), and [database-per-tenant](/docs/database-per-tenant).
+- **Adapters that enforce isolation inside your ORM** — Prisma, Knex, Lucid, TypeORM, Sequelize, Mongoose.
+- **Framework integrations** that bind tenant context to the request lifecycle — Express, Next.js,
+  AdonisJS, NestJS.
+- **An operational [CLI](/docs/cli)** to inspect, create, migrate, and run against your live tenants.
+
+## Honesty by design
+
+Every "supported" cell in the [capability matrix](/docs/capability-matrix) is backed by a two-tenant
+adversarial isolation test on a real database. Nothing is marked supported on faith — and the CLI's
+`tenant check` warns you about any untested combination instead of pretending it's production-ready.
+
+<Callout type="info">
+  Tenant identity is **not** authorization. Your app still owns auth. TenancyJS owns exactly one thing:
+  that one tenant's data never becomes another's.
+</Callout>
+
+Ready? Head to [Installation](/docs/installation).

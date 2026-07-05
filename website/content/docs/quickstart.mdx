@@ -1,0 +1,80 @@
+---
+title: Quickstart
+description: Wire tenant context into an Express + Prisma app in a few minutes.
+---
+
+This walks through the smallest useful setup: a `TenancyManager`, a Prisma adapter, and Express
+middleware that resolves the tenant per request. Adapt the adapter/integration imports to your stack.
+
+## 1. Create a manager
+
+The `TenancyManager` owns tenant context. It uses `AsyncLocalStorage`, so context flows through your
+async calls automatically.
+
+```ts title="tenancy.ts"
+import { TenancyManager } from "tenancyjs-core";
+
+export interface Tenant {
+  readonly id: string;
+}
+
+export const manager = new TenancyManager<Tenant>();
+```
+
+## 2. Attach an adapter
+
+An adapter enforces isolation inside your ORM. Register the models that are tenant-scoped.
+
+```ts title="tenancy.ts"
+import { createPrismaAdapter } from "tenancyjs-adapter-prisma";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
+
+export const tenancy = createPrismaAdapter({
+  manager,
+  client: prisma,
+  tenantModels: { Post: {}, Order: {} },
+});
+```
+
+## 3. Run inside a tenant scope
+
+Everything the adapter touches inside `runWithTenant` is scoped to that tenant. Outside a scope, it
+fails closed.
+
+```ts
+await manager.runWithTenant({ id: "acme" }, async () => {
+  const orders = await tenancy.client.order.findMany(); // only acme's orders
+});
+```
+
+## 4. Bind it to requests
+
+The framework integration resolves the tenant from each request and opens the scope for its lifetime.
+
+```ts title="server.ts"
+import express from "express";
+import { createExpressTenancyMiddleware } from "tenancyjs-integration-express";
+
+const app = express();
+
+app.use(
+  createExpressTenancyMiddleware({
+    manager,
+    resolve: (req) => ({ id: req.subdomains.at(-1) ?? "" }),
+  }),
+);
+```
+
+<Callout type="info">
+  An unknown, suspended, or ambiguous tenant never becomes central context — the request fails closed
+  before any handler runs. See the [security model](/docs/security).
+</Callout>
+
+## Next steps
+
+- Choose your [isolation strategy](/docs/capability-matrix).
+- Set up the [operational CLI](/docs/cli) for migrations and tenant management.
+- Runnable end-to-end examples live in the
+  [examples repo](https://github.com/Karthick-Ramachandran/TenancyJS).

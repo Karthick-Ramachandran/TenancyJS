@@ -10,4 +10,4 @@ coverage/
 **/.next/
 pnpm-lock.yaml
 llms.txt
-site/
+website/

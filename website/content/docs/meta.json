@@ -1,0 +1,23 @@
+{
+  "title": "Documentation",
+  "root": true,
+  "pages": [
+    "index",
+    "---Getting started---",
+    "installation",
+    "quickstart",
+    "configuration",
+    "---Concepts---",
+    "tenant-context",
+    "capability-matrix",
+    "security",
+    "---Isolation strategies---",
+    "row-level",
+    "schema-per-tenant",
+    "database-per-tenant",
+    "---Reference---",
+    "adapters",
+    "integrations",
+    "cli"
+  ]
+}

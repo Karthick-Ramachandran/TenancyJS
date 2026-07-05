@@ -1,0 +1,53 @@
+---
+title: Tenant context
+description: How tenant identity flows through your app — and why it fails closed.
+---
+
+Tenant context is the heart of TenancyJS. It answers one question at every layer of your app: _which
+tenant is this code running for?_ — without you threading a `tenantId` through every function.
+
+## AsyncLocalStorage
+
+The `TenancyManager` stores the active tenant in Node's `AsyncLocalStorage`. When you open a scope with
+`runWithTenant`, every async operation inside it — awaits, callbacks, ORM queries — sees the same
+tenant, with no manual plumbing.
+
+```ts
+await manager.runWithTenant({ id: "acme" }, async () => {
+  manager.getTenant(); // { id: "acme" }
+  await doWork(); // still "acme", however deep the call stack
+});
+```
+
+## Fail-closed
+
+This is the core guarantee. A tenant-aware adapter used **without** a valid context does not return
+unscoped data — it throws.
+
+```ts
+// No active scope:
+await tenancy.client.order.findMany();
+// ✗ TenantContextError — refuses to run unscoped
+```
+
+The safe default is "refuse," not "return everything." A missing context surfaces as a loud error at
+the boundary, not a silent leak three hops later.
+
+## Central context
+
+Some work is legitimately cross-tenant — a superadmin dashboard, a billing rollup. For that, open an
+**explicit** central scope. It is deliberate and visible in the code, never an accidental fallback.
+
+```ts
+await manager.runInCentralContext(async () => {
+  // operates across tenants — by explicit choice
+});
+```
+
+An unknown, suspended, or ambiguous tenant is **never** silently promoted to central context.
+
+## Lifecycle & cleanup
+
+Adapters run inside a transaction scoped to the tenant, and that scope is torn down on **every** path —
+success or error. There is no context left dangling between requests. Bootstrappers and lifecycle
+listeners let you run setup/teardown around each tenant scope.

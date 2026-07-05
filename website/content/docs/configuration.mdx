@@ -1,0 +1,65 @@
+---
+title: Configuration
+description: Define a tenancy.config.ts runtime so the CLI and your app share one source of truth.
+---
+
+The operational [CLI](/docs/cli) reaches your live tenants by loading a `tenancy.config.ts` at runtime.
+Node 24 strips the TypeScript types natively, so there is **no transpiler dependency** — the CLI stays
+zero-dependency.
+
+## `defineTenancyRuntime`
+
+Export a runtime from your config. It is the single contract the CLI reads — it never reaches into
+framework internals.
+
+```ts title="tenancy.config.ts"
+import { defineTenancyRuntime } from "tenancyjs-core";
+import { manager } from "./tenancy";
+import { store } from "./tenant-store";
+
+export default defineTenancyRuntime({
+  manager,
+  store,
+  adapters: [tenancy],
+  // optional per-tenant lifecycle hooks for schema/database-per-tenant:
+  provisioner: {
+    provision: async (tenant) => {
+      /* create the tenant's schema/database */
+    },
+    migrate: async (tenant) => {
+      /* run your migrator against the tenant's placement */
+    },
+  },
+});
+```
+
+## Bring-your-own tenant store
+
+TenancyJS does not own where tenants live — your table, your API, your Prisma model. A `TenantStore`
+implements only the methods you support; the rest degrade with a clear "not supported by your store"
+error.
+
+```ts title="tenant-store.ts"
+import type { TenantStore } from "tenancyjs-core";
+
+export const store: TenantStore<Tenant> = {
+  list: () => db.tenant.findMany(),
+  find: (id) => db.tenant.findUnique({ where: { id } }),
+  create: (input) => db.tenant.create({ data: input }),
+  suspend: (id) => db.tenant.update({ where: { id }, data: { status: "suspended" } }),
+  activate: (id) => db.tenant.update({ where: { id }, data: { status: "active" } }),
+};
+```
+
+<Callout type="warn">
+  The store is **hardened at the boundary**: a `find(id)` that returns a tenant whose id doesn't match,
+  or a `list()` with duplicate ids, is rejected — a buggy store can't leak one tenant's data under
+  another's identity.
+</Callout>
+
+Once the config exists, the CLI can act:
+
+```bash
+npx tenancy tenant check   # verify the runtime + warn on untested combos
+npx tenancy tenant list
+```
