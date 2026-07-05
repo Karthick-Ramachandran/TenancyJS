@@ -1,0 +1,55 @@
+---
+title: Schema per tenant
+description: One Postgres schema per tenant, selected per transaction via search_path — with optional database-enforced isolation.
+---
+
+Schema-per-tenant gives each tenant its **own Postgres schema** inside a shared database. Tables aren't
+shared; `tenant_acme.orders` and `tenant_globex.orders` are different tables. You get stronger
+separation than row-level without the operational cost of a database per tenant.
+
+Supported on **Knex** and **Lucid**.
+
+## How it's enforced
+
+For each tenant scope, the adapter sets the connection's **`search_path`** to that tenant's schema —
+**transaction-locally**, so it can never leak between requests:
+
+```sql
+select set_config('search_path', 'tenant_acme', true);
+```
+
+Every unqualified query in that scope resolves to the tenant's schema. The schema name is validated as a
+safe SQL identifier before it's ever used, and cross-placement access is rejected.
+
+### Adapter-enforced vs database-enforced
+
+By default, isolation is **adapter-enforced** (the adapter controls `search_path`). You can opt into
+**database-enforced** isolation by giving each tenant a dedicated Postgres **role** with `USAGE` on only
+its own schema — then the database itself blocks cross-schema access:
+
+```ts
+const tenancy = createKnexTenancy({
+  manager,
+  knex,
+  strategy: "schemaPerTenant",
+  schema: (tenant) => `tenant_${tenant.id}`,
+  role: (tenant) => `tenant_${tenant.id}_role`, // database-enforced
+});
+```
+
+## Provisioning
+
+Each tenant needs its schema created (and migrated) before use. Do that through the CLI's
+[provisioning hooks](/docs/cli#provision--migrate) — you supply how to create the schema and run your
+migrator; the CLI orchestrates per tenant.
+
+```bash
+npx tenancy tenant provision acme
+npx tenancy tenant migrate acme
+```
+
+<Callout type="warn">
+  **Prisma does not support schema-per-tenant.** Prisma resolves tables from its datasource, not the
+  session `search_path`, so a per-schema `search_path` doesn't route its queries. Use
+  [database-per-tenant](/docs/database-per-tenant) with Prisma for hard isolation.
+</Callout>

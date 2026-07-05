@@ -1,0 +1,58 @@
+---
+title: Database per tenant
+description: A separate database per tenant, routed through a bounded connection cache — the hardest isolation.
+---
+
+Database-per-tenant gives each tenant its **own database**. It's the strongest isolation — physically
+separate data, per-tenant backups and restores, no noisy neighbours — and the natural fit when tenants
+are few and heavy, or when compliance demands separation.
+
+Supported on **Knex**, **Lucid**, and **Prisma**.
+
+## How it works
+
+You tell the adapter how to build a connection (or client) for a given tenant. TenancyJS routes each
+tenant scope to its own connection through a **bounded, single-flight resource cache**:
+
+- **Bounded + LRU** — connections are pooled and evicted, so you don't exhaust the database.
+- **Single-flight** — concurrent requests for the same tenant share one in-flight connection creation.
+- **Collision-guarded** — a 1:1 key↔resource guard prevents two tenants ever sharing a connection.
+- **Fail-closed** — cross-placement access is rejected; the central scope uses the base connection.
+
+```ts
+const tenancy = createKnexTenancy({
+  manager,
+  knex,
+  strategy: "databasePerTenant",
+  connection: (tenant) => ({
+    key: tenant.database,
+    create: () => knexFactory(tenant.databaseUrl),
+  }),
+});
+```
+
+Prisma uses `createPrismaDatabaseTenancy` (a client per tenant URL); Lucid leases a
+`{ transaction, destroy }` connection and runs model queries through it. See each adapter guide:
+
+<Cards>
+  <Card title="Prisma" href="/docs/adapters/prisma" />
+  <Card title="Knex" href="/docs/adapters/knex" />
+  <Card title="Lucid" href="/docs/adapters/lucid" />
+</Cards>
+
+## Provisioning
+
+Each tenant's database must be created and migrated before use, and dropped on offboarding — through the
+CLI's [provisioning hooks](/docs/cli#provision--migrate):
+
+```bash
+npx tenancy tenant provision acme     # create + migrate the database
+npx tenancy tenant migrate --all      # migrate every tenant's database
+npx tenancy tenant deprovision acme   # drop it (explicit id only — never --all)
+```
+
+## Tradeoffs
+
+Hardest isolation, but the most operational overhead — more databases to provision, migrate, monitor,
+and back up. Every leased connection is disposed on teardown, and the cache keeps the connection count
+bounded, but plan your database's connection limits accordingly.

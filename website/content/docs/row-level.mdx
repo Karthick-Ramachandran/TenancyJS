@@ -1,0 +1,65 @@
+---
+title: Single database (row-level)
+description: Shared tables keyed by tenant_id, enforced by forced Postgres RLS or query-scoping — the lightest strategy.
+---
+
+Row-level is the simplest and most common strategy: **all tenants share the same tables**, and every
+row carries a `tenant_id`. TenancyJS makes sure every query inside a tenant scope is filtered to that
+tenant, and that writes are stamped with the right `tenant_id`.
+
+It's the right default when your tenants are many and lightweight, and you don't need physical
+separation.
+
+## How it's enforced
+
+There are two enforcement layers, depending on your database:
+
+- **Forced Postgres RLS** (Knex, Lucid, TypeORM, Sequelize) — the adapter sets the tenant on the
+  session, and a **row-level security policy** on the table makes the *database itself* reject rows from
+  other tenants. This holds even under raw SQL.
+- **Query-scoping** (Prisma, Mongoose) — the adapter injects the tenant filter into every query and the
+  tenant field into every write through a whitelist facade.
+
+SQL adapters use **both** layers (facade + forced RLS), so a bug in one is caught by the other.
+
+## Setup
+
+Register your tenant-scoped models/tables with the adapter, then run inside a tenant scope. The exact
+call depends on your ORM — see the adapter guide:
+
+<Cards>
+  <Card title="Prisma" href="/docs/adapters/prisma" />
+  <Card title="Knex" href="/docs/adapters/knex" />
+  <Card title="Lucid" href="/docs/adapters/lucid" />
+  <Card title="TypeORM" href="/docs/adapters/typeorm" />
+  <Card title="Sequelize" href="/docs/adapters/sequelize" />
+  <Card title="Mongoose" href="/docs/adapters/mongoose" />
+</Cards>
+
+```ts
+await manager.runWithTenant({ id: "acme" }, async () => {
+  await tenancy.client.order.findMany(); // WHERE tenant_id = 'acme', injected for you
+});
+```
+
+## The RLS backstop
+
+For the SQL adapters, set up a row-level security policy on each tenant table (the CLI scaffold and the
+adapter docs show the exact SQL). The policy checks the session's tenant, so even a query that somehow
+escaped the facade cannot read another tenant's rows — the database refuses.
+
+<Callout type="warn">
+  Mongoose is **facade-only** — MongoDB has no RLS. See the [Mongoose adapter](/docs/adapters/mongoose)
+  for what that means.
+</Callout>
+
+## Databases
+
+Row-level runs on **PostgreSQL** (forced RLS), **MySQL** (query-scoping via Prisma), and **MongoDB**
+(Mongoose facade).
+
+## When to reach for more
+
+If tenants need physical separation — compliance, per-tenant backups, noisy-neighbour isolation —
+consider [schema-per-tenant](/docs/schema-per-tenant) or
+[database-per-tenant](/docs/database-per-tenant).

@@ -1,15 +1,26 @@
 ---
 title: Quickstart
-description: Wire tenant context into an Express + Prisma app in a few minutes.
+description: Wire tenant context into an Express + Prisma app and run your first scoped query.
 ---
 
 This walks through the smallest useful setup: a `TenancyManager`, a Prisma adapter, and Express
-middleware that resolves the tenant per request. Adapt the adapter/integration imports to your stack.
+middleware that resolves the tenant per request. Using a different stack? Swap the adapter and
+integration imports — the shape is identical (see [Adapters](/docs/adapters) and
+[Integrations](/docs/integrations)).
 
-## 1. Create a manager
+<Callout type="info">
+  Prefer not to hand-write this? `npx tenancy init` scaffolds all of it for Express + Prisma, AdonisJS +
+  Lucid, or Next.js + Prisma. See [Installation](/docs/installation).
+</Callout>
+
+<Steps>
+
+<Step>
+
+### Create a manager
 
 The `TenancyManager` owns tenant context. It uses `AsyncLocalStorage`, so context flows through your
-async calls automatically.
+async calls automatically — no `tenantId` threading.
 
 ```ts title="tenancy.ts"
 import { TenancyManager } from "tenancyjs-core";
@@ -21,9 +32,14 @@ export interface Tenant {
 export const manager = new TenancyManager<Tenant>();
 ```
 
-## 2. Attach an adapter
+</Step>
 
-An adapter enforces isolation inside your ORM. Register the models that are tenant-scoped.
+<Step>
+
+### Attach an adapter
+
+An adapter enforces isolation inside your ORM. Register the models that are tenant-scoped, and it
+filters every read and stamps every write for you.
 
 ```ts title="tenancy.ts"
 import { createPrismaAdapter } from "tenancyjs-adapter-prisma";
@@ -38,24 +54,38 @@ export const tenancy = createPrismaAdapter({
 });
 ```
 
-## 3. Run inside a tenant scope
+</Step>
+
+<Step>
+
+### Run inside a tenant scope
 
 Everything the adapter touches inside `runWithTenant` is scoped to that tenant. Outside a scope, it
-fails closed.
+**fails closed** — a loud error, never unscoped data.
 
 ```ts
 await manager.runWithTenant({ id: "acme" }, async () => {
   const orders = await tenancy.client.order.findMany(); // only acme's orders
 });
+
+// Outside a scope:
+await tenancy.client.order.findMany();
+// ✗ TenantContextError — refuses to run unscoped
 ```
 
-## 4. Bind it to requests
+</Step>
 
-The framework integration resolves the tenant from each request and opens the scope for its lifetime.
+<Step>
+
+### Bind it to requests
+
+The framework integration resolves the tenant from each request and opens the scope for its lifetime, so
+your route handlers are automatically scoped.
 
 ```ts title="server.ts"
 import express from "express";
 import { createExpressTenancyMiddleware } from "tenancyjs-integration-express";
+import { manager } from "./tenancy";
 
 const app = express();
 
@@ -65,16 +95,32 @@ app.use(
     resolver: (req) => ({ id: req.subdomains.at(-1) ?? "" }),
   }),
 );
+
+app.get("/orders", async (_req, res) => {
+  res.json(await tenancy.client.order.findMany()); // already scoped
+});
 ```
 
-<Callout type="info">
-  An unknown, suspended, or ambiguous tenant never becomes central context — the request fails closed
-  before any handler runs. See the [security model](/docs/security).
-</Callout>
+If the resolver can't produce a valid tenant, the middleware responds 400/404 and your handler never
+runs — no unscoped request reaches your code.
 
-## Next steps
+</Step>
 
-- Choose your [isolation strategy](/docs/capability-matrix).
-- Set up the [operational CLI](/docs/cli) for migrations and tenant management.
-- Runnable end-to-end examples live in the
-  [examples repo](https://github.com/Karthick-Ramachandran/TenancyJS).
+</Steps>
+
+## Where to next
+
+<Cards>
+  <Card title="Choose a strategy" href="/docs/capability-matrix">
+    Row-level, schema-per-tenant, or database-per-tenant — and what's tested.
+  </Card>
+  <Card title="Configuration" href="/docs/configuration">
+    Add a `tenancy.config.ts` so the CLI can manage your tenants.
+  </Card>
+  <Card title="Operational CLI" href="/docs/cli">
+    List, create, migrate, and run against live tenants.
+  </Card>
+  <Card title="Examples repo" href="https://github.com/Karthick-Ramachandran/TenancyJS">
+    Runnable end-to-end apps for real stacks.
+  </Card>
+</Cards>
