@@ -1,6 +1,9 @@
 export { createLucidTenancy } from "./adapter.js";
-export type { LucidTenancyAdapter } from "./adapter.js";
-export { LUCID_ADAPTER_CAPABILITIES } from "./capabilities.js";
+export type { LucidScope, LucidTenancyAdapter } from "./adapter.js";
+export {
+  LUCID_ADAPTER_CAPABILITIES,
+  lucidCapabilities,
+} from "./capabilities.js";
 export {
   LUCID_CENTRAL_SETTING,
   LUCID_TENANT_SETTING,

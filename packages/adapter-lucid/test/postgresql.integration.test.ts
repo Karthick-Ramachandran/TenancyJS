@@ -244,6 +244,16 @@ describePostgres("Lucid 22 PostgreSQL row-level isolation", () => {
     await expect(database.from(postsTable).select("id")).resolves.toEqual([]);
   });
 
+  it("refuses unrestricted() in row-level scope (facade-enforced)", async () => {
+    // ADR-0033: row-level relies on forced RLS + the model hooks, not a leased
+    // per-tenant connection, so the raw transaction must not be handed out.
+    await expect(
+      manager.runWithTenant({ id: "tenant-a", name: "tenant-a" }, () =>
+        tenancy.run(async (scope) => scope.unrestricted()),
+      ),
+    ).rejects.toBeInstanceOf(LucidTenancyConfigurationError);
+  });
+
   function withTenant<TResult>(
     id: string,
     callback: () => MaybePromise<TResult>,
@@ -526,6 +536,17 @@ describePostgres("Lucid 22 PostgreSQL schema-per-tenant isolation", () => {
       expect(posts.map((post) => post.id)).toEqual(["post-b"]);
     });
     await expect(database.from("posts").select("id")).rejects.toBeDefined();
+  });
+
+  it("refuses unrestricted() in schema-per-tenant scope (facade-enforced)", async () => {
+    // ADR-0033: schema-per-tenant relies on the transaction-local search_path
+    // and hooks, not a leased per-tenant connection, so the raw transaction
+    // must not be handed out.
+    await expect(
+      manager.runWithTenant({ id: "tenant-a", schema: schemaTenantA }, () =>
+        tenancy.run(async (scope) => scope.unrestricted()),
+      ),
+    ).rejects.toBeInstanceOf(LucidTenancyConfigurationError);
   });
 
   function withTenant<TResult>(

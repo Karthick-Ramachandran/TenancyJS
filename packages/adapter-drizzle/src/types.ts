@@ -33,6 +33,15 @@ export interface ProtectedDrizzleTable {
 
 export interface ProtectedDrizzleClient {
   table(table: DrizzleTable): ProtectedDrizzleTable;
+  /**
+   * The native, tenant-scoped drizzle transaction — full query freedom
+   * (relational queries, joins, raw `execute`). Available **only** in a
+   * database-enforced scope (database-per-tenant, tenant mode), where the leased
+   * binding wraps the tenant's own database. Throws in any facade-enforced scope
+   * (ADR-0033). The binding erases the concrete drizzle type, so supply your own
+   * (e.g. `client.unrestricted<NodePgDatabase<typeof schema>>()`).
+   */
+  unrestricted<TDatabase = unknown>(): TDatabase;
 }
 
 export interface DrizzleTenancyRunner {

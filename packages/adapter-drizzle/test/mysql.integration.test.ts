@@ -5,6 +5,7 @@ import { createPool, type Pool } from "mysql2/promise";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import {
+  DrizzleTenancyConfigurationError,
   createDrizzleTenancy,
   createMySqlDrizzleBinding,
 } from "../src/index.js";
@@ -179,5 +180,15 @@ describeMysql("Drizzle MySQL database-per-tenant isolation", () => {
         client.table(posts).count(),
       ),
     ).rejects.toMatchObject({ code: "TENANCY_RESOURCE_CACHE_COLLISION" });
+  });
+
+  it("refuses unrestricted() in central mode — it runs on the shared base binding", async () => {
+    // ADR-0033: central mode uses the shared base binding, not a leased tenant
+    // database, so the raw handle must stay fail-closed on MySQL too.
+    await expect(
+      manager.runInCentralContext(() =>
+        tenancy.run(async (client) => client.unrestricted()),
+      ),
+    ).rejects.toBeInstanceOf(DrizzleTenancyConfigurationError);
   });
 });

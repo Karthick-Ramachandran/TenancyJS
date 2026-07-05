@@ -5,7 +5,7 @@ import type {
   TenantContext,
   TenantRecord,
 } from "tenancyjs-core";
-import { TenantContextError } from "tenancyjs-core";
+import { TenantContextError, unrestrictedRefusedMessage } from "tenancyjs-core";
 import {
   adapterEnforcedRowValidationResult,
   applyPostgresRowContext,
@@ -22,7 +22,7 @@ import type {
   DrizzleDatabaseBinding,
   DrizzleSessionBinding,
 } from "./binding.js";
-import { DRIZZLE_ADAPTER_CAPABILITIES } from "./capabilities.js";
+import { drizzleCapabilities } from "./capabilities.js";
 import {
   defineDrizzleTenancyConfig,
   type DrizzleTablePolicy,
@@ -132,7 +132,10 @@ export function createDrizzleTenancy<
       );
     const context = config.manager.getContext();
     if (context === undefined) throw new TenantContextError("missing");
-    const runScope = (database: DrizzleDatabaseBinding) => {
+    const runScope = (
+      database: DrizzleDatabaseBinding,
+      databaseEnforced: boolean,
+    ) => {
       if (database.dialect !== config.database.dialect)
         throw new DrizzleTenancyConfigurationError(
           "Drizzle tenant database dialect does not match the base binding.",
@@ -154,7 +157,9 @@ export function createDrizzleTenancy<
             );
           await schemaEngine!.applyContext(session.postgresExecutor, context);
         }
-        return callback(createProtectedClient(config, session, context));
+        return callback(
+          createProtectedClient(config, session, context, databaseEnforced),
+        );
       });
     };
     if (config.strategy === "databasePerTenant" && context.mode === "tenant") {
@@ -174,16 +179,18 @@ export function createDrizzleTenancy<
             );
           return binding;
         },
-        runScope,
+        // Only the leased per-tenant binding is database-enforced (ADR-0033).
+        (binding) => runScope(binding, true),
       );
     }
-    return runScope(config.database);
+    // Shared base binding (central mode / facade-enforced strategies).
+    return runScope(config.database, false);
   }
 
   return Object.freeze({
     name: "drizzle" as const,
     strategy: config.strategy,
-    capabilities: DRIZZLE_ADAPTER_CAPABILITIES,
+    capabilities: drizzleCapabilities(config.strategy),
     config,
     validate,
     run,
@@ -197,8 +204,25 @@ function createProtectedClient<TTenant extends TenantRecord>(
   config: DrizzleTenancyConfig<TTenant>,
   session: DrizzleSessionBinding,
   context: TenantContext<TTenant>,
+  databaseEnforced: boolean,
 ): ProtectedDrizzleClient {
   return Object.freeze({
+    unrestricted<TDatabase = unknown>(): TDatabase {
+      // ADR-0033: the native drizzle transaction runs on the tenant's own leased
+      // database — full query freedom (relational queries, joins, raw `execute`).
+      // Available only in a database-enforced scope; fail closed otherwise. The
+      // caller supplies its own drizzle db type (the binding erases it).
+      if (!databaseEnforced) {
+        throw new DrizzleTenancyConfigurationError(
+          unrestrictedRefusedMessage({
+            adapter: "drizzle",
+            strategy: config.strategy,
+            mode: context.mode,
+          }),
+        );
+      }
+      return session.native as TDatabase;
+    },
     table(table: DrizzleTable) {
       const policy = config.classify(table);
       if (policy === undefined) throw new DrizzleTableUnregisteredError();

@@ -22,6 +22,13 @@ export interface DrizzleTableMetadata {
 
 export interface DrizzleSessionBinding {
   readonly postgresExecutor: PostgresExecutor | undefined;
+  /**
+   * The native drizzle transaction this session wraps. Exposed only so a
+   * database-enforced scope can hand it back via `client.unrestricted()`; the
+   * protected client gates access — it is never returned in a facade-enforced
+   * scope.
+   */
+  readonly native: unknown;
   findMany(
     table: DrizzleTable,
     where: DrizzleCriteria,
@@ -139,6 +146,7 @@ function createSession(
 ): DrizzleSessionBinding {
   return Object.freeze({
     postgresExecutor: dialect === "postgresql" ? executor(database) : undefined,
+    native: database,
     async findMany(table: DrizzleTable, where: DrizzleCriteria) {
       const rows = await database
         .select()

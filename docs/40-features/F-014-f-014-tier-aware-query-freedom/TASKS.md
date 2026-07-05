@@ -44,9 +44,23 @@ One NIT fixed (tightened `unrestrictedRefusedMessage` `mode` type). See LESSONS.
 
 ## T2b: Drizzle (binding plumbing) + Lucid (hook/ALS accessor)
 
-Status: Todo — both need real design, not copy-paste. Drizzle hides the raw db behind its binding
-abstraction (`binding.ts`); Lucid's `run()` passes no client (hook + AsyncLocalStorage). Handle as a
-separate reviewed slice.
+Status: Done (2026-07-05).
+
+- **Lucid**: `run()` now hands the callback a `LucidScope` (chosen exposure: scope argument, backward
+  compatible with existing zero-arg callbacks incl. the Adonis integration). `scope.unrestricted()`
+  returns the leased tenant `TransactionClientContract`. `databaseEnforced` rides in the ALS
+  `TransactionScope` so nested same-tenant scopes inherit the parent's tier (never manufactured true).
+- **Drizzle**: exposed the native tx via `DrizzleSessionBinding.native`; the protected client's
+  `unrestricted<TDatabase>()` returns it, gated. Generic escape hatch because the binding erases the
+  concrete drizzle type (caller supplies it) — reviewer concurred this is correct, not worth threading
+  generics for zero runtime safety.
+- Both use the core `databaseEnforcedCapabilities` + `unrestrictedRefusedMessage`; per-strategy caps.
+  Adversarial colliding-id tests + facade-scope gate + central-mode gate each (Lucid also rowLevel +
+  schema gates; Drizzle also schema gate + CI-only MySQL central gate).
+
+Independent review: CLEAN across all nine checked areas — no CRITICAL/HIGH/MEDIUM. The
+`databaseEnforced`-at-lease-site invariant holds; Lucid nested inheritance provably correct; Drizzle
+`native` reachable only through the gated accessor.
 
 ## T3: PostgreSQL row-level + forced RLS full freedom
 

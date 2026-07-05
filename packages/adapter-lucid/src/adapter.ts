@@ -7,7 +7,7 @@ import type {
   TenantContext,
   TenantRecord,
 } from "tenancyjs-core";
-import { TenantContextError } from "tenancyjs-core";
+import { TenantContextError, unrestrictedRefusedMessage } from "tenancyjs-core";
 import {
   PostgresStrategyValidationError,
   applyPostgresRowContext,
@@ -25,7 +25,7 @@ import type {
   ModelQueryBuilderContract,
 } from "@adonisjs/lucid/types/model";
 
-import { LUCID_ADAPTER_CAPABILITIES } from "./capabilities.js";
+import { lucidCapabilities } from "./capabilities.js";
 import {
   type LucidTenancyConfig,
   type LucidTenancyOptions,
@@ -42,19 +42,37 @@ import {
 } from "./errors.js";
 import { validateLucidPolicies } from "./validation.js";
 
+/**
+ * Handed to the `run()` callback. Lucid scopes your models automatically via
+ * hooks, so most code ignores this — it exists only to expose the escape hatch.
+ */
+export interface LucidScope {
+  /**
+   * The raw, tenant-scoped Lucid transaction client — full query freedom
+   * (`rawQuery`, query builder, nested writes). Available **only** in a
+   * database-enforced scope (database-per-tenant, tenant mode), where this
+   * transaction runs on the tenant's own leased connection. Throws in any
+   * facade-enforced scope (ADR-0033).
+   */
+  unrestricted(): TransactionClientContract;
+}
+
 export interface LucidTenancyAdapter<
   TTenant extends TenantRecord = TenantRecord,
 > extends TenancyAdapter {
   readonly name: "lucid";
   readonly strategy: "rowLevel" | "schemaPerTenant" | "databasePerTenant";
   readonly config: LucidTenancyConfig<TTenant>;
-  run<TResult>(callback: () => MaybePromise<TResult>): Promise<TResult>;
+  run<TResult>(
+    callback: (scope: LucidScope) => MaybePromise<TResult>,
+  ): Promise<TResult>;
   close(): Promise<void>;
 }
 
 interface TransactionScope {
   readonly transaction: TransactionClientContract;
   readonly scopeKey: string;
+  readonly databaseEnforced: boolean;
 }
 
 /** Identity of the active tenant scope; a nested run() must resolve to the same one. */
@@ -80,15 +98,35 @@ export function createLucidTenancy<TTenant extends TenantRecord = TenantRecord>(
   async function runWithTransaction<TResult>(
     provider: LucidTransactionProvider,
     context: TenantContext<TTenant>,
-    callback: () => MaybePromise<TResult>,
+    callback: (scope: LucidScope) => MaybePromise<TResult>,
+    databaseEnforced: boolean,
   ): Promise<TResult> {
     const scopeKey = scopeKeyFor(context);
     const execute = async (transaction: TransactionClientContract) => {
       if (config.strategy !== "databasePerTenant") {
         await setTransactionContext(transaction, context, schemaEngine);
       }
-      return transactions.run({ transaction, scopeKey }, async () =>
-        callback(),
+      const scope: LucidScope = {
+        unrestricted() {
+          // ADR-0033: the raw Lucid transaction runs on the tenant's own leased
+          // connection only in a database-enforced scope. Fail closed otherwise
+          // (row-level, schema-per-tenant, central) — there the connection is
+          // shared and raw access could cross tenants.
+          if (!databaseEnforced) {
+            throw new LucidTenancyConfigurationError(
+              unrestrictedRefusedMessage({
+                adapter: "lucid",
+                strategy: config.strategy,
+                mode: context.mode,
+              }),
+            );
+          }
+          return transaction;
+        },
+      };
+      return transactions.run(
+        { transaction, scopeKey, databaseEnforced },
+        async () => callback(scope),
       );
     };
     return provider.transaction(execute);
@@ -97,7 +135,7 @@ export function createLucidTenancy<TTenant extends TenantRecord = TenantRecord>(
   const adapter: LucidTenancyAdapter<TTenant> = Object.freeze({
     name: "lucid" as const,
     strategy: config.strategy,
-    capabilities: LUCID_ADAPTER_CAPABILITIES,
+    capabilities: lucidCapabilities(config.strategy),
     config,
     async validate() {
       // There is no finite tenant-database set to inspect at startup. Report
@@ -120,7 +158,7 @@ export function createLucidTenancy<TTenant extends TenantRecord = TenantRecord>(
       }
     },
     async run<TResult>(
-      callback: () => MaybePromise<TResult>,
+      callback: (scope: LucidScope) => MaybePromise<TResult>,
     ): Promise<TResult> {
       if (!validated) throw new LucidPolicyValidationError();
       if (typeof callback !== "function") {
@@ -140,7 +178,13 @@ export function createLucidTenancy<TTenant extends TenantRecord = TenantRecord>(
             "Cannot nest a Lucid run() for a different tenant or central scope inside an active tenant scope.",
           );
         }
-        return runWithTransaction(parent.transaction, context, callback);
+        // Same-tenant nesting inherits the parent scope's enforcement tier.
+        return runWithTransaction(
+          parent.transaction,
+          context,
+          callback,
+          parent.databaseEnforced,
+        );
       }
       if (
         config.strategy === "databasePerTenant" &&
@@ -151,10 +195,13 @@ export function createLucidTenancy<TTenant extends TenantRecord = TenantRecord>(
           context.tenant.id,
           placement.key,
           placement.create,
-          (connection) => runWithTransaction(connection, context, callback),
+          // Only the leased per-tenant connection is database-enforced (ADR-0033).
+          (connection) =>
+            runWithTransaction(connection, context, callback, true),
         );
       }
-      return runWithTransaction(config.database, context, callback);
+      // Shared base connection (central mode / facade-enforced strategies).
+      return runWithTransaction(config.database, context, callback, false);
     },
     async close() {
       if (connectionCache !== undefined) await connectionCache.close();
