@@ -246,7 +246,7 @@ export default function HomePage() {
               the safe path the default: no valid context, no data.
             </p>
             <Link
-              href="/docs/tenant-context"
+              href="/docs/concepts/tenant-context"
               className="mt-6 inline-flex font-semibold text-fd-primary hover:underline"
             >
               How tenant context works →
@@ -290,7 +290,7 @@ export default function HomePage() {
           </div>
           <div className="mt-8 text-center">
             <Link
-              href="/docs/capability-matrix"
+              href="/docs/concepts/capability-matrix"
               className="inline-flex font-semibold text-fd-primary hover:underline"
             >
               See the full capability matrix →

@@ -15,16 +15,16 @@ And the guarantee that matters:
 ## New here? Start with these
 
 <Cards>
-  <Card title="Installation" href="/docs/installation">
+  <Card title="Installation" href="/docs/getting-started/installation">
     Scaffold your stack with the CLI, or install the packages by hand.
   </Card>
-  <Card title="Quickstart" href="/docs/quickstart">
+  <Card title="Quickstart" href="/docs/getting-started/quickstart">
     Wire tenant context into an app and run your first scoped query.
   </Card>
-  <Card title="Configuration" href="/docs/configuration">
+  <Card title="Configuration" href="/docs/getting-started/configuration">
     Define a `tenancy.config.ts` runtime the CLI and your app share.
   </Card>
-  <Card title="Capability matrix" href="/docs/capability-matrix">
+  <Card title="Capability matrix" href="/docs/concepts/capability-matrix">
     Exactly which adapter × strategy combinations are tested-supported.
   </Card>
 </Cards>
@@ -36,11 +36,11 @@ nothing breaks in the demo — you just quietly returned one customer's data to 
 the safe path the default: **no valid tenant context, no data.**
 
 <Cards>
-  <Card title="Tenant context" href="/docs/tenant-context">
+  <Card title="Tenant context" href="/docs/concepts/tenant-context">
     How identity flows through your app on AsyncLocalStorage — and why it fails
     closed.
   </Card>
-  <Card title="Security model" href="/docs/security">
+  <Card title="Security model" href="/docs/concepts/security">
     What TenancyJS guarantees, what it doesn't, and where the boundaries are.
   </Card>
 </Cards>
@@ -50,13 +50,13 @@ the safe path the default: **no valid tenant context, no data.**
 Three strategies, one contract. Pick per app; the same tenant scope drives all three.
 
 <Cards>
-  <Card title="Single database (row-level)" href="/docs/row-level">
+  <Card title="Single database (row-level)" href="/docs/strategies/row-level">
     Shared tables + tenant_id, enforced by forced Postgres RLS or query-scoping.
   </Card>
-  <Card title="Schema per tenant" href="/docs/schema-per-tenant">
+  <Card title="Schema per tenant" href="/docs/strategies/schema-per-tenant">
     One Postgres schema per tenant via transaction-local search_path.
   </Card>
-  <Card title="Database per tenant" href="/docs/database-per-tenant">
+  <Card title="Database per tenant" href="/docs/strategies/database-per-tenant">
     A separate database per tenant, cache-routed for hard isolation.
   </Card>
 </Cards>

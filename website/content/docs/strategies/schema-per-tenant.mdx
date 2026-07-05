@@ -51,5 +51,5 @@ npx tenancy tenant migrate acme
 <Callout type="warn">
   **Prisma does not support schema-per-tenant.** Prisma resolves tables from its datasource, not the
   session `search_path`, so a per-schema `search_path` doesn't route its queries. Use
-  [database-per-tenant](/docs/database-per-tenant) with Prisma for hard isolation.
+  [database-per-tenant](/docs/strategies/database-per-tenant) with Prisma for hard isolation.
 </Callout>

@@ -4,7 +4,7 @@ description: Inspect, manage, migrate, and run against your live tenants — fro
 ---
 
 The `tenancy` CLI (`tenancyjs-cli`) is how you _operate_ a tenancy. It loads your
-[`tenancy.config.ts`](/docs/configuration) at runtime — Node 24 strips the types, so there's no
+[`tenancy.config.ts`](/docs/getting-started/configuration) at runtime — Node 24 strips the types, so there's no
 transpiler dependency — and acts against your real tenants through **your** store and hooks. It
 orchestrates and fails closed, but never invents ORM behaviour it hasn't tested.
 
@@ -24,7 +24,7 @@ adapter/strategy combination that isn't tested-supported, instead of pretending 
 
 ## Manage tenants
 
-These read and write your bring-your-own [tenant store](/docs/configuration#bring-your-own-tenant-store).
+These read and write your bring-your-own [tenant store](/docs/getting-started/configuration#bring-your-own-tenant-store).
 Output is redacted (no leaked secrets) and available as `--json`.
 
 ```bash

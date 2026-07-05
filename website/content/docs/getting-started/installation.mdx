@@ -19,11 +19,21 @@ stack. No copy-pasting boilerplate.
 npx tenancy init
 ```
 
-It currently scaffolds these stacks end-to-end:
+### Which stacks does `init` scaffold?
 
-- **Express + Prisma**
-- **AdonisJS + Lucid**
-- **Next.js + Prisma**
+| Framework | ORM | `tenancy init` | Guide |
+| --- | --- | :---: | --- |
+| Express | Prisma | ✅ scaffolded | [Express](/docs/integrations/express) |
+| AdonisJS | Lucid | ✅ scaffolded | [AdonisJS](/docs/integrations/adonis) |
+| Next.js | Prisma | ✅ scaffolded | [Next.js](/docs/integrations/nextjs) |
+| **NestJS** | any adapter | manual (a few lines) | [NestJS](/docs/integrations/nestjs) |
+
+<Callout type="info">
+  **On NestJS, or a different ORM (Knex, TypeORM, Sequelize, Mongoose)?** It's fully supported — the CLI
+  just doesn't scaffold it *yet*. Use the [Manual setup](#manual-setup) below together with your
+  [integration guide](/docs/integrations) (e.g. [NestJS](/docs/integrations/nestjs)) and
+  [adapter guide](/docs/adapters). It's only a few lines of wiring.
+</Callout>
 
 `init` writes the wiring; add the packages it uses for your stack (for example, Express + Prisma):
 
@@ -31,13 +41,12 @@ It currently scaffolds these stacks end-to-end:
 npm install tenancyjs-core tenancyjs-adapter-prisma tenancyjs-integration-express
 ```
 
-Then jump to the [Quickstart](/docs/quickstart) to see it working.
+Then jump to the [Quickstart](/docs/getting-started/quickstart) to see it working.
 
-<Callout type="info">
-  On a different stack (NestJS, Knex, TypeORM, Sequelize, Mongoose…)? Install the packages below and
-  follow the [adapter](/docs/adapters) and [integration](/docs/integrations) guides — the wiring is a
-  few lines.
-</Callout>
+### The CLI does more than scaffold
+
+`init` is just the start. The same CLI lists, creates, migrates, provisions, and runs scripts against
+your live tenants. See the full **[CLI reference →](/docs/cli)**.
 
 ## Manual setup
 
