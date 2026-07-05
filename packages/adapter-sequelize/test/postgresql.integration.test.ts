@@ -179,6 +179,13 @@ describePostgres("Sequelize PostgreSQL row-level isolation", () => {
         client.model(Post).findAll({ id: { raw: true } } as never),
       ),
     ).rejects.toBeInstanceOf(SequelizeUnsafeCriteriaError);
+    // Symbol-keyed operators (Sequelize `Op.*`) are invisible to Object.values
+    // and must still be rejected by the plain-scalar guard.
+    await expect(
+      run(tenantA, (client) =>
+        client.model(Post).findAll({ [Symbol.for("or")]: [] } as never),
+      ),
+    ).rejects.toBeInstanceOf(SequelizeUnsafeCriteriaError);
     await expect(
       run(tenantA, (client) => client.model(Unknown as typeof Post).count()),
     ).rejects.toBeInstanceOf(SequelizeModelUnregisteredError);

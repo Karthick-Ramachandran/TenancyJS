@@ -85,7 +85,7 @@ describe("Mongoose tenancy adapter", () => {
         {
           code: "TENANCY_MONGOOSE_ADAPTER_ENFORCED",
           severity: "warning",
-          message: expect.stringContaining("adapter-enforced"),
+          message: expect.stringContaining("SECURITY BOUNDARY"),
         },
       ],
     });

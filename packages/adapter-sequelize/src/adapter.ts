@@ -264,7 +264,11 @@ function assertPlainRecord(
     typeof value !== "object" ||
     Array.isArray(value) ||
     (Object.getPrototypeOf(value) !== Object.prototype &&
-      Object.getPrototypeOf(value) !== null)
+      Object.getPrototypeOf(value) !== null) ||
+    // Reject Symbol-keyed operators (Sequelize `Op.*`): they are invisible to
+    // Object.values/keys, so an unscoped `{ [Op.or]: [...] }` would otherwise
+    // survive the plain-scalar guard.
+    Object.getOwnPropertySymbols(value).length > 0
   ) {
     throw new SequelizeUnsafeCriteriaError();
   }

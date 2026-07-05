@@ -68,7 +68,7 @@ export function createMongooseTenancy<
           code: "TENANCY_MONGOOSE_ADAPTER_ENFORCED",
           severity: "warning" as const,
           message:
-            "Mongoose row-level isolation is adapter-enforced; keep native models and connections private.",
+            "SECURITY BOUNDARY: MongoDB has no row-level security, so Mongoose tenant isolation is enforced ONLY by this adapter's facade. Any use of the native model, collection, or connection bypasses isolation entirely — never expose them outside this adapter.",
         }),
       ]),
     });
