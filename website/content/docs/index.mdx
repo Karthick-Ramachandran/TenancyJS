@@ -49,6 +49,9 @@ the safe path the default: **no valid tenant context, no data.**
 
 Three strategies, one contract. Pick per app; the same tenant scope drives all three.
 
+> **On MySQL or MongoDB?** Row-level is your path — schema- and database-per-tenant are PostgreSQL-only.
+> The [capability matrix](/docs/concepts/capability-matrix#by-database) breaks it down by database.
+
 <Cards>
   <Card title="Single database (row-level)" href="/docs/strategies/row-level">
     Shared tables + tenant_id, enforced by forced Postgres RLS or query-scoping.

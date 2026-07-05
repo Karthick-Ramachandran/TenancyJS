@@ -9,6 +9,12 @@ separation than row-level without the operational cost of a database per tenant.
 
 Supported on **Knex** and **Lucid**.
 
+<Callout type="warn">
+  **PostgreSQL only.** Schema-per-tenant relies on a transaction-local `search_path` — a Postgres
+  mechanism with no direct MySQL/MongoDB equivalent. On those databases, use
+  [row-level](/docs/strategies/row-level).
+</Callout>
+
 ## How it's enforced
 
 For each tenant scope, the adapter sets the connection's **`search_path`** to that tenant's schema —

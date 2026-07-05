@@ -10,6 +10,11 @@ tenant, and that writes are stamped with the right `tenant_id`.
 It's the right default when your tenants are many and lightweight, and you don't need physical
 separation.
 
+<Callout type="info">
+  **Available on all three databases:** PostgreSQL (forced RLS), MySQL (Prisma query-scoping), and
+  MongoDB (Mongoose facade). It's the *only* strategy on MySQL and MongoDB — and a first-class one.
+</Callout>
+
 ## How it's enforced
 
 There are two enforcement layers, depending on your database:

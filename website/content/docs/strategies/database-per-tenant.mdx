@@ -9,6 +9,11 @@ are few and heavy, or when compliance demands separation.
 
 Supported on **Knex**, **Lucid**, and **Prisma**.
 
+<Callout type="warn">
+  **PostgreSQL** today. The routing pattern is database-agnostic, but it's adversarially proven on
+  Postgres. On MySQL or MongoDB, use [row-level](/docs/strategies/row-level).
+</Callout>
+
 ## How it works
 
 You tell the adapter how to build a connection (or client) for a given tenant. TenancyJS routes each
