@@ -1,5 +1,11 @@
 export { PRISMA_ADAPTER_CAPABILITIES } from "./capabilities.js";
 export { createPrismaAdapter } from "./adapter.js";
+export { createPrismaDatabaseTenancy } from "./database-router.js";
+export type {
+  PrismaDatabasePlacement,
+  PrismaDatabaseTenancy,
+  PrismaDatabaseTenancyOptions,
+} from "./database-router.js";
 export { classifyPrismaModel, definePrismaTenancyConfig } from "./config.js";
 export {
   PrismaTenancyConfigurationError,

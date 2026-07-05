@@ -3,7 +3,7 @@ import type { TenancyAdapterCapabilities } from "@tenancyjs/core";
 export const PRISMA_ADAPTER_CAPABILITIES = Object.freeze({
   rowLevel: "supported",
   schemaPerTenant: "unsupported",
-  databasePerTenant: "unsupported",
+  databasePerTenant: "supported",
   centralModels: "supported",
   transactions: "supported",
   nestedReads: "rejected",
