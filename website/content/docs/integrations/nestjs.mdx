@@ -1,0 +1,29 @@
+---
+title: NestJS
+description: A module + interceptor that scopes every request, on Express or Fastify.
+---
+
+`tenancyjs-integration-nest` provides a Nest module and interceptor. Register the module and requests
+are scoped for you; inject the tenant where you need it. Works on both the Express and Fastify
+platforms.
+
+## Install
+
+```bash
+npm install tenancyjs-integration-nest
+```
+
+## Usage
+
+Register the tenancy module with your `manager` and a resolver, and the interceptor opens a tenant scope
+for the lifetime of each request.
+
+```ts
+import { Module } from "@nestjs/common";
+import { createNestResolverInput } from "tenancyjs-integration-nest";
+
+// Provide the manager + resolver to the tenancy module, then the interceptor
+// scopes each request. Controllers and providers run inside the tenant scope.
+```
+
+Resolution failures fail closed with the correct HTTP status before your controller runs.

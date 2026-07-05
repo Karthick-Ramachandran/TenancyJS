@@ -1,0 +1,33 @@
+---
+title: TypeORM
+description: Row-level tenant isolation on PostgreSQL with TypeORM.
+---
+
+`tenancyjs-adapter-typeorm` provides **row-level** isolation on PostgreSQL today, using forced Postgres
+**RLS** plus a query facade. Schema- and database-per-tenant are on the roadmap — they aren't yet
+adversarially proven, so they aren't marked supported.
+
+## Install
+
+```bash
+npm install tenancyjs-adapter-typeorm
+```
+
+## Setup
+
+```ts
+import { createTypeOrmTenancy } from "tenancyjs-adapter-typeorm";
+
+export const tenancy = createTypeOrmTenancy({
+  manager,
+  dataSource,
+  tenantEntities: [Post, Order],
+});
+
+await manager.runWithTenant({ id: "acme" }, (em) => em.find(Order));
+```
+
+<Callout type="warn">
+  Only row-level is tested-supported for TypeORM. `tenant check` warns if you configure an untested
+  strategy — see the [capability matrix](/docs/capability-matrix).
+</Callout>

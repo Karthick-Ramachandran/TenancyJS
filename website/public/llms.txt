@@ -1,0 +1,56 @@
+# TenancyJS
+
+> TenancyJS is a fail-closed, TypeScript-first multi-tenancy toolkit for Node.js. It gives every
+> framework and ORM the same tenant-context and isolation contract — tenant identity follows the async
+> execution scope, and any tenant-aware data access without a valid context throws instead of returning
+> another tenant's data. No hosted service, no lock-in: bring your own store, framework, and ORM.
+
+TenancyJS is a monorepo of small, composable `tenancyjs-*` packages: a framework-neutral core, adapters
+that enforce isolation inside your ORM, framework integrations that bind tenant context to the request
+lifecycle, and an operational CLI. It supports three isolation strategies behind one contract —
+single-database row-level (forced Postgres RLS or query-scoping), schema-per-tenant (transaction-local
+`search_path`), and database-per-tenant (a bounded, cache-routed connection per tenant).
+
+Key principles for an agent reading this project:
+
+- **Fail closed.** Tenant identity rides `AsyncLocalStorage`. A tenant-aware read/write with no valid
+  context throws — there is never a silent fallback to unscoped data.
+- **Honesty over faith.** A capability flips to `"supported"` ONLY after a real two-tenant adversarial
+  isolation test on a real database. Never mark something supported without that evidence; the CLI's
+  `tenant check` surfaces untested adapter/strategy combos as warnings.
+- **Repository memory in `docs/` is the source of truth**, above chat history. Never contradict an
+  accepted ADR in `docs/adrs/` — supersede it through the documented process instead.
+- **Unopinionated boundaries.** The registry is bring-your-own (`TenantStore`), hardened at the boundary
+  so a buggy store cannot return the wrong tenant. The CLI is ORM-agnostic: provisioning and migrations
+  delegate to host-provided hooks — the CLI never invokes an ORM itself.
+- **Tenant identity is not authorization.** Your app still owns auth; TenancyJS owns isolation.
+
+## Start here
+
+- [README](https://raw.githubusercontent.com/Karthick-Ramachandran/TenancyJS/main/README.md): What it is, install, the three strategies, supported stacks, and the operational CLI.
+- [Product PRD](https://raw.githubusercontent.com/Karthick-Ramachandran/TenancyJS/main/docs/00-product/PRD.md): The problem, users, scope, and non-goals.
+- [Conventions](https://raw.githubusercontent.com/Karthick-Ramachandran/TenancyJS/main/docs/60-engineering/CONVENTIONS.md): The canonical components, helpers, and patterns to reuse (never reinvent).
+
+## Architecture
+
+- [Architecture](https://raw.githubusercontent.com/Karthick-Ramachandran/TenancyJS/main/docs/10-architecture/ARCHITECTURE.md): Core, adapters, integrations, and how tenant context flows.
+- [ADR-0017: Isolation strategy model and routing contract](https://raw.githubusercontent.com/Karthick-Ramachandran/TenancyJS/main/docs/adrs/ADR-0017-tenant-isolation-strategy-model-and-routing-contract.md)
+- [ADR-0018: Schema-per-tenant enforcement (search_path + optional per-tenant role)](https://raw.githubusercontent.com/Karthick-Ramachandran/TenancyJS/main/docs/adrs/ADR-0018-schema-per-tenant-enforcement-search-path-with-optional-per-tenant-role.md)
+- [ADR-0019: Shared Postgres strategy engine](https://raw.githubusercontent.com/Karthick-Ramachandran/TenancyJS/main/docs/adrs/ADR-0019-adapter-shared-postgres-strategy-engine.md)
+- [ADR-0022: Database-per-tenant, cache-routed connections](https://raw.githubusercontent.com/Karthick-Ramachandran/TenancyJS/main/docs/adrs/ADR-0022-database-per-tenant-strategy-cache-routed-per-tenant-connections.md)
+
+## Operational CLI
+
+- [ADR-0028: Tenant store contract (bring-your-own, hardened)](https://raw.githubusercontent.com/Karthick-Ramachandran/TenancyJS/main/docs/adrs/ADR-0028-tenant-store-contract-for-the-operational-cli.md)
+- [ADR-0029: CLI architecture — config loading, command engine, provisioning via host hooks](https://raw.githubusercontent.com/Karthick-Ramachandran/TenancyJS/main/docs/adrs/ADR-0029-cli-operational-architecture-config-loading-command-engine-and-provisioning-via.md)
+
+## Security and quality
+
+- [Security Model](https://raw.githubusercontent.com/Karthick-Ramachandran/TenancyJS/main/docs/20-security/SECURITY_MODEL.md): The fail-closed guarantees and what is (and isn't) TenancyJS's job.
+- [Security Policy](https://raw.githubusercontent.com/Karthick-Ramachandran/TenancyJS/main/SECURITY.md): How to report a vulnerability.
+- [Quality Gates](https://raw.githubusercontent.com/Karthick-Ramachandran/TenancyJS/main/docs/50-quality/QUALITY_GATES.md): The full gate, coverage thresholds, and the adversarial-test requirement.
+- [Lessons](https://raw.githubusercontent.com/Karthick-Ramachandran/TenancyJS/main/docs/60-engineering/LESSONS.md): Non-obvious failures learned the hard way (e.g. why Prisma schema-per-tenant is unsupported).
+
+## Contributing
+
+- [Contributing](https://raw.githubusercontent.com/Karthick-Ramachandran/TenancyJS/main/CONTRIBUTING.md): How to build, test against real databases, and land a change.

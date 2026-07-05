@@ -1,0 +1,30 @@
+---
+title: Sequelize
+description: Row-level tenant isolation on PostgreSQL with Sequelize.
+---
+
+`tenancyjs-adapter-sequelize` provides **row-level** isolation on PostgreSQL using forced Postgres
+**RLS** plus a query facade. Schema- and database-per-tenant are on the roadmap.
+
+## Install
+
+```bash
+npm install tenancyjs-adapter-sequelize
+```
+
+## Setup
+
+```ts
+import { createSequelizeTenancy } from "tenancyjs-adapter-sequelize";
+
+export const tenancy = createSequelizeTenancy({
+  manager,
+  sequelize,
+  tenantModels: [Post, Order],
+});
+
+await manager.runWithTenant({ id: "acme" }, () => Order.findAll());
+```
+
+The facade rejects unsafe criteria — including Symbol-keyed operators (`Op.*`) that would otherwise slip
+past a plain-object guard — so a query can't accidentally escape its tenant scope.

@@ -1,0 +1,24 @@
+---
+title: Integrations overview
+description: Bind tenant context to your framework's request lifecycle — automatically.
+---
+
+An **integration** connects tenant context to your web framework. It resolves the tenant from each
+incoming request and runs the rest of the request inside that tenant's scope, so your handlers and
+services are automatically scoped — you never open a scope by hand in a controller.
+
+Every integration takes your `manager` and a **resolver** that turns a request into a tenant. If
+resolution fails — unknown, suspended, or ambiguous — the request fails closed before your handler runs.
+
+| Framework | Package | Guide |
+| --- | --- | --- |
+| Express 5 | `tenancyjs-integration-express` | [Express](/docs/integrations/express) |
+| Next.js (App Router) | `tenancyjs-integration-next` | [Next.js](/docs/integrations/nextjs) |
+| NestJS 11 | `tenancyjs-integration-nest` | [NestJS](/docs/integrations/nestjs) |
+| AdonisJS 7 | `tenancyjs-integration-adonis` | [AdonisJS](/docs/integrations/adonis) |
+
+## Resolving a tenant
+
+The resolver is yours — subdomain, header, path segment, JWT claim, whatever your app uses.
+`tenancyjs-identifiers` provides helpers and consistent resolution-failure semantics (**400** for a
+bad/missing identifier, **404** for not-found/suspended) if you'd rather not hand-roll it.

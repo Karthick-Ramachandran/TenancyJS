@@ -1,0 +1,40 @@
+---
+title: Mongoose
+description: Facade-enforced tenant isolation for MongoDB with Mongoose.
+---
+
+`tenancyjs-adapter-mongoose` scopes MongoDB access per tenant with **row-level**-style query scoping.
+
+<Callout type="warn">
+  **MongoDB has no row-level security.** Mongoose isolation is enforced entirely by the adapter's query
+  facade — using the native model, collection, or connection bypasses it completely. Treat it as a
+  strong convention, not a database-level guarantee, and never expose the native handles outside the
+  adapter.
+</Callout>
+
+## Install
+
+```bash
+npm install tenancyjs-adapter-mongoose
+```
+
+## Setup
+
+Requires a MongoDB replica set (for managed transactions).
+
+```ts
+import { createMongooseTenancy } from "tenancyjs-adapter-mongoose";
+
+export const tenancy = createMongooseTenancy({
+  manager,
+  connection, // a mongoose Connection to a replica set
+  tenantModels: [{ model: Post }, { model: Order }],
+});
+
+await manager.runWithTenant({ id: "acme" }, (client) =>
+  client.model(Order).find({ status: "open" }),
+);
+```
+
+The facade injects the tenant filter on reads and the tenant field on writes, rejects `$`-operator and
+dotted keys, and runs everything inside a session-bound transaction.

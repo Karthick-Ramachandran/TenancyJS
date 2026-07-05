@@ -1,0 +1,34 @@
+---
+title: Next.js
+description: Tenant context across the Edge/Node boundary in the App Router.
+---
+
+`tenancyjs-integration-next` supports the Next.js **App Router**. Next runs middleware on the Edge and
+handlers on Node, so the integration handles the identity hand-off across that boundary — your Server
+Components and Route Handlers see the resolved tenant.
+
+## Install
+
+```bash
+npm install tenancyjs-integration-next
+```
+
+## Usage
+
+```ts
+import { createNextTenancy } from "tenancyjs-integration-next";
+import { manager } from "./tenancy";
+
+export const tenancy = createNextTenancy({
+  manager,
+  resolver: (request) => ({ id: request.headers.get("x-tenant") ?? "" }),
+});
+```
+
+Wire the middleware in `middleware.ts` to resolve identity at the edge, then read the tenant inside your
+Server Components / Route Handlers — the context is carried across for you.
+
+<Callout type="info">
+  See [ADR-0009](https://github.com/Karthick-Ramachandran/TenancyJS/blob/main/docs/adrs/ADR-0009-nextjs-node-execution-and-edge-identity-handoff.md)
+  for how the Edge→Node identity hand-off works.
+</Callout>

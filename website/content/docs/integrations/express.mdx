@@ -1,0 +1,39 @@
+---
+title: Express
+description: Scope every Express request to its tenant with one middleware.
+---
+
+`tenancyjs-integration-express` resolves the tenant per request and runs the rest of the request inside
+that tenant's scope. Everything downstream of the middleware — routes, services, ORM queries — is
+automatically scoped.
+
+## Install
+
+```bash
+npm install tenancyjs-integration-express
+```
+
+## Usage
+
+```ts
+import express from "express";
+import { createExpressTenancyMiddleware } from "tenancyjs-integration-express";
+import { manager } from "./tenancy";
+
+const app = express();
+
+app.use(
+  createExpressTenancyMiddleware({
+    manager,
+    resolver: (req) => ({ id: req.subdomains.at(-1) ?? "" }),
+  }),
+);
+
+app.get("/orders", async (_req, res) => {
+  // already inside the resolved tenant scope
+  res.json(await tenancy.client.order.findMany());
+});
+```
+
+If the resolver can't produce a valid tenant, the middleware responds with the right status (400/404)
+and your handler never runs — no unscoped request reaches your code.

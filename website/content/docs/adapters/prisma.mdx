@@ -1,0 +1,60 @@
+---
+title: Prisma
+description: Row-level and database-per-tenant isolation for Prisma (PostgreSQL + MySQL).
+---
+
+`tenancyjs-adapter-prisma` scopes Prisma queries to the active tenant. It supports **row-level** (on
+PostgreSQL and MySQL) and **database-per-tenant**. Schema-per-tenant is intentionally unsupported —
+Prisma resolves tables from the datasource, not the session `search_path`.
+
+## Install
+
+```bash
+npm install tenancyjs-adapter-prisma
+```
+
+## Row-level
+
+Declare the tenant-scoped models. Inside a tenant scope, reads and writes are filtered to that tenant;
+outside a scope, they fail closed.
+
+```ts
+import { createPrismaAdapter } from "tenancyjs-adapter-prisma";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
+
+export const tenancy = createPrismaAdapter({
+  manager,
+  client: prisma,
+  tenantModels: { Post: {}, Order: {} },
+});
+
+await manager.runWithTenant({ id: "acme" }, async () => {
+  await tenancy.client.order.findMany(); // only acme's orders
+});
+```
+
+On PostgreSQL the adapter also relies on forced **RLS** as a database-level backstop; on MySQL,
+isolation is enforced by query-scoping.
+
+## Database per tenant
+
+For hard isolation, route a dedicated Prisma client per tenant with `createPrismaDatabaseTenancy`. The
+host supplies how to create and dispose a client for a given tenant; clients are pooled in a bounded
+cache and reused.
+
+```ts
+import { createPrismaDatabaseTenancy } from "tenancyjs-adapter-prisma";
+
+const tenancy = createPrismaDatabaseTenancy({
+  manager,
+  create: (tenant) => new PrismaClient({ datasources: { db: { url: tenant.databaseUrl } } }),
+  disconnect: (client) => client.$disconnect(),
+});
+```
+
+<Callout type="warn">
+  Prisma **schema-per-tenant** is not supported. Use database-per-tenant for hard isolation, or
+  row-level for a shared database. `tenant check` will warn you if a config claims otherwise.
+</Callout>

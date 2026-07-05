@@ -1,0 +1,29 @@
+---
+title: Adapters overview
+description: Adapters enforce tenant isolation inside the ORM you already use.
+---
+
+An **adapter** is the piece that keeps tenants apart _inside_ your ORM. You give it your `manager` and
+your ORM client, declare which models/tables are tenant-scoped, and it makes sure every query inside a
+tenant scope is filtered to that tenant — and that queries outside a scope fail closed.
+
+Install only the adapter for the ORM you use, then check its page for setup and which strategies it
+supports.
+
+| Adapter | Package | Row-level | Schema-per-tenant | Database-per-tenant |
+| --- | --- | :---: | :---: | :---: |
+| [Prisma](/docs/adapters/prisma) | `tenancyjs-adapter-prisma` | ✅ | — | ✅ |
+| [Knex](/docs/adapters/knex) | `tenancyjs-adapter-knex` | ✅ | ✅ | ✅ |
+| [Lucid](/docs/adapters/lucid) | `tenancyjs-adapter-lucid` | ✅ | ✅ | ✅ |
+| [TypeORM](/docs/adapters/typeorm) | `tenancyjs-adapter-typeorm` | ✅ | — | — |
+| [Sequelize](/docs/adapters/sequelize) | `tenancyjs-adapter-sequelize` | ✅ | — | — |
+| [Mongoose](/docs/adapters/mongoose) | `tenancyjs-adapter-mongoose` | ✅ ¹ | — | — |
+
+¹ Facade-only — see the [Mongoose page](/docs/adapters/mongoose). Full details on the
+[capability matrix](/docs/capability-matrix).
+
+## Defense in depth
+
+SQL adapters use two layers — a whitelist facade **and** forced database RLS — so a bug in one is
+caught by the other. Mongoose has only the facade (MongoDB has no RLS), which the docs and `tenant
+check` call out explicitly.

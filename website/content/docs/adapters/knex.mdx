@@ -1,0 +1,68 @@
+---
+title: Knex
+description: All three isolation strategies on PostgreSQL with Knex.
+---
+
+`tenancyjs-adapter-knex` is the most complete adapter — it supports **all three strategies** on
+PostgreSQL. Row-level and schema-per-tenant use forced Postgres **RLS** and a transaction-local
+`search_path`; database-per-tenant leases a per-tenant connection from a bounded cache.
+
+## Install
+
+```bash
+npm install tenancyjs-adapter-knex
+```
+
+## Row-level
+
+```ts
+import { createKnexTenancy } from "tenancyjs-adapter-knex";
+
+export const tenancy = createKnexTenancy({
+  manager,
+  knex,
+  strategy: "rowLevel",
+  tenantTables: ["posts", "orders"],
+});
+
+await manager.runWithTenant({ id: "acme" }, (db) => db("orders").select("*"));
+```
+
+The database enforces isolation with forced RLS, so even raw SQL can't cross tenants.
+
+## Schema per tenant
+
+Each tenant gets its own Postgres schema, selected per transaction via `search_path`. Optionally supply
+a per-tenant role for **database-enforced** isolation.
+
+```ts
+const tenancy = createKnexTenancy({
+  manager,
+  knex,
+  strategy: "schemaPerTenant",
+  schema: (tenant) => `tenant_${tenant.id}`,
+  // optional: role: (tenant) => `tenant_${tenant.id}_role`,
+});
+```
+
+## Database per tenant
+
+Route a dedicated connection per tenant. You provide how to create it; connections are pooled and
+reused through a bounded, single-flight cache.
+
+```ts
+const tenancy = createKnexTenancy({
+  manager,
+  knex,
+  strategy: "databasePerTenant",
+  connection: (tenant) => ({
+    key: tenant.database,
+    create: () => knexFactory(tenant.databaseUrl),
+  }),
+});
+```
+
+<Callout type="info">
+  Cross-placement access is rejected, central scope uses the base connection, and every leased
+  connection is disposed on teardown.
+</Callout>

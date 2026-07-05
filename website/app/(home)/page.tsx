@@ -1,14 +1,47 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-/* ── tiny syntax-colored code renderer for the hero editor card ─────────── */
-const c = {
-  cm: "text-[#6b7280]",
-  kw: "text-[#a5b4fc]",
-  fn: "text-[#f0abfc]",
-  st: "text-[#86efac]",
-  pn: "text-[#8b93a7]",
-};
+/* ── robust line-based code highlighter (preserves whitespace exactly) ──── */
+const CODE = `// Tenant identity rides AsyncLocalStorage.
+await manager.runWithTenant({ id: "acme" }, async () => {
+  // scoped to acme — automatically
+  const orders = await db.order.findMany();
+});
+
+// Outside a tenant scope? It fails closed.
+await db.order.findMany();
+// ✗ throws TenantContextError — never an unscoped read`;
+
+const KEYWORDS = new Set(["await", "async", "const", "return", "new", "let"]);
+
+function CodeLine({ src }: { src: string }) {
+  if (src.trimStart().startsWith("//")) {
+    return (
+      <span className="italic text-[#6b7280]">
+        {src}
+        {"\n"}
+      </span>
+    );
+  }
+  // Split keeps delimiters (strings + words), so concatenation === src.
+  const parts = src.split(/("(?:[^"\\]|\\.)*"|\b\w+\b)/g);
+  return (
+    <span>
+      {parts.map((p, i) => {
+        let cls = "";
+        if (p.startsWith('"')) cls = "text-[#86efac]";
+        else if (KEYWORDS.has(p)) cls = "text-[#a5b4fc]";
+        else if (p === "manager" || p === "db") cls = "text-[#93c5fd]";
+        return (
+          <span key={i} className={cls}>
+            {p}
+          </span>
+        );
+      })}
+      {"\n"}
+    </span>
+  );
+}
 
 function Editor() {
   return (
@@ -21,35 +54,11 @@ function Editor() {
           orders.ts
         </span>
       </div>
-      <pre className="overflow-x-auto p-5 text-[13.5px] leading-[1.75]">
+      <pre className="overflow-x-auto p-5 text-[13px] leading-[1.85] text-[#d4d7de]">
         <code className="font-mono">
-          <span className={c.cm}>
-            {"// Tenant identity rides AsyncLocalStorage.\n"}
-          </span>
-          <span className={c.kw}>await</span> manager.
-          <span className={c.fn}>runWithTenant</span>
-          <span className={c.pn}>{"({ "}</span>id: <span className={c.st}>
-            &quot;acme&quot;
-          </span>
-          <span className={c.pn}>{" }, "}</span>
-          <span className={c.kw}>async</span> <span className={c.pn}>
-            () =&gt; {"{"}
-          </span>
-          {"\n"}
-          <span className={c.cm}>{"  // scoped to acme — automatically.\n"}</span>
-          {"  "}
-          <span className={c.kw}>const</span> orders = <span className={c.kw}>
-            await
-          </span>{" "}
-          db.order.<span className={c.fn}>findMany</span>();{"\n"}
-          <span className={c.pn}>{"});"}</span>
-          {"\n\n"}
-          <span className={c.cm}>{"// Outside a tenant scope? Fails closed.\n"}</span>
-          <span className={c.kw}>await</span> db.order.
-          <span className={c.fn}>findMany</span>();{"\n"}
-          <span className={c.cm}>
-            {"// ✗ TenantContextError — never an unscoped read"}
-          </span>
+          {CODE.split("\n").map((l, i) => (
+            <CodeLine key={i} src={l} />
+          ))}
         </code>
       </pre>
     </div>

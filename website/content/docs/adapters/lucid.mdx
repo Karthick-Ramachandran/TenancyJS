@@ -1,0 +1,45 @@
+---
+title: Lucid (AdonisJS)
+description: All three isolation strategies on PostgreSQL with AdonisJS Lucid.
+---
+
+`tenancyjs-adapter-lucid` brings the full strategy set — **row-level**, **schema-per-tenant**, and
+**database-per-tenant** — to AdonisJS Lucid on PostgreSQL. Pair it with the
+[AdonisJS integration](/docs/integrations/adonis) to scope requests automatically.
+
+## Install
+
+```bash
+npm install tenancyjs-adapter-lucid
+```
+
+## Setup
+
+```ts
+import { createLucidTenancy } from "tenancyjs-adapter-lucid";
+
+export const tenancy = createLucidTenancy({
+  manager,
+  database, // the Lucid Database service
+  strategy: "rowLevel", // "schemaPerTenant" | "databasePerTenant"
+  tenantTables: ["posts", "orders"],
+});
+```
+
+## Database per tenant
+
+```ts
+const tenancy = createLucidTenancy({
+  manager,
+  database,
+  strategy: "databasePerTenant",
+  connection: (tenant) => ({
+    key: tenant.connection,
+    create: () => ({ /* { transaction, destroy } for this tenant */ }),
+  }),
+});
+```
+
+Model queries run through the leased connection via `useTransaction`, so your Lucid models stay
+tenant-scoped without change. Row-level uses forced RLS; schema-per-tenant uses a transaction-local
+`search_path` with an optional per-tenant role.

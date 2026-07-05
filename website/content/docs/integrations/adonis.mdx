@@ -1,0 +1,31 @@
+---
+title: AdonisJS
+description: Wire Lucid tenancy into the Adonis request lifecycle.
+---
+
+`tenancyjs-integration-adonis` connects [Lucid tenancy](/docs/adapters/lucid) to the AdonisJS request
+lifecycle through a provider and middleware — a natural fit with Lucid's full strategy support (all
+three isolation models).
+
+## Install
+
+```bash
+npm install tenancyjs-integration-adonis
+```
+
+## Usage
+
+Register the provider and configure tenancy with `defineAdonisTenancyConfig`, then add the middleware to
+your router. Each request resolves its tenant and runs scoped, so your Lucid models are automatically
+isolated.
+
+```ts
+import { defineAdonisTenancyConfig } from "tenancyjs-integration-adonis";
+
+export default defineAdonisTenancyConfig({
+  resolver: (ctx) => ({ id: ctx.subdomains.tenant ?? "" }),
+});
+```
+
+Because Lucid supports row-level, schema-per-tenant, and database-per-tenant, AdonisJS gets the full
+range of isolation strategies out of the box.

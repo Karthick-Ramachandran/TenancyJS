@@ -62,7 +62,7 @@ const app = express();
 app.use(
   createExpressTenancyMiddleware({
     manager,
-    resolve: (req) => ({ id: req.subdomains.at(-1) ?? "" }),
+    resolver: (req) => ({ id: req.subdomains.at(-1) ?? "" }),
   }),
 );
 ```
