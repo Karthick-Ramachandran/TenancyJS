@@ -261,6 +261,46 @@ describe("createLucidTenancy", () => {
     );
   });
 
+  it("fails closed on cross-tenant and central-in-tenant run() nesting", async () => {
+    const manager = new TenancyManager();
+    const model = createFakeModel("Post", "posts");
+    const database = createFakeDatabase();
+    const adapter = createLucidTenancy({
+      manager,
+      database: database.database,
+      tenantModels: [{ model: model.model }],
+    });
+    await adapter.validate();
+
+    // Same-tenant nesting is allowed (a savepoint on the same scope).
+    await expect(
+      manager.runWithTenant({ id: "a" }, () =>
+        adapter.run(() =>
+          manager.runWithTenant({ id: "a" }, () => adapter.run(() => 1)),
+        ),
+      ),
+    ).resolves.toBe(1);
+
+    // A different tenant nested inside tenant A must fail closed — reusing A's
+    // transaction for tenant B would route B's work to A's schema/connection.
+    await expect(
+      manager.runWithTenant({ id: "a" }, () =>
+        adapter.run(() =>
+          manager.runWithTenant({ id: "b" }, () => adapter.run(() => 1)),
+        ),
+      ),
+    ).rejects.toBeInstanceOf(LucidTenancyConfigurationError);
+
+    // Central nested inside a tenant scope must also fail closed.
+    await expect(
+      manager.runWithTenant({ id: "a" }, () =>
+        adapter.run(() =>
+          manager.runInCentralContext(() => adapter.run(() => 1)),
+        ),
+      ),
+    ).rejects.toBeInstanceOf(LucidTenancyConfigurationError);
+  });
+
   it("attaches and scopes find, fetch, and both pagination queries", async () => {
     const manager = new TenancyManager();
     const model = createFakeModel("Post", "posts");

@@ -93,3 +93,11 @@ model preferences.
   the **datasource** (a per-tenant generated client, or Prisma multi-schema), not a runtime session
   setting. Database-per-tenant (a `PrismaClient` per DB URL) and row-level (query-arg rewriting) work
   fine; only schema-per-tenant hits this wall. Do not re-attempt the search_path route.
+- An `AsyncLocalStorage`-scoped per-tenant transaction/connection must be keyed on tenant identity, or a
+  nested `run()` for a *different* tenant silently reuses the parent's transaction and leaks. The Lucid
+  adapter re-read the fresh context but reused an existing ALS transaction with it, so a tenant-B `run()`
+  nested inside tenant A ran `set_config('search_path', schemaB, local)` on A's transaction (A's later
+  queries then hit schema B), or ran B's model writes on A's leased connection. Fix: store the tenant
+  scope key alongside the ALS transaction and fail closed when a nested scope's key differs (same-tenant
+  nesting stays a savepoint; cross-tenant and central-in-tenant are rejected). Knex is immune because it
+  captures `context` once at scope entry and only re-applies it inside its own savepoints.
