@@ -33,11 +33,11 @@ npm install tenancyjs-adapter-prisma tenancyjs-integration-express
 
 ## Three isolation strategies, one contract
 
-| Strategy                        | What it means                                                                           | Adapters                                               |
-| ------------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------ |
-| **Single database** (row-level) | Shared tables, `tenant_id` + forced Postgres RLS or query-scoping                       | Knex · Lucid · Prisma · TypeORM · Sequelize · Mongoose |
-| **Schema per tenant**           | One Postgres schema per tenant via `search_path` or a schema-bound Prisma driver client | Knex · Lucid · Prisma · TypeORM · Sequelize            |
-| **Database per tenant**         | A separate database per tenant, routed through a bounded connection cache               | Knex · Lucid · Prisma · TypeORM · Sequelize · Mongoose |
+| Strategy                        | What it means                                                                           | Adapters                                                         |
+| ------------------------------- | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| **Single database** (row-level) | Shared tables, `tenant_id` + forced Postgres RLS or query-scoping                       | Knex · Lucid · Prisma · TypeORM · Sequelize · Drizzle · Mongoose |
+| **Schema per tenant**           | One Postgres schema per tenant via `search_path` or a schema-bound Prisma driver client | Knex · Lucid · Prisma · TypeORM · Sequelize · Drizzle            |
+| **Database per tenant**         | A separate database per tenant, routed through a bounded connection cache               | Knex · Lucid · Prisma · TypeORM · Sequelize · Drizzle · Mongoose |
 
 MySQL has no separate schema namespace (`SCHEMA` is a synonym for `DATABASE`), so its equivalent is
 database-per-tenant. MongoDB likewise supports database-per-tenant, not SQL schema-per-tenant.
@@ -46,8 +46,8 @@ database-per-tenant. MongoDB likewise supports database-per-tenant, not SQL sche
 
 - **Frameworks:** Express 5, Next.js (App Router), AdonisJS 7, NestJS 11 (Express or Fastify) - plus a
   framework-neutral core.
-- **ORMs / databases:** Prisma (PostgreSQL; MySQL is experimental); Knex, Lucid 22, TypeORM, and
-  Sequelize (PostgreSQL); Mongoose 9 (MongoDB replica set). Node.js 24+.
+- **ORMs / databases:** Prisma, TypeORM, Sequelize, and Drizzle (PostgreSQL + MySQL; MySQL row-level is
+  experimental); Knex and Lucid 22 (PostgreSQL); Mongoose 9 (MongoDB replica set). Node.js 24+.
 
 ## Operational CLI
 

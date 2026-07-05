@@ -17,16 +17,13 @@ Target: support the most commonly used Node ORMs, at least for **Express and Nes
 
 | Adapter | State |
 | --- | --- |
-| Prisma | ✅ built (row-level, hosted evidence) |
-| Knex | ✅ built (PostgreSQL RLS) |
-| Lucid | ✅ built (AdonisJS/PostgreSQL RLS) |
-| **Sequelize** | 🚧 row-level PostgreSQL vertical slice built locally; broader strategies pending |
-| **Drizzle** | Backlog — high Next.js/Express usage |
-| **TypeORM** | 🚧 row-level PostgreSQL vertical slice built locally; broader strategies pending |
-| **Mongoose / MongoDB** | 🚧 adapter-enforced row-level replica-set slice built locally; database routing pending |
-
-Note: PRD non-goals list Mongoose/Drizzle/TypeORM "in the initial support commitment"; this backlog
-records them as **future**, so the two are consistent.
+| Prisma | ✅ PostgreSQL/MySQL row + database; PostgreSQL schema |
+| Knex | ✅ PostgreSQL row/schema/database |
+| Lucid | ✅ PostgreSQL row/schema/database |
+| **Sequelize** | ✅ PostgreSQL row/schema/database; MySQL row/database |
+| **Drizzle** | ✅ PostgreSQL row/schema/database; MySQL row/database |
+| **TypeORM** | ✅ PostgreSQL row/schema/database; MySQL row/database |
+| **Mongoose / MongoDB** | ✅ row/database |
 
 ## Framework integrations
 
@@ -39,9 +36,7 @@ records them as **future**, so the two are consistent.
 
 ## Strategies
 
-- **Database-per-tenant** — provisioning, tenant-migration loops, connection lifecycle (the second
-  strategy the README promises for v0.5). Backlog.
-- **Schema-per-tenant** (PostgreSQL) — backlog, after database-per-tenant.
+- Additional database dialects remain backlog until they have the same real-database adversarial proof.
 
 ## Operational CLI (beyond the current `init`/`doctor`/`test:leak` foundation)
 
@@ -55,7 +50,3 @@ Per `docs/CLI-RESEARCH.md`: tenant registry CRUD (`list`/`create`/`suspend`), `m
 - Event catalog + provisioning pipeline (`tenant.created` → provision/migrate/seed).
 - Bootstrappers: database (done via core ALS), **cache / storage / queue**.
 - Tenant suspension read-only mode; queue/job tenant envelope.
-
-## Immediate (not backlog — active)
-
-Finish AdonisJS support: CLI `init` templates + Ace wrappers (F-007 T6 remainder), then reviews (T7).

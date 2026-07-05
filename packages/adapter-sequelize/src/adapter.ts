@@ -7,6 +7,7 @@ import type {
 } from "tenancyjs-core";
 import { TenantContextError } from "tenancyjs-core";
 import {
+  adapterEnforcedRowValidationResult,
   applyPostgresRowContext,
   createPostgresStrategyEngine,
   createTenantResourceCache,
@@ -28,6 +29,7 @@ import {
 import { SEQUELIZE_ADAPTER_CAPABILITIES } from "./capabilities.js";
 import {
   defineSequelizeTenancyConfig,
+  matchesSequelizeDialect,
   type NormalizedSequelizeTenantModelConfig,
   type SequelizeModelPolicy,
   type SequelizeTenancyConfig,
@@ -78,6 +80,14 @@ export function createSequelizeTenancy<
       validated = true;
       return deferredDatabaseValidationResult("TENANCY_SEQUELIZE", "Sequelize");
     }
+    if (config.strategy === "rowLevel" && config.dialect === "mysql") {
+      validated = true;
+      return adapterEnforcedRowValidationResult(
+        "TENANCY_SEQUELIZE",
+        "Sequelize",
+        "MySQL",
+      );
+    }
     try {
       const result =
         config.strategy === "rowLevel"
@@ -122,9 +132,13 @@ export function createSequelizeTenancy<
     }
     const context = config.manager.getContext();
     if (context === undefined) throw new TenantContextError("missing");
-    const runScope = (sequelize: Sequelize) =>
-      sequelize.transaction(async (transaction) => {
-        if (config.strategy === "rowLevel") {
+    const runScope = (sequelize: Sequelize) => {
+      if (!matchesSequelizeDialect(sequelize.getDialect(), config.dialect))
+        throw new SequelizeTenancyConfigurationError(
+          "Sequelize tenant instance dialect does not match the base configuration.",
+        );
+      return sequelize.transaction(async (transaction) => {
+        if (config.strategy === "rowLevel" && config.dialect === "postgresql") {
           await applyPostgresRowContext(
             sequelizeExecutor(sequelize, transaction),
             context,
@@ -145,6 +159,7 @@ export function createSequelizeTenancy<
           ),
         );
       });
+    };
     if (config.strategy === "databasePerTenant" && context.mode === "tenant") {
       const placement = config.connection!(context.tenant);
       return connectionCache!.lease(

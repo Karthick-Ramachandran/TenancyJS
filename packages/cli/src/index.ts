@@ -5,6 +5,8 @@ export {
   SUPPORTED_STACKS,
   capabilityBanner,
   checkNodeVersion,
+  isSupportedStack,
+  ormChoicesForFramework,
   ormForFramework,
   parseNodeMajor,
 } from "./capabilities.js";

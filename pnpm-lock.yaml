@@ -58,6 +58,9 @@ importers:
       '@vitest/coverage-v8':
         specifier: 4.1.9
         version: 4.1.9(vitest@4.1.9)
+      drizzle-orm:
+        specifier: 0.45.2
+        version: 0.45.2(@electric-sql/pglite@0.4.1)(@prisma/client@7.8.0(prisma@7.8.0(@types/react@19.2.17)(magicast@0.5.3)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@6.0.3))(typescript@6.0.3))(@types/pg@8.15.5)(knex@3.3.0(mariadb@3.4.5)(mysql2@3.22.5(@types/node@24.13.2))(pg@8.16.3))(mysql2@3.22.5(@types/node@24.13.2))(pg@8.16.3)(postgres@3.4.7)(prisma@7.8.0(@types/react@19.2.17)(magicast@0.5.3)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@6.0.3))
       eslint:
         specifier: 10.6.0
         version: 10.6.0(jiti@2.7.0)
@@ -69,13 +72,16 @@ importers:
         version: 5.9.0
       knex:
         specifier: 3.3.0
-        version: 3.3.0(mariadb@3.4.5)(mysql2@3.15.3)(pg@8.16.3)
+        version: 3.3.0(mariadb@3.4.5)(mysql2@3.22.5(@types/node@24.13.2))(pg@8.16.3)
       mariadb:
         specifier: 3.4.5
         version: 3.4.5
       mongoose:
         specifier: 9.7.3
         version: 9.7.3
+      mysql2:
+        specifier: 3.22.5
+        version: 3.22.5(@types/node@24.13.2)
       next:
         specifier: 16.2.10
         version: 16.2.10(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -105,13 +111,13 @@ importers:
         version: 7.8.2
       sequelize:
         specifier: 6.37.8
-        version: 6.37.8(mariadb@3.4.5)(mysql2@3.15.3)(pg@8.16.3)
+        version: 6.37.8(mariadb@3.4.5)(mysql2@3.22.5(@types/node@24.13.2))(pg@8.16.3)
       supertest:
         specifier: 7.2.2
         version: 7.2.2
       typeorm:
         specifier: 1.0.0
-        version: 1.0.0(mongodb@7.2.0)(mysql2@3.15.3)(pg@8.16.3)
+        version: 1.0.0(mongodb@7.2.0)(mysql2@3.22.5(@types/node@24.13.2))(pg@8.16.3)
       typescript:
         specifier: 6.0.3
         version: 6.0.3
@@ -121,6 +127,28 @@ importers:
       vitest:
         specifier: 4.1.9
         version: 4.1.9(@types/node@24.13.2)(@vitest/coverage-v8@4.1.9)(jiti@2.7.0)
+
+  packages/adapter-drizzle:
+    dependencies:
+      tenancyjs-adapter-shared:
+        specifier: workspace:*
+        version: link:../adapter-shared
+      tenancyjs-core:
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      '@types/pg':
+        specifier: 8.15.5
+        version: 8.15.5
+      drizzle-orm:
+        specifier: 0.45.2
+        version: 0.45.2(@electric-sql/pglite@0.4.1)(@prisma/client@7.8.0(prisma@7.8.0(@types/react@19.2.17)(magicast@0.5.3)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@6.0.3))(typescript@6.0.3))(@types/pg@8.15.5)(knex@3.3.0(mariadb@3.4.5)(mysql2@3.22.5(@types/node@25.9.4))(pg@8.16.3))(mysql2@3.22.5(@types/node@25.9.4))(pg@8.16.3)(postgres@3.4.7)(prisma@7.8.0(@types/react@19.2.17)(magicast@0.5.3)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@6.0.3))
+      mysql2:
+        specifier: 3.22.5
+        version: 3.22.5(@types/node@25.9.4)
+      pg:
+        specifier: 8.16.3
+        version: 8.16.3
 
   packages/adapter-knex:
     dependencies:
@@ -133,7 +161,7 @@ importers:
     devDependencies:
       knex:
         specifier: 3.3.0
-        version: 3.3.0(mariadb@3.4.5)(mysql2@3.15.3)(pg@8.16.3)
+        version: 3.3.0(mariadb@3.4.5)(mysql2@3.22.5(@types/node@24.13.2))(pg@8.16.3)
 
   packages/adapter-lucid:
     dependencies:
@@ -149,7 +177,7 @@ importers:
         version: 7.3.4(youch@4.1.1)
       '@adonisjs/lucid':
         specifier: 22.4.2
-        version: 22.4.2(@adonisjs/core@7.3.4(youch@4.1.1))(luxon@3.7.2)(mariadb@3.4.5)(mysql2@3.15.3)(pg@8.20.0)
+        version: 22.4.2(@adonisjs/core@7.3.4(youch@4.1.1))(luxon@3.7.2)(mariadb@3.4.5)(mysql2@3.22.5(@types/node@24.13.2))(pg@8.20.0)
       luxon:
         specifier: 3.7.2
         version: 3.7.2
@@ -191,9 +219,12 @@ importers:
         specifier: workspace:*
         version: link:../core
     devDependencies:
+      mysql2:
+        specifier: 3.22.5
+        version: 3.22.5(@types/node@25.9.4)
       sequelize:
         specifier: 6.37.8
-        version: 6.37.8(mariadb@3.4.5)(mysql2@3.15.3)(pg@8.16.3)
+        version: 6.37.8(mariadb@3.4.5)(mysql2@3.22.5(@types/node@25.9.4))(pg@8.16.3)
 
   packages/adapter-shared:
     dependencies:
@@ -210,12 +241,15 @@ importers:
         specifier: workspace:*
         version: link:../core
     devDependencies:
+      mysql2:
+        specifier: 3.22.5
+        version: 3.22.5(@types/node@25.9.4)
       pg:
         specifier: 8.16.3
         version: 8.16.3
       typeorm:
         specifier: 1.0.0
-        version: 1.0.0(mongodb@7.2.0)(mysql2@3.15.3)(pg@8.16.3)
+        version: 1.0.0(mongodb@7.2.0)(mysql2@3.22.5(@types/node@25.9.4))(pg@8.16.3)
 
   packages/cli: {}
 
@@ -244,7 +278,7 @@ importers:
         version: 7.3.4(youch@4.1.1)
       '@adonisjs/lucid':
         specifier: 22.4.2
-        version: 22.4.2(@adonisjs/core@7.3.4(youch@4.1.1))(luxon@3.7.2)(mariadb@3.4.5)(mysql2@3.15.3)(pg@8.20.0)
+        version: 22.4.2(@adonisjs/core@7.3.4(youch@4.1.1))(luxon@3.7.2)(mariadb@3.4.5)(mysql2@3.22.5(@types/node@24.13.2))(pg@8.20.0)
       luxon:
         specifier: 3.7.2
         version: 3.7.2
@@ -1842,6 +1876,98 @@ packages:
     resolution: {integrity: sha512-7lAK2A0b3zZr3UC5aE69CPdCFR4RHW1o2Dr74TqFykxkUCBXSRJum/yPc7g8zRHJqWKomPLHwFLLoUnn8PXXRg==}
     deprecated: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
 
+  drizzle-orm@0.45.2:
+    resolution: {integrity: sha512-kY0BSaTNYWnoDMVoyY8uxmyHjpJW1geOmBMdSSicKo9CIIWkSxMIj2rkeSR51b8KAPB7m+qysjuHme5nKP+E5Q==}
+    peerDependencies:
+      '@aws-sdk/client-rds-data': '>=3'
+      '@cloudflare/workers-types': '>=4'
+      '@electric-sql/pglite': '>=0.2.0'
+      '@libsql/client': '>=0.10.0'
+      '@libsql/client-wasm': '>=0.10.0'
+      '@neondatabase/serverless': '>=0.10.0'
+      '@op-engineering/op-sqlite': '>=2'
+      '@opentelemetry/api': ^1.4.1
+      '@planetscale/database': '>=1.13'
+      '@prisma/client': '*'
+      '@tidbcloud/serverless': '*'
+      '@types/better-sqlite3': '*'
+      '@types/pg': '*'
+      '@types/sql.js': '*'
+      '@upstash/redis': '>=1.34.7'
+      '@vercel/postgres': '>=0.8.0'
+      '@xata.io/client': '*'
+      better-sqlite3: '>=7'
+      bun-types: '*'
+      expo-sqlite: '>=14.0.0'
+      gel: '>=2'
+      knex: '*'
+      kysely: '*'
+      mysql2: '>=2'
+      pg: '>=8'
+      postgres: '>=3'
+      prisma: '*'
+      sql.js: '>=1'
+      sqlite3: '>=5'
+    peerDependenciesMeta:
+      '@aws-sdk/client-rds-data':
+        optional: true
+      '@cloudflare/workers-types':
+        optional: true
+      '@electric-sql/pglite':
+        optional: true
+      '@libsql/client':
+        optional: true
+      '@libsql/client-wasm':
+        optional: true
+      '@neondatabase/serverless':
+        optional: true
+      '@op-engineering/op-sqlite':
+        optional: true
+      '@opentelemetry/api':
+        optional: true
+      '@planetscale/database':
+        optional: true
+      '@prisma/client':
+        optional: true
+      '@tidbcloud/serverless':
+        optional: true
+      '@types/better-sqlite3':
+        optional: true
+      '@types/pg':
+        optional: true
+      '@types/sql.js':
+        optional: true
+      '@upstash/redis':
+        optional: true
+      '@vercel/postgres':
+        optional: true
+      '@xata.io/client':
+        optional: true
+      better-sqlite3:
+        optional: true
+      bun-types:
+        optional: true
+      expo-sqlite:
+        optional: true
+      gel:
+        optional: true
+      knex:
+        optional: true
+      kysely:
+        optional: true
+      mysql2:
+        optional: true
+      pg:
+        optional: true
+      postgres:
+        optional: true
+      prisma:
+        optional: true
+      sql.js:
+        optional: true
+      sqlite3:
+        optional: true
+
   dunder-proto@1.0.1:
     resolution: {integrity: sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==}
     engines: {node: '>= 0.4'}
@@ -2706,6 +2832,12 @@ packages:
     resolution: {integrity: sha512-FBrGau0IXmuqg4haEZRBfHNWB5mUARw6hNwPDXXGg0XzVJ50mr/9hb267lvpVMnhZ1FON3qNd4Xfcez1rbFwSg==}
     engines: {node: '>= 8.0'}
 
+  mysql2@3.22.5:
+    resolution: {integrity: sha512-95uZ2TrPWAZdwpB3vvvDbmEMcNG8yIeNCyu6GUcr/QnWEE/wXm7+mhOCsdQfWQDTV7qYT/PDUZ4U4UPP4AsXqQ==}
+    engines: {node: '>= 8.0'}
+    peerDependencies:
+      '@types/node': '>= 8'
+
   named-placeholders@1.1.6:
     resolution: {integrity: sha512-Tz09sEL2EEuv5fFowm419c1+a/jSMiBjI9gHxVLrVdbUkkNUUfjsVYs9pVZu5oCon/kmRh9TfLEObFtkVxmY0w==}
     engines: {node: '>=8.0.0'}
@@ -3279,6 +3411,10 @@ packages:
 
   sprintf-js@1.0.3:
     resolution: {integrity: sha512-D9cPgkvLlV3t3IzL0D0YLvGA9Ahk4PcvVwUbN0dSGr1aP0Nrt4AEnTUbuGvquEC0mA64Gqt1fzirlRs5ibXx8g==}
+
+  sql-escaper@1.3.3:
+    resolution: {integrity: sha512-BsTCV265VpTp8tm1wyIm1xqQCS+Q9NHx2Sr+WcnUrgLrQ6yiDIvHYJV5gHxsj1lMBy2zm5twLaZao8Jd+S8JJw==}
+    engines: {bun: '>=1.0.0', deno: '>=2.0.0', node: '>=12.0.0'}
 
   sql-highlight@6.1.0:
     resolution: {integrity: sha512-ed7OK4e9ywpE7pgRMkMQmZDPKSVdm0oX5IEtZiKnFucSF0zu6c80GZBe38UqHuVhTWJ9xsKgSMjCG2bml86KvA==}
@@ -3867,7 +4003,7 @@ snapshots:
       abstract-logging: 2.0.1
       pino: 10.3.1
 
-  '@adonisjs/lucid@22.4.2(@adonisjs/core@7.3.4(youch@4.1.1))(luxon@3.7.2)(mariadb@3.4.5)(mysql2@3.15.3)(pg@8.20.0)':
+  '@adonisjs/lucid@22.4.2(@adonisjs/core@7.3.4(youch@4.1.1))(luxon@3.7.2)(mariadb@3.4.5)(mysql2@3.22.5(@types/node@24.13.2))(pg@8.20.0)':
     dependencies:
       '@adonisjs/core': 7.3.4(youch@4.1.1)
       '@adonisjs/presets': 3.0.0(@adonisjs/core@7.3.4(youch@4.1.1))
@@ -3880,8 +4016,8 @@ snapshots:
       fast-deep-equal: 3.1.3
       igniculus: 1.5.0
       kleur: 4.1.5
-      knex: 3.3.0(mariadb@3.4.5)(mysql2@3.15.3)(pg@8.20.0)
-      knex-dynamic-connection: 5.1.0(mysql2@3.15.3)(pg@8.20.0)
+      knex: 3.3.0(mariadb@3.4.5)(mysql2@3.22.5(@types/node@24.13.2))(pg@8.20.0)
+      knex-dynamic-connection: 5.1.0(mysql2@3.22.5(@types/node@24.13.2))(pg@8.20.0)
       pretty-hrtime: 1.0.3
       slash: 5.1.0
       tarn: 3.1.0
@@ -4816,7 +4952,7 @@ snapshots:
 
   '@types/pg@8.15.5':
     dependencies:
-      '@types/node': 25.9.4
+      '@types/node': 24.13.2
       pg-protocol: 1.15.0
       pg-types: 2.2.0
 
@@ -5299,6 +5435,28 @@ snapshots:
   dotenv@17.4.2: {}
 
   dottie@2.0.7: {}
+
+  drizzle-orm@0.45.2(@electric-sql/pglite@0.4.1)(@prisma/client@7.8.0(prisma@7.8.0(@types/react@19.2.17)(magicast@0.5.3)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@6.0.3))(typescript@6.0.3))(@types/pg@8.15.5)(knex@3.3.0(mariadb@3.4.5)(mysql2@3.22.5(@types/node@24.13.2))(pg@8.16.3))(mysql2@3.22.5(@types/node@24.13.2))(pg@8.16.3)(postgres@3.4.7)(prisma@7.8.0(@types/react@19.2.17)(magicast@0.5.3)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@6.0.3)):
+    optionalDependencies:
+      '@electric-sql/pglite': 0.4.1
+      '@prisma/client': 7.8.0(prisma@7.8.0(@types/react@19.2.17)(magicast@0.5.3)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@6.0.3))(typescript@6.0.3)
+      '@types/pg': 8.15.5
+      knex: 3.3.0(mariadb@3.4.5)(mysql2@3.22.5(@types/node@24.13.2))(pg@8.16.3)
+      mysql2: 3.22.5(@types/node@24.13.2)
+      pg: 8.16.3
+      postgres: 3.4.7
+      prisma: 7.8.0(@types/react@19.2.17)(magicast@0.5.3)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@6.0.3)
+
+  drizzle-orm@0.45.2(@electric-sql/pglite@0.4.1)(@prisma/client@7.8.0(prisma@7.8.0(@types/react@19.2.17)(magicast@0.5.3)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@6.0.3))(typescript@6.0.3))(@types/pg@8.15.5)(knex@3.3.0(mariadb@3.4.5)(mysql2@3.22.5(@types/node@25.9.4))(pg@8.16.3))(mysql2@3.22.5(@types/node@25.9.4))(pg@8.16.3)(postgres@3.4.7)(prisma@7.8.0(@types/react@19.2.17)(magicast@0.5.3)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@6.0.3)):
+    optionalDependencies:
+      '@electric-sql/pglite': 0.4.1
+      '@prisma/client': 7.8.0(prisma@7.8.0(@types/react@19.2.17)(magicast@0.5.3)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@6.0.3))(typescript@6.0.3)
+      '@types/pg': 8.15.5
+      knex: 3.3.0(mariadb@3.4.5)(mysql2@3.22.5(@types/node@25.9.4))(pg@8.16.3)
+      mysql2: 3.22.5(@types/node@25.9.4)
+      pg: 8.16.3
+      postgres: 3.4.7
+      prisma: 7.8.0(@types/react@19.2.17)(magicast@0.5.3)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)(typescript@6.0.3)
 
   dunder-proto@1.0.1:
     dependencies:
@@ -5868,10 +6026,10 @@ snapshots:
 
   kleur@4.1.5: {}
 
-  knex-dynamic-connection@5.1.0(mysql2@3.15.3)(pg@8.20.0):
+  knex-dynamic-connection@5.1.0(mysql2@3.22.5(@types/node@24.13.2))(pg@8.20.0):
     dependencies:
       debug: 4.4.3
-      knex: 3.2.7(mysql2@3.15.3)(pg@8.20.0)
+      knex: 3.2.7(mysql2@3.22.5(@types/node@24.13.2))(pg@8.20.0)
     transitivePeerDependencies:
       - better-sqlite3
       - mysql
@@ -5883,7 +6041,7 @@ snapshots:
       - supports-color
       - tedious
 
-  knex@3.2.7(mysql2@3.15.3)(pg@8.20.0):
+  knex@3.2.7(mysql2@3.22.5(@types/node@24.13.2))(pg@8.20.0):
     dependencies:
       colorette: 2.0.19
       commander: 10.0.1
@@ -5900,12 +6058,12 @@ snapshots:
       tarn: 3.1.0
       tildify: 2.0.0
     optionalDependencies:
-      mysql2: 3.15.3
+      mysql2: 3.22.5(@types/node@24.13.2)
       pg: 8.20.0
     transitivePeerDependencies:
       - supports-color
 
-  knex@3.3.0(mariadb@3.4.5)(mysql2@3.15.3)(pg@8.16.3):
+  knex@3.3.0(mariadb@3.4.5)(mysql2@3.22.5(@types/node@24.13.2))(pg@8.16.3):
     dependencies:
       colorette: 2.0.19
       commander: 10.0.1
@@ -5923,12 +6081,12 @@ snapshots:
       tildify: 2.0.0
     optionalDependencies:
       mariadb: 3.4.5
-      mysql2: 3.15.3
+      mysql2: 3.22.5(@types/node@24.13.2)
       pg: 8.16.3
     transitivePeerDependencies:
       - supports-color
 
-  knex@3.3.0(mariadb@3.4.5)(mysql2@3.15.3)(pg@8.20.0):
+  knex@3.3.0(mariadb@3.4.5)(mysql2@3.22.5(@types/node@24.13.2))(pg@8.20.0):
     dependencies:
       colorette: 2.0.19
       commander: 10.0.1
@@ -5946,10 +6104,34 @@ snapshots:
       tildify: 2.0.0
     optionalDependencies:
       mariadb: 3.4.5
-      mysql2: 3.15.3
+      mysql2: 3.22.5(@types/node@24.13.2)
       pg: 8.20.0
     transitivePeerDependencies:
       - supports-color
+
+  knex@3.3.0(mariadb@3.4.5)(mysql2@3.22.5(@types/node@25.9.4))(pg@8.16.3):
+    dependencies:
+      colorette: 2.0.19
+      commander: 10.0.1
+      debug: 4.3.4
+      escalade: 3.2.0
+      esm: 3.2.25
+      get-package-type: 0.1.0
+      getopts: 2.3.0
+      interpret: 2.2.0
+      lodash: 4.18.1
+      pg-connection-string: 2.6.2
+      rechoir: 0.8.0
+      resolve-from: 5.0.0
+      tarn: 3.1.0
+      tildify: 2.0.0
+    optionalDependencies:
+      mariadb: 3.4.5
+      mysql2: 3.22.5(@types/node@25.9.4)
+      pg: 8.16.3
+    transitivePeerDependencies:
+      - supports-color
+    optional: true
 
   levn@0.4.1:
     dependencies:
@@ -6165,6 +6347,30 @@ snapshots:
       named-placeholders: 1.1.6
       seq-queue: 0.0.5
       sqlstring: 2.3.3
+
+  mysql2@3.22.5(@types/node@24.13.2):
+    dependencies:
+      '@types/node': 24.13.2
+      aws-ssl-profiles: 1.1.2
+      denque: 2.1.0
+      generate-function: 2.3.1
+      iconv-lite: 0.7.2
+      long: 5.3.2
+      lru.min: 1.1.4
+      named-placeholders: 1.1.6
+      sql-escaper: 1.3.3
+
+  mysql2@3.22.5(@types/node@25.9.4):
+    dependencies:
+      '@types/node': 25.9.4
+      aws-ssl-profiles: 1.1.2
+      denque: 2.1.0
+      generate-function: 2.3.1
+      iconv-lite: 0.7.2
+      long: 5.3.2
+      lru.min: 1.1.4
+      named-placeholders: 1.1.6
+      sql-escaper: 1.3.3
 
   named-placeholders@1.1.6:
     dependencies:
@@ -6598,7 +6804,7 @@ snapshots:
 
   sequelize-pool@7.1.0: {}
 
-  sequelize@6.37.8(mariadb@3.4.5)(mysql2@3.15.3)(pg@8.16.3):
+  sequelize@6.37.8(mariadb@3.4.5)(mysql2@3.22.5(@types/node@24.13.2))(pg@8.16.3):
     dependencies:
       '@types/debug': 4.1.13
       '@types/validator': 13.15.10
@@ -6618,7 +6824,32 @@ snapshots:
       wkx: 0.5.0
     optionalDependencies:
       mariadb: 3.4.5
-      mysql2: 3.15.3
+      mysql2: 3.22.5(@types/node@24.13.2)
+      pg: 8.16.3
+    transitivePeerDependencies:
+      - supports-color
+
+  sequelize@6.37.8(mariadb@3.4.5)(mysql2@3.22.5(@types/node@25.9.4))(pg@8.16.3):
+    dependencies:
+      '@types/debug': 4.1.13
+      '@types/validator': 13.15.10
+      debug: 4.4.3
+      dottie: 2.0.7
+      inflection: 1.13.4
+      lodash: 4.18.1
+      moment: 2.30.1
+      moment-timezone: 0.5.48
+      pg-connection-string: 2.14.0
+      retry-as-promised: 7.1.1
+      semver: 7.8.5
+      sequelize-pool: 7.1.0
+      toposort-class: 1.0.1
+      uuid: 8.3.2
+      validator: 13.15.35
+      wkx: 0.5.0
+    optionalDependencies:
+      mariadb: 3.4.5
+      mysql2: 3.22.5(@types/node@25.9.4)
       pg: 8.16.3
     transitivePeerDependencies:
       - supports-color
@@ -6743,6 +6974,8 @@ snapshots:
   split2@4.2.0: {}
 
   sprintf-js@1.0.3: {}
+
+  sql-escaper@1.3.3: {}
 
   sql-highlight@6.1.0: {}
 
@@ -6898,7 +7131,7 @@ snapshots:
 
   typedarray@0.0.6: {}
 
-  typeorm@1.0.0(mongodb@7.2.0)(mysql2@3.15.3)(pg@8.16.3):
+  typeorm@1.0.0(mongodb@7.2.0)(mysql2@3.22.5(@types/node@24.13.2))(pg@8.16.3):
     dependencies:
       '@sqltools/formatter': 1.2.5
       ansis: 4.3.1
@@ -6912,7 +7145,27 @@ snapshots:
       yargs: 18.0.0
     optionalDependencies:
       mongodb: 7.2.0
-      mysql2: 3.15.3
+      mysql2: 3.22.5(@types/node@24.13.2)
+      pg: 8.16.3
+    transitivePeerDependencies:
+      - babel-plugin-macros
+      - supports-color
+
+  typeorm@1.0.0(mongodb@7.2.0)(mysql2@3.22.5(@types/node@25.9.4))(pg@8.16.3):
+    dependencies:
+      '@sqltools/formatter': 1.2.5
+      ansis: 4.3.1
+      dayjs: 1.11.21
+      debug: 4.4.3
+      dedent: 1.7.2
+      reflect-metadata: 0.2.2
+      sql-highlight: 6.1.0
+      tinyglobby: 0.2.17
+      tslib: 2.8.1
+      yargs: 18.0.0
+    optionalDependencies:
+      mongodb: 7.2.0
+      mysql2: 3.22.5(@types/node@25.9.4)
       pg: 8.16.3
     transitivePeerDependencies:
       - babel-plugin-macros

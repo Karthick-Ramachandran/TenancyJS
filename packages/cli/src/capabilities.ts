@@ -16,6 +16,30 @@ export const SUPPORTED_STACKS: readonly SupportedStack[] = Object.freeze([
     framework: "express",
     frameworkLabel: "Express",
     frameworkRange: "5.2",
+    orm: "typeorm",
+    ormLabel: "TypeORM",
+    ormRange: "1.x",
+  }),
+  Object.freeze({
+    framework: "express",
+    frameworkLabel: "Express",
+    frameworkRange: "5.2",
+    orm: "sequelize",
+    ormLabel: "Sequelize",
+    ormRange: "6.37",
+  }),
+  Object.freeze({
+    framework: "express",
+    frameworkLabel: "Express",
+    frameworkRange: "5.2",
+    orm: "drizzle",
+    ormLabel: "Drizzle",
+    ormRange: "0.45",
+  }),
+  Object.freeze({
+    framework: "express",
+    frameworkLabel: "Express",
+    frameworkRange: "5.2",
     orm: "prisma",
     ormLabel: "Prisma",
     ormRange: "7.8",
@@ -44,13 +68,39 @@ export interface FrameworkChoice {
 }
 
 export const FRAMEWORK_CHOICES: readonly FrameworkChoice[] = Object.freeze(
-  SUPPORTED_STACKS.map((stack) =>
-    Object.freeze({
-      value: stack.framework,
-      label: `${stack.frameworkLabel} ${stack.frameworkRange} + ${stack.ormLabel} ${stack.ormRange}`,
-    }),
-  ),
+  (["express", "adonis", "next"] as const).map((framework) => {
+    const stack = SUPPORTED_STACKS.find(
+      (entry) => entry.framework === framework,
+    )!;
+    return Object.freeze({
+      value: framework,
+      label: `${stack.frameworkLabel} ${stack.frameworkRange}`,
+    });
+  }),
 );
+
+export function ormChoicesForFramework(
+  framework: InitFramework,
+): readonly Readonly<{ value: InitOrm; label: string }>[] {
+  return Object.freeze(
+    SUPPORTED_STACKS.filter((stack) => stack.framework === framework).map(
+      (stack) =>
+        Object.freeze({
+          value: stack.orm,
+          label: `${stack.ormLabel} ${stack.ormRange}`,
+        }),
+    ),
+  );
+}
+
+export function isSupportedStack(
+  framework: InitFramework,
+  orm: InitOrm,
+): boolean {
+  return SUPPORTED_STACKS.some(
+    (stack) => stack.framework === framework && stack.orm === orm,
+  );
+}
 
 export function ormForFramework(framework: InitFramework): InitOrm {
   return framework === "adonis" ? "lucid" : "prisma";

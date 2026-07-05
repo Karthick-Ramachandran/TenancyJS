@@ -39,6 +39,11 @@ ADR-0030 adds Prisma/PostgreSQL schema routing through schema-bound driver clien
 disproven `search_path` approach. These adapters return plain values and never expose native managers,
 models, queries, documents, or raw clients.
 
+F-013/ADR-0031–0032 add the protected Drizzle 0.45 boundary and dialect-aware MySQL enforcement.
+Drizzle reuses the shared PostgreSQL engine and bounded resource cache. TypeORM, Sequelize, and
+Drizzle now support MySQL adapter-enforced row-level plus database-per-tenant with real colliding-ID
+evidence; MySQL schema-per-tenant remains inapplicable because schema and database are synonymous.
+
 ## Architecture
 
 The platform uses a layered monorepo with dependency flow:

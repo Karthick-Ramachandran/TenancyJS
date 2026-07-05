@@ -1,1 +1,1 @@
-{ "title": "Adapters", "pages": ["index", "prisma", "knex", "lucid", "typeorm", "sequelize", "mongoose"] }
+{ "title": "Adapters", "pages": ["index", "prisma", "knex", "lucid", "typeorm", "sequelize", "drizzle", "mongoose"] }

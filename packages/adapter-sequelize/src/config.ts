@@ -19,6 +19,7 @@ export interface SequelizeTenancyOptions<
 > {
   readonly manager: TenancyManager<TTenant>;
   readonly sequelize: Sequelize;
+  readonly dialect?: "postgresql" | "mysql";
   readonly tenantModels: readonly SequelizeTenantModelConfig[];
   readonly centralModels?: readonly SequelizeCentralModelConfig[];
   readonly strategy?: "rowLevel" | "schemaPerTenant" | "databasePerTenant";
@@ -48,6 +49,7 @@ export interface SequelizeTenancyConfig<
 > {
   readonly manager: TenancyManager<TTenant>;
   readonly sequelize: Sequelize;
+  readonly dialect: "postgresql" | "mysql";
   readonly strategy: "rowLevel" | "schemaPerTenant" | "databasePerTenant";
   readonly schema: ((tenant: TTenant) => string) | undefined;
   readonly centralSchema: string;
@@ -69,6 +71,22 @@ export function defineSequelizeTenancyConfig<
   if (typeof options.sequelize?.transaction !== "function")
     configuration("requires a Sequelize instance");
   const strategy = options.strategy ?? "rowLevel";
+  const dialect = options.dialect ?? "postgresql";
+  if (dialect !== "postgresql" && dialect !== "mysql")
+    configuration("dialect must be postgresql or mysql");
+  if (strategy === "schemaPerTenant" && dialect !== "postgresql")
+    configuration(
+      "schema-per-tenant is PostgreSQL-only; use database-per-tenant for MySQL",
+    );
+  const configuredDialect =
+    typeof options.sequelize.getDialect === "function"
+      ? options.sequelize.getDialect()
+      : undefined;
+  if (
+    configuredDialect !== undefined &&
+    !matchesSequelizeDialect(configuredDialect, dialect)
+  )
+    configuration("dialect does not match the Sequelize instance");
   if (
     strategy !== "rowLevel" &&
     strategy !== "schemaPerTenant" &&
@@ -188,6 +206,7 @@ export function defineSequelizeTenancyConfig<
   return Object.freeze({
     manager: options.manager,
     sequelize: options.sequelize,
+    dialect,
     strategy,
     schema: options.schema,
     centralSchema,
@@ -197,6 +216,15 @@ export function defineSequelizeTenancyConfig<
     tenantModels: Object.freeze(tenantModels),
     classify: (model: ModelStatic<Model>) => policies.get(model),
   });
+}
+
+export function matchesSequelizeDialect(
+  configuredDialect: string,
+  dialect: "postgresql" | "mysql",
+): boolean {
+  return (
+    configuredDialect === (dialect === "postgresql" ? "postgres" : "mysql")
+  );
 }
 
 function addPolicy(

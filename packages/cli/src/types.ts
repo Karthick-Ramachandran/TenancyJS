@@ -1,5 +1,5 @@
 export type InitFramework = "express" | "adonis" | "next";
-export type InitOrm = "prisma" | "lucid";
+export type InitOrm = "prisma" | "lucid" | "typeorm" | "sequelize" | "drizzle";
 
 export type DetectedFramework = InitFramework | "unknown";
 export type DetectedOrm = InitOrm | "unknown";

@@ -8,10 +8,13 @@ secured client fails before execution. `Not implemented` makes no compatibility 
 
 | Adapter | ORM/data layer evidence | Row-level status | Schema-per-tenant status | Database-per-tenant status | Detailed matrix |
 | --- | --- | --- | --- | --- | --- |
-| Prisma | Prisma 7.8 + PostgreSQL/MySQL evidence | Supported top-level matrix; adapter-enforced | Not implemented | Not implemented | `packages/adapter-prisma/README.md` |
-| Sequelize | Not implemented | Not implemented | Not implemented | Not implemented | Required when implemented |
-| Knex | Knex 3.3 + PostgreSQL 17 | Supported protected-client matrix; forced-RLS database-enforced | Supported protected-client matrix; adapter-enforced | Not implemented | `packages/adapter-knex/README.md` |
-| Lucid | Lucid 22.4 + PostgreSQL 17 | Supported normal-model matrix; forced-RLS database-enforced | Supported normal-model matrix; adapter-enforced | Not implemented | `packages/adapter-lucid/README.md` |
+| Prisma | Prisma 7.8 + PostgreSQL/MySQL | Supported; adapter-enforced | PostgreSQL supported; driver-routed | PostgreSQL/MySQL supported | `packages/adapter-prisma/README.md` |
+| Knex | Knex 3.3 + PostgreSQL 17 | Supported; forced-RLS database-enforced | Supported; adapter-enforced | Supported | `packages/adapter-knex/README.md` |
+| Lucid | Lucid 22.4 + PostgreSQL 17 | Supported normal-model matrix; forced-RLS database-enforced | Supported; adapter-enforced | Supported | `packages/adapter-lucid/README.md` |
+| TypeORM | TypeORM 1 + PostgreSQL/MySQL | PostgreSQL database-enforced; MySQL adapter-enforced/experimental | PostgreSQL supported | PostgreSQL/MySQL supported | `packages/adapter-typeorm/README.md` |
+| Sequelize | Sequelize 6.37 + PostgreSQL/MySQL | PostgreSQL database-enforced; MySQL adapter-enforced/experimental | PostgreSQL supported | PostgreSQL/MySQL supported | `packages/adapter-sequelize/README.md` |
+| Drizzle | Drizzle 0.45 + PostgreSQL/MySQL | PostgreSQL database-enforced; MySQL adapter-enforced/experimental | PostgreSQL supported | PostgreSQL/MySQL supported | `packages/adapter-drizzle/README.md` |
+| Mongoose | Mongoose 9 + MongoDB replica set | Supported; adapter-enforced | Not applicable | Supported | `packages/adapter-mongoose/README.md` |
 
 ## Prisma 7.8/PostgreSQL 17
 
@@ -31,7 +34,7 @@ secured client fails before execution. `Not implemented` makes no compatibility 
 | fluent relation traversal | Rejected | configured relation selection detected before execution |
 | unknown/unclassified models | Rejected | exhaustive classification required |
 | unknown operations | Rejected | no best-effort delegation |
-| database-per-tenant | Unsupported | owned by later T-11 capability work |
+| database-per-tenant | Supported | bounded cache-routed clients; real PostgreSQL/MySQL separate-database evidence |
 
 The guarantee conditions and expansion rules are defined in
 `docs/20-security/ADAPTER_SECURITY_CONTRACT.md`.
@@ -48,7 +51,7 @@ The guarantee conditions and expansion rules are defined in
 | raw/schema/migration/client/connection | Rejected | outside callback-scoped protected-client boundary |
 | OR/clear/join/union/CTE/subquery/stream/truncate | Rejected | mutable composition is not yet proven safe |
 | unclassified tables/unknown operations | Rejected | exhaustive classification and runtime proxy rejection |
-| non-PostgreSQL/database-per-tenant | Unsupported | requires a separate enforcement capability and evidence |
+| non-PostgreSQL | Unsupported | PostgreSQL-only adapter |
 | schema-per-tenant reads/writes | Supported | unqualified protected tables + validated transaction-local `search_path`; adapter-enforced |
 | schema qualified/cross-placement tables | Rejected | configuration and protected table classification reject qualification |
 
@@ -63,6 +66,24 @@ The guarantee conditions and expansion rules are defined in
 | explicit central context | Supported (row-level) | adapter-owned central RLS setting; tenant models are rejected in schema-mode central context |
 | `.pojo()`/quiet/bulk/direct builder | Rejected/fail-closed | hook-skipping paths receive no protected transaction and forced RLS must deny access |
 | unregistered models/base database service | Outside guarantee | application-retained Lucid surfaces bypass adapter hooks |
-| non-PostgreSQL/database-per-tenant | Unsupported | requires a separate enforcement capability and evidence |
+| non-PostgreSQL | Unsupported | PostgreSQL-only adapter |
 | schema-per-tenant normal model operations | Supported | unqualified registered models + validated transaction-local `search_path`; adapter-enforced |
 | schema-mode hook-skipping paths | Rejected/fail-closed | central tenant-table shadowing is prohibited, so unqualified bypasses cannot resolve a tenant table |
+
+## TypeORM 1 / Sequelize 6 / Drizzle 0.45
+
+| Operation family | State | Enforcement/evidence |
+|---|---|---|
+| scalar-equality reads/count | Supported | adapter-owned tenant predicate; PostgreSQL forced RLS adds a database backstop |
+| create/createMany | Supported | discriminator injected or validated |
+| update/delete | Supported | tenant predicate composed; discriminator moves rejected |
+| managed transactions | Supported | adapter-owned transaction and rollback; PostgreSQL context is transaction-local |
+| schema-per-tenant | PostgreSQL supported | unqualified tables + shared validated `search_path`; optional role hardening |
+| database-per-tenant | PostgreSQL/MySQL supported | bounded cache-routed resources with colliding-ID separate-database tests |
+| MySQL row-level | Supported, experimental | protected facade only; no database RLS backstop |
+| raw/native client/query builder/relations/joins | Rejected or absent | outside callback-scoped protected facade |
+| unknown tables/models/entities | Rejected | exhaustive registration required |
+| MySQL schema-per-tenant | Not applicable | MySQL schema and database are the same namespace |
+
+Drizzle additionally rejects native SQL expressions and relational query objects. Full public usage
+and cleanup contracts are in each adapter README.

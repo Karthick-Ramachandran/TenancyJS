@@ -7,14 +7,20 @@ TenancyJS only marks a combination **supported** after a real two-tenant adversa
 real database: tenant A and tenant B with colliding ids, and a test that fails if A can ever read B's
 row. This page is the honest source of truth for what has actually been proven.
 
+<Callout type="info">
+  This page covers *which databases and strategies* are supported. For the operations the scoped facade
+  deliberately **rejects** — raw queries, nested reads/writes, native handles, complex criteria — see
+  **[Limitations](/docs/concepts/limitations)**.
+</Callout>
+
 ## By database
 
 Start here - it decides which strategies are even available to you.
 
 | Database | Row-level | Schema-per-tenant | Database-per-tenant | Adapters |
 | --- | :---: | :---: | :---: | --- |
-| **PostgreSQL** | ✅ | ✅ | ✅ | Knex · Lucid · Prisma · TypeORM · Sequelize |
-| **MySQL** | 🧪 | - | ✅ | Prisma |
+| **PostgreSQL** | ✅ | ✅ | ✅ | Knex · Lucid · Prisma · TypeORM · Sequelize · Drizzle |
+| **MySQL** | 🧪 | - | ✅ | Prisma · TypeORM · Sequelize · Drizzle |
 | **MongoDB** | ✅ ¹ | - | ✅ ² | Mongoose |
 
 ✅ tested-supported · 🧪 experimental · - not available
@@ -47,6 +53,10 @@ when each tenant connection uses credentials restricted to that tenant's databas
 | **Prisma** | MySQL | 🧪 | - | ✅ |
 | **TypeORM** | PostgreSQL | ✅ | ✅ | ✅ |
 | **Sequelize** | PostgreSQL | ✅ | ✅ | ✅ |
+| **TypeORM** | MySQL | 🧪 | - | ✅ |
+| **Sequelize** | MySQL | 🧪 | - | ✅ |
+| **Drizzle** | PostgreSQL | ✅ | ✅ | ✅ |
+| **Drizzle** | MySQL | 🧪 | - | ✅ |
 | **Mongoose** | MongoDB | ✅ ¹ | - | ✅ ² |
 
 ✅ tested-supported · - not available yet
@@ -59,7 +69,8 @@ when each tenant connection uses credentials restricted to that tenant's databas
   `search_path`; an optional per-tenant role makes the database reject sibling-schema access. Prisma
   uses a cached Prisma 7 client whose PostgreSQL driver adapter is explicitly bound to the tenant
   schema; credential restriction is required for a database-enforced guarantee.
-- **MySQL, row-level (🧪 experimental)** - the Prisma adapter's **query-scoping**. MySQL has **no row-level security**, so
+- **MySQL, row-level (🧪 experimental)** - Prisma, TypeORM, Sequelize, and Drizzle use protected
+  **query-scoping facades**. MySQL has **no row-level security**, so
   - like Mongoose - isolation is enforced *entirely by the adapter facade, with no database-level
   backstop*. It's a weaker guarantee than Postgres row-level (which the database also enforces); keep
   all tenant access going through the adapter.
@@ -76,8 +87,7 @@ when each tenant connection uses credentials restricted to that tenant's databas
 - **MySQL, schema-per-tenant** isn't a thing - in MySQL, "schema" and "database" are synonyms, so
   there's no `search_path` namespace to switch. The Postgres schema-per-tenant concept simply maps to
   database-per-tenant in MySQL terms.
-- **TypeORM and Sequelize on MySQL** are not claimed; their supported and adversarially tested target is
-  PostgreSQL. Prisma is the current MySQL adapter.
+- **Drizzle does not target MongoDB.** It is a SQL ORM; Mongoose remains the MongoDB adapter.
 - **MongoDB schema-per-tenant** is not available because MongoDB has no schema/search-path namespace.
 
 ## The CLI tells you too

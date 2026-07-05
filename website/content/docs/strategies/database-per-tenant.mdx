@@ -7,10 +7,10 @@ Database-per-tenant gives each tenant its **own database**. It's the strongest i
 separate data, per-tenant backups and restores, no noisy neighbours - and the natural fit when tenants
 are few and heavy, or when compliance demands separation.
 
-Supported on **Knex**, **Lucid**, **Prisma**, **TypeORM**, **Sequelize**, and **Mongoose**.
+Supported on **Knex**, **Lucid**, **Prisma**, **TypeORM**, **Sequelize**, **Drizzle**, and **Mongoose**.
 
 <Callout type="warn">
-  Adversarially proven on PostgreSQL, on MySQL through Prisma, and on MongoDB through Mongoose. MySQL's
+  Adversarially proven on PostgreSQL, on MySQL through Prisma, TypeORM, Sequelize, and Drizzle, and on MongoDB through Mongoose. MySQL's
   `SCHEMA` and `DATABASE` are the same namespace, so this is its schema-isolation equivalent.
 </Callout>
 
@@ -36,7 +36,7 @@ const tenancy = createKnexTenancy({
 });
 ```
 
-Prisma uses `createPrismaDatabaseTenancy`; TypeORM/Sequelize lease tenant ORM instances; Mongoose
+Prisma uses `createPrismaDatabaseTenancy`; TypeORM/Sequelize/Drizzle lease tenant ORM resources; Mongoose
 leases tenant-bound replica-set connections. See each adapter guide:
 
 <Cards>
@@ -45,6 +45,7 @@ leases tenant-bound replica-set connections. See each adapter guide:
   <Card title="Lucid" href="/docs/adapters/lucid" />
   <Card title="TypeORM" href="/docs/adapters/typeorm" />
   <Card title="Sequelize" href="/docs/adapters/sequelize" />
+  <Card title="Drizzle" href="/docs/adapters/drizzle" />
   <Card title="Mongoose" href="/docs/adapters/mongoose" />
 </Cards>
 

@@ -15,7 +15,7 @@ data across tenants. TenancyJS makes the secure path the documented and tested d
 
 Beta implementation. Repository foundations, core lifecycle, tenant identification, shared testing
 contracts, and the Express, Next.js, AdonisJS 7, and NestJS 11 integrations are implemented. Prisma,
-Knex, Lucid, TypeORM, Sequelize, and Mongoose adapters have real-database adversarial evidence. The
+Knex, Lucid, TypeORM, Sequelize, Drizzle, and Mongoose adapters have real-database adversarial evidence. The
 reference safe CLI foundation is implemented under F-005, and F-012 adds registry, run, migration, and
 provisioning commands through the host runtime contract. The source research is in
 `docs/BRD-PRD.md` and
@@ -33,7 +33,7 @@ Mongoose; provisioning/migration delegate to host hooks under ADR-0029.
 ## Initial Supported Surface
 
 - Frameworks: Express, Next.js App Router, NestJS, and AdonisJS.
-- Data layers: Prisma, Sequelize, TypeORM, Knex, Lucid, and Mongoose.
+- Data layers: Prisma, Sequelize, TypeORM, Drizzle, Knex, Lucid, and Mongoose.
 - Isolation: row-level; PostgreSQL schema-per-tenant across SQL adapters; database-per-tenant across
   supported SQL databases and MongoDB.
 - Runtime: Node.js 24 or newer; no Edge-runtime tenant database access guarantee.
@@ -62,5 +62,5 @@ lifecycle and migration conventions.
 
 - Billing, subscription UI, hosted control planes, DNS/SSL automation, or admin dashboards.
 - Cache/storage isolation, impersonation, or resource syncing.
-- Drizzle, Sequelize 7 alpha, or non-Node runtimes in the initial support commitment.
+- Sequelize 7 alpha or non-Node runtimes in the initial support commitment.
 - Transparent protection for arbitrary raw SQL; unsafe escape hatches must be explicit and documented.

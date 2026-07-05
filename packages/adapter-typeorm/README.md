@@ -1,7 +1,7 @@
 # `tenancyjs-adapter-typeorm`
 
-Fail-closed TypeORM 1 row-level, schema-per-tenant, and database-per-tenant isolation for PostgreSQL 17
-and Node 24.
+Fail-closed TypeORM 1 isolation for PostgreSQL 17 and MySQL 8 on Node 24. PostgreSQL supports all
+three strategies; MySQL supports adapter-enforced row-level and database-per-tenant.
 
 The adapter exposes callback-scoped protected repositories, not a native `DataSource`, manager,
 repository, QueryBuilder, or Active Record entity. The initial surface supports plain scalar-equality
@@ -12,6 +12,10 @@ Every tenant table must use a reviewed forced-RLS policy and a non-owner, non-su
 non-`BYPASSRLS` runtime role in row-level mode. Schema mode requires unqualified table metadata and
 uses the shared transaction-local `search_path` engine; database mode leases host-created
 `DataSource` instances through the bounded cache. `validate()` must pass before `run()`.
+
+MySQL users pass `dialect: "mysql"`. Row mode is **adapter-enforced and experimental** because MySQL
+has no RLS; the native `DataSource` bypasses it and must remain private. MySQL has no separate
+schema-per-tenant mode—use `databasePerTenant`.
 
 ## Row-level usage
 

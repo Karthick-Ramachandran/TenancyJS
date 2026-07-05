@@ -7,6 +7,10 @@ model preferences.
 
 ## Lessons
 
+- Drizzle's SQL template expands a JavaScript array interpolation as a SQL tuple, not one PostgreSQL
+  array parameter. Shared executor bindings such as `text[]` must use `sql.param(value)` explicitly or
+  RLS/schema introspection fails before validation can report the real policy state.
+
 - Lucid bulk/quiet/`.pojo()` paths skip model hooks and therefore do not inherit schema-mode
   `search_path`; keep tenant table names absent from the central schema so those paths fail closed.
 - Standalone Lucid 22 database fixtures need an emitter with both `emit` and `hasListeners`; an

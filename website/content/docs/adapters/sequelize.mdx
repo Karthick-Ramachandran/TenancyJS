@@ -1,6 +1,6 @@
 ---
 title: Sequelize
-description: All three PostgreSQL tenancy strategies through a protected Sequelize model facade.
+description: Protected Sequelize model isolation for PostgreSQL and MySQL.
 ---
 
 `tenancyjs-adapter-sequelize` provides row-level, schema-per-tenant, and database-per-tenant isolation
@@ -108,6 +108,9 @@ createSequelizeTenancy({
 
 Call `validate()` before traffic and `close()` on shutdown. Native models, instances, includes,
 operators/literals, QueryInterface, raw SQL, sync, and migrations remain outside the guarantee.
+
+For MySQL, pass `dialect: "mysql"`. Row isolation is experimental and adapter-enforced because MySQL
+has no RLS. MySQL schema and database are synonyms, so use `databasePerTenant` instead of schema mode.
 
 ## Use a different framework
 

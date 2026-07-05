@@ -28,24 +28,32 @@ export async function detectProject(root: string): Promise<ProjectDetection> {
             dependencies.express,
             /(?:^|\D)5\.2(?:\D|$)/u,
           );
-  const orm: DetectedComponent<DetectedOrm> =
-    dependencies["@adonisjs/lucid"] !== undefined
-      ? detectComponent(
-          "lucid",
-          dependencies["@adonisjs/lucid"],
-          /(?:^|\D)22\.4(?:\D|$)/u,
-        )
-      : detectComponent(
-          "prisma",
-          dependencies["@prisma/client"],
-          /(?:^|\D)7\.8(?:\D|$)/u,
-        );
+  const orm = detectOrm(dependencies);
   return Object.freeze({
     root: resolvedRoot,
     framework,
     orm,
     supported: framework.supported && orm.supported,
   });
+}
+
+function detectOrm(
+  dependencies: Record<string, string>,
+): DetectedComponent<DetectedOrm> {
+  const candidates = [
+    ["lucid", "@adonisjs/lucid", /(?:^|\D)22\.4(?:\D|$)/u],
+    ["typeorm", "typeorm", /(?:^|\D)1(?:\D|$)/u],
+    ["sequelize", "sequelize", /(?:^|\D)6\.37(?:\D|$)/u],
+    ["drizzle", "drizzle-orm", /(?:^|\D)0\.45(?:\D|$)/u],
+    ["prisma", "@prisma/client", /(?:^|\D)7\.8(?:\D|$)/u],
+  ] as const;
+  const installed = candidates.filter(
+    ([, packageName]) => dependencies[packageName] !== undefined,
+  );
+  if (installed.length !== 1)
+    return Object.freeze({ name: "unknown", supported: false });
+  const [name, packageName, range] = installed[0]!;
+  return detectComponent(name, dependencies[packageName], range);
 }
 
 function detectComponent<TName extends string>(

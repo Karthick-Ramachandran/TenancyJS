@@ -15,3 +15,20 @@ export function deferredDatabaseValidationResult(
     ]),
   });
 }
+
+export function adapterEnforcedRowValidationResult(
+  codePrefix: `TENANCY_${string}`,
+  adapterName: string,
+  databaseName: string,
+): TenancyAdapterValidationResult {
+  return Object.freeze({
+    valid: true,
+    issues: Object.freeze([
+      Object.freeze({
+        code: `${codePrefix}_ROW_ISOLATION_ADAPTER_ENFORCED`,
+        severity: "warning" as const,
+        message: `${adapterName} row-level isolation on ${databaseName} is adapter-enforced and experimental; the database has no row-level security backstop, so every tenant operation must use the protected facade.`,
+      }),
+    ]),
+  });
+}
