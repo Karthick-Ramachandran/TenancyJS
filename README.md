@@ -46,8 +46,8 @@ not `search_path`) - and the toolkit tells you so rather than pretending.
 
 - **Frameworks:** Express 5, Next.js (App Router), AdonisJS 7, NestJS 11 (Express or Fastify) - plus a
   framework-neutral core.
-- **ORMs / databases:** Prisma (PostgreSQL + MySQL); Knex, Lucid 22, TypeORM, and Sequelize
-  (PostgreSQL); Mongoose 9 (MongoDB replica set). Node.js 24+.
+- **ORMs / databases:** Prisma (PostgreSQL; MySQL is experimental); Knex, Lucid 22, TypeORM, and
+  Sequelize (PostgreSQL); Mongoose 9 (MongoDB replica set). Node.js 24+.
 
 ## Operational CLI
 

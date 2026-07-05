@@ -14,15 +14,21 @@ Start here — it decides which strategies are even available to you.
 | Database | Row-level | Schema-per-tenant | Database-per-tenant | Adapters |
 | --- | :---: | :---: | :---: | --- |
 | **PostgreSQL** | ✅ | ✅ | ✅ | Knex · Lucid · Prisma · TypeORM · Sequelize |
-| **MySQL** | ✅ | — | — | Prisma |
+| **MySQL** | 🧪 | — | — | Prisma |
 | **MongoDB** | ✅ ¹ | — | — | Mongoose |
+
+✅ tested-supported · 🧪 experimental · — not available
 
 <Callout type="warn">
   **Schema-per-tenant and database-per-tenant are PostgreSQL-only.** They rely on Postgres mechanisms —
   forced row-level security and a transaction-local `search_path`. On **MySQL** and **MongoDB** the
-  available strategy is **row-level** (via query-scoping, not RLS). If you're on MySQL or Mongo, that's
-  your path — and it's a first-class one.
+  available strategy is **row-level** (via query-scoping, not RLS).
 </Callout>
+
+🧪 **MySQL row-level is experimental.** MySQL has no row-level security, so it's facade-only (no
+database-level backstop), and it's had less real-world exposure than the Postgres path. It works and is
+tested, but treat it as experimental until it's proven in production. See
+[how it's enforced](#how-each-is-enforced).
 
 ¹ **MongoDB is facade-only.** It has no row-level security, so isolation is enforced entirely by the
 adapter's query facade — using the native model, collection, or connection bypasses it. Treat it as a
@@ -34,7 +40,7 @@ strong convention, not a database-level guarantee.
 | --- | --- | :---: | :---: | :---: |
 | **Knex** | PostgreSQL | ✅ | ✅ | ✅ |
 | **Lucid** (AdonisJS) | PostgreSQL | ✅ | ✅ | ✅ |
-| **Prisma** | PostgreSQL · MySQL | ✅ | — | ✅ |
+| **Prisma** | PostgreSQL · MySQL 🧪 | ✅ | — | ✅ |
 | **TypeORM** | PostgreSQL | ✅ | — | — |
 | **Sequelize** | PostgreSQL | ✅ | — | — |
 | **Mongoose** | MongoDB | ✅ ¹ | — | — |
@@ -46,7 +52,7 @@ strong convention, not a database-level guarantee.
 - **PostgreSQL, row-level & schema-per-tenant** — forced Postgres **RLS** (the database rejects
   cross-tenant rows even under raw SQL), plus the adapter's facade. Schema-per-tenant adds a
   transaction-local `search_path` and an optional per-tenant role.
-- **MySQL, row-level** — the Prisma adapter's **query-scoping**. MySQL has **no row-level security**, so
+- **MySQL, row-level (🧪 experimental)** — the Prisma adapter's **query-scoping**. MySQL has **no row-level security**, so
   — like Mongoose — isolation is enforced *entirely by the adapter facade, with no database-level
   backstop*. It's a weaker guarantee than Postgres row-level (which the database also enforces); keep
   all tenant access going through the adapter.

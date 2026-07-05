@@ -11,8 +11,9 @@ It's the right default when your tenants are many and lightweight, and you don't
 separation.
 
 <Callout type="info">
-  **Available on all three databases:** PostgreSQL (forced RLS), MySQL (Prisma query-scoping), and
-  MongoDB (Mongoose facade). It's the *only* strategy on MySQL and MongoDB — and a first-class one.
+  **Available on all three databases:** PostgreSQL (forced RLS), MySQL (Prisma query-scoping —
+  🧪 experimental), and MongoDB (Mongoose facade). It's the *only* strategy on MySQL and MongoDB. See
+  the [capability matrix](/docs/concepts/capability-matrix#by-database) for the per-database posture.
 </Callout>
 
 ## How it's enforced
@@ -60,7 +61,7 @@ escaped the facade cannot read another tenant's rows — the database refuses.
 
 ## Databases
 
-Row-level runs on **PostgreSQL** (forced RLS), **MySQL** (query-scoping via Prisma), and **MongoDB**
+Row-level runs on **PostgreSQL** (forced RLS), **MySQL** (query-scoping via Prisma, 🧪 experimental), and **MongoDB**
 (Mongoose facade).
 
 ## When to reach for more

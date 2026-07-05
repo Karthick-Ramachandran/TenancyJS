@@ -397,3 +397,54 @@ https://react.dev/link/hydration-mismatch
  GET /docs/concepts/capability-matrix 200 in 666ms (next.js: 6ms, generate-params: 1668µs, application-code: 661ms)
  GET /docs/concepts/capability-matrix 200 in 45ms (next.js: 11ms, generate-params: 1469µs, application-code: 34ms)
  GET /docs/concepts/capability-matrix 200 in 36ms (next.js: 5ms, generate-params: 1471µs, application-code: 30ms)
+ GET /docs/concepts/capability-matrix 200 in 377ms (next.js: 13ms, generate-params: 2ms, application-code: 364ms)
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <HotReload globalError={[...]} webSocket={WebSocket} staticIndicatorState={{pathname:null, ...}}>
+      <AppDevOverlayErrorBoundary globalError={[...]}>
+        <ReplaySsrOnlyErrors>
+        <DevRootHTTPAccessFallbackBoundary>
+          <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>
+            <HTTPAccessFallbackErrorBoundary pathname="/docs/conc..." notFound={<NotAllowedRootHTTPFallbackError>} ...>
+              <RedirectBoundary>
+                <RedirectErrorBoundary router={{...}}>
+                  <Head>
+                  <__next_root_layout_boundary__>
+                    <SegmentViewNode type="layout" pagePath="layout.tsx">
+                      <SegmentTrieNode>
+                      <link>
+                      <script>
+                      <script>
+                      <script>
+                      <Layout>
+                        <html lang="en" className="geist_9c6c..." suppressHydrationWarning={true}>
+                          <body
+                            className="flex min-h-screen flex-col"
+-                           cz-shortcut-listen="true"
+                          >
+                  ...
+ 
+ GET /docs/concepts/capability-matrix 200 in 68ms (next.js: 15ms, generate-params: 3ms, application-code: 54ms)
+ GET /docs/adapters 200 in 527ms (next.js: 1309µs, generate-params: 25µs, application-code: 526ms)
+✓ Compiled in 48ms
+ GET /docs/concepts/capability-matrix 200 in 41ms (next.js: 7ms, generate-params: 1713µs, application-code: 34ms)
+ GET /docs/concepts/capability-matrix 200 in 74ms (next.js: 17ms, generate-params: 1792µs, application-code: 57ms)
+ GET /docs/concepts/capability-matrix 200 in 366ms (next.js: 4ms, generate-params: 1772µs, application-code: 362ms)
+ GET /docs/concepts/capability-matrix 200 in 41ms (next.js: 6ms, generate-params: 1231µs, application-code: 35ms)
+ GET /docs/concepts/capability-matrix 200 in 28ms (next.js: 5ms, generate-params: 1202µs, application-code: 23ms)
+ GET /docs/concepts/capability-matrix 200 in 18ms (next.js: 8ms, generate-params: 2ms, application-code: 10ms)
+ GET /docs/concepts/capability-matrix 200 in 967ms (next.js: 27ms, generate-params: 3ms, application-code: 939ms)
+ GET /docs/concepts/capability-matrix 200 in 828ms (next.js: 386ms, generate-params: 58µs, application-code: 442ms)
+ GET /docs/concepts/capability-matrix 200 in 170ms (next.js: 11ms, generate-params: 1373µs, application-code: 159ms)
+ GET /docs/concepts/capability-matrix 200 in 131ms (next.js: 5ms, generate-params: 31µs, application-code: 126ms)

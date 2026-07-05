@@ -1,10 +1,10 @@
 ---
 title: Prisma
-description: Row-level and database-per-tenant isolation for Prisma (PostgreSQL + MySQL) — wired end to end.
+description: Row-level and database-per-tenant isolation for Prisma (PostgreSQL + experimental MySQL) — wired end to end.
 ---
 
 `tenancyjs-adapter-prisma` scopes Prisma queries to the active tenant via a **Prisma Client extension**.
-It supports **row-level** (PostgreSQL + MySQL) and **database-per-tenant**. Schema-per-tenant is
+It supports **row-level** (PostgreSQL + MySQL 🧪 experimental) and **database-per-tenant**. Schema-per-tenant is
 intentionally unsupported — Prisma resolves tables from the datasource, not the session `search_path`.
 
 This page shows it wired **end to end with Express**; for another framework, swap only the integration
