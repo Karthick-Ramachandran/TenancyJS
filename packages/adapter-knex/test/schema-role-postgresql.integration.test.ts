@@ -1,8 +1,8 @@
-import { TenancyManager } from "@tenancyjs/core";
+import { TenancyManager } from "tenancyjs-core";
 import {
   createPostgresStrategyEngine,
   type PostgresExecutor,
-} from "@tenancyjs/adapter-shared";
+} from "tenancyjs-adapter-shared";
 import knex, { type Knex } from "knex";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 

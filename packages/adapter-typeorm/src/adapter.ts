@@ -4,14 +4,14 @@ import type {
   TenancyAdapterValidationResult,
   TenantContext,
   TenantRecord,
-} from "@tenancyjs/core";
-import { TenantContextError } from "@tenancyjs/core";
+} from "tenancyjs-core";
+import { TenantContextError } from "tenancyjs-core";
 import {
   applyPostgresRowContext,
   decideTenantDiscriminator,
   validatePostgresRlsPolicies,
   type PostgresExecutor,
-} from "@tenancyjs/adapter-shared";
+} from "tenancyjs-adapter-shared";
 import type {
   EntityManager,
   EntityTarget,

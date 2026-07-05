@@ -14,7 +14,7 @@ Complete; no blocking findings.
   central context.
 - Conventions: canonical `TenantResolver` is implemented; `TenantResolutionOutcome` and runner-neutral
   `TenancyContractCase` are recorded reusable primitives rather than competing context mechanisms.
-- Dependencies: identifiers/testing each have only `@tenancyjs/core` at runtime; no test-runner,
+- Dependencies: identifiers/testing each have only `tenancyjs-core` at runtime; no test-runner,
   framework, ORM, network, telemetry, file-write, cloud, MCP, or AI dependency was introduced.
 - Supply chain: all three positive-glob tarballs exclude source/tests/compiler metadata, install with
   scripts disabled into a fresh consumer, and execute public APIs. Audit reports no vulnerabilities.

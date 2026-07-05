@@ -1,4 +1,4 @@
-import type { LucidTenancyAdapter } from "@tenancyjs/adapter-lucid";
+import type { LucidTenancyAdapter } from "tenancyjs-adapter-lucid";
 import { describe, expect, it } from "vitest";
 
 import type { AdonisTenancyRunner } from "../src/index.js";

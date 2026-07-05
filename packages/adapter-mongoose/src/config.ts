@@ -1,4 +1,4 @@
-import type { TenancyManager, TenantRecord } from "@tenancyjs/core";
+import type { TenancyManager, TenantRecord } from "tenancyjs-core";
 import type { Connection, Model } from "mongoose";
 
 import { MongooseTenancyConfigurationError } from "./errors.js";

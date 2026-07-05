@@ -2,7 +2,7 @@
 
 ## Affected Modules
 
-- New `cli` module and published `@tenancyjs/cli` package with `tenancy` binary.
+- New `cli` module and published `tenancyjs-cli` package with `tenancy` binary.
 - No runtime changes to core, identifiers, Express integration, or Prisma adapter.
 - Root package/consumer/test configuration gains CLI build and binary coverage.
 

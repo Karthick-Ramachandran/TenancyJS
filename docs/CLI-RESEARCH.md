@@ -14,7 +14,7 @@ Purpose: Define a **complete, worthwhile** CLI for multi-tenancy on Node.js — 
 | Schema migrations | Prisma / Sequelize CLI / Lucid Ace / Drizzle Kit / migrate-mongo | **Delegate** with per-tenant connection URL or `--connection` |
 | Tenant registry | TenancyJS central DB | **Own** (CRUD, domains, status) |
 | Request context | Framework middleware | **Scaffold** via `init` |
-| Isolation | `@tenancyjs/adapter-*` | **Wire** via `init` + `doctor` |
+| Isolation | `tenancyjs-adapter-*` | **Wire** via `init` + `doctor` |
 
 Users should run **one mental model**:
 
@@ -79,7 +79,7 @@ npx tenancy <tenant-operation>
 | `node ace migration:status` | Per-tenant status |
 | `node ace migration:fresh` / `refresh` | Dev only; tenant loops |
 | `node ace db:seed` | Tenant seeders |
-| `node ace add <package>` | Install `@tenancyjs/integration-adonis` |
+| `node ace add <package>` | Install `tenancyjs-integration-adonis` |
 | `MigrationRunner` (programmatic) | Provision UI / `tenancy provision` |
 
 Lucid docs explicitly describe **shared migrations + `--connection`** for multi-tenant DBs — this is the Adonis-native primitive TenancyJS must wrap.
@@ -332,7 +332,7 @@ Central tables: `tenants`, `tenant_domains`, optional `tenant_users`, `pending_t
 | `node ace tenancy:provision` | `tenancy provision` |
 | `node ace tenancy:doctor` | `tenancy doctor` |
 
-Register via Adonis provider; implementation calls shared `@tenancyjs/cli-core` library (no duplicate logic).
+Register via Adonis provider; implementation calls shared `tenancyjs-cli-core` library (no duplicate logic).
 
 ---
 
@@ -367,7 +367,7 @@ Register via Adonis provider; implementation calls shared `@tenancyjs/cli-core` 
 
 **Adonis branch extras:**
 
-- `node ace configure @tenancyjs/integration-adonis` style configure.ts if package supports it.
+- `node ace configure tenancyjs-integration-adonis` style configure.ts if package supports it.
 - Document `migration:run --connection=tenant_*` for manual debugging.
 
 ---
@@ -399,12 +399,12 @@ Register via Adonis provider; implementation calls shared `@tenancyjs/cli-core` 
 
 ---
 
-## 9. Implementation note: shared `@tenancyjs/cli-core`
+## 9. Implementation note: shared `tenancyjs-cli-core`
 
 ```
-@tenancyjs/cli-core     # TenancyCommandRunner, tenant iteration, ORM delegates
-@tenancyjs/cli          # bin `tenancy` → commander/citty
-@tenancyjs/integration-adonis/commands  # Ace re-exports
+tenancyjs-cli-core     # TenancyCommandRunner, tenant iteration, ORM delegates
+tenancyjs-cli          # bin `tenancy` → commander/citty
+tenancyjs-integration-adonis/commands  # Ace re-exports
 ```
 
 All framework-specific code lives in **init templates**, not in command logic.

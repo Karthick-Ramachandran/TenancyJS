@@ -1,8 +1,8 @@
 ---
-"@tenancyjs/adapter-shared": minor
-"@tenancyjs/adapter-knex": minor
-"@tenancyjs/adapter-lucid": minor
-"@tenancyjs/adapter-prisma": patch
+"tenancyjs-adapter-shared": minor
+"tenancyjs-adapter-knex": minor
+"tenancyjs-adapter-lucid": minor
+"tenancyjs-adapter-prisma": patch
 ---
 
 Add the shared PostgreSQL isolation engine, consolidate adapter identifiers and discriminator rules,

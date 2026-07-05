@@ -2,10 +2,10 @@
 
 ## Affected Modules
 
-- `@tenancyjs/core`: `TenancyStrategy` union, `TenancyAdapterCapabilities`, `defineConfig` validation.
-- `@tenancyjs/adapter-shared`: new package owning shared isolation decisions and dialect engines.
-- `@tenancyjs/adapter-knex`, `@tenancyjs/adapter-lucid`: thin PostgreSQL schema strategy bindings.
-- `@tenancyjs/adapter-prisma`: consumes shared identifier/discriminator decisions but retains its own
+- `tenancyjs-core`: `TenancyStrategy` union, `TenancyAdapterCapabilities`, `defineConfig` validation.
+- `tenancyjs-adapter-shared`: new package owning shared isolation decisions and dialect engines.
+- `tenancyjs-adapter-knex`, `tenancyjs-adapter-lucid`: thin PostgreSQL schema strategy bindings.
+- `tenancyjs-adapter-prisma`: consumes shared identifier/discriminator decisions but retains its own
   query-rewrite boundary; Prisma schema-per-tenant remains deferred.
 - Later: the CLI (`provision`/`deprovision`, migrate routing) and the host `TenantStore` contract (returns
   identity + placement).

@@ -1,4 +1,4 @@
-import type { MaybePromise, TenantRecord } from "@tenancyjs/core";
+import type { MaybePromise, TenantRecord } from "tenancyjs-core";
 import type { EntityTarget, ObjectLiteral } from "typeorm";
 
 export type TypeOrmScalar = string | number | boolean | Date | null;

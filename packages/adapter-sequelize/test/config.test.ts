@@ -1,4 +1,4 @@
-import { TenancyManager } from "@tenancyjs/core";
+import { TenancyManager } from "tenancyjs-core";
 import type { Model, ModelStatic, Sequelize } from "sequelize";
 import { describe, expect, it } from "vitest";
 

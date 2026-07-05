@@ -1,6 +1,6 @@
-import type { TenantRecord } from "@tenancyjs/core";
-import { TenantContextError } from "@tenancyjs/core";
-import { decideTenantDiscriminator } from "@tenancyjs/adapter-shared";
+import type { TenantRecord } from "tenancyjs-core";
+import { TenantContextError } from "tenancyjs-core";
+import { decideTenantDiscriminator } from "tenancyjs-adapter-shared";
 
 import {
   type PrismaTenancyConfig,

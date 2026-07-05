@@ -1,5 +1,5 @@
 import { Logger } from "@adonisjs/core/logger";
-import { TenancyManager } from "@tenancyjs/core";
+import { TenancyManager } from "tenancyjs-core";
 import { Database } from "@adonisjs/lucid/database";
 import { BaseModel, column } from "@adonisjs/lucid/orm";
 import knex, { type Knex } from "knex";

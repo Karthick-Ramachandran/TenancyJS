@@ -14,7 +14,7 @@
   does not import the Adonis integration.
 - `integration-adonis` depends on core, identifiers, and Lucid adapter and peers on AdonisJS 7.3 and
   Lucid 22.4 with Node 24. Ace factories accept a structural CLI service port; the integration does not depend on
-  `@tenancyjs/cli`. Core imports none of these dependencies.
+  `tenancyjs-cli`. Core imports none of these dependencies.
 - Every package and integration uses the common Node 24 baseline under ADR-0013.
 
 ## ADR Impact

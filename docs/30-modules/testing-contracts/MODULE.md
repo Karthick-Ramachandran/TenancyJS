@@ -24,7 +24,7 @@ integration lifecycle invariants.
 
 ## Boundaries
 
-Depends only on `@tenancyjs/core`. Cases throw on invariant violation and consumers register them with
+Depends only on `tenancyjs-core`. Cases throw on invariant violation and consumers register them with
 their chosen runner. The package imports no ORM or test runner. Feature sources:
 `docs/40-features/F-002-tenant-identification-testing-contracts/` and
 `docs/40-features/F-003-prisma-adapter/`.

@@ -28,13 +28,13 @@ the operation does not execute.
 ## In Scope
 
 - A minimal framework-neutral `TenancyAdapter` capability/validation type contract.
-- `@tenancyjs/adapter-prisma` as a shareable Prisma Client query extension.
+- `tenancyjs-adapter-prisma` as a shareable Prisma Client query extension.
 - Explicit classification of every observed model as tenant-scoped or central.
 - Configurable tenant discriminator fields per tenant-scoped model.
 - Tenant scoping for supported top-level reads, writes, bulk operations, aggregates, and transactions.
 - Typed rejection for missing context, unregistered models, raw queries, tenant-field tampering, and
   unsupported nested relation reads/writes.
-- A runner-neutral row-level adapter contract in `@tenancyjs/testing` and a real PostgreSQL Prisma
+- A runner-neutral row-level adapter contract in `tenancyjs-testing` and a real PostgreSQL Prisma
   integration lane.
 - Package exports, consumer checks, documentation, Changesets, and security evidence.
 - A published Adapter Security Contract, operation matrix, migration guide, and repeatable overhead

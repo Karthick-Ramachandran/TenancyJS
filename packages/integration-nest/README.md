@@ -1,4 +1,4 @@
-# `@tenancyjs/integration-nest`
+# `tenancyjs-integration-nest`
 
 Fail-closed NestJS 11 request lifecycle integration for TenancyJS on Node 24.
 

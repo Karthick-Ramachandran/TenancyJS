@@ -3,7 +3,7 @@ import type {
   TenancyAdapterValidationResult,
   TenantContext,
   TenantRecord,
-} from "@tenancyjs/core";
+} from "tenancyjs-core";
 
 import { assertSqlIdentifier } from "./identifiers.js";
 

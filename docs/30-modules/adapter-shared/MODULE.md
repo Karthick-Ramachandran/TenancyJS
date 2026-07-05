@@ -29,7 +29,7 @@ engines, while keeping ORM packages thin and user-facing.
 
 ## Boundaries
 
-- Depends only on `@tenancyjs/core`; it imports no ORM or framework.
+- Depends only on `tenancyjs-core`; it imports no ORM or framework.
 - Knex, Lucid, and Prisma may consume shared pure decisions; only PostgreSQL-capable adapters bind the
   Postgres executor contract.
 - All SQL values are parameterized. Identifiers are validated before being used as placement values.

@@ -19,7 +19,7 @@
     "build": "tsc -b",
     "benchmark:prisma": "pnpm build && node packages/adapter-prisma/benchmark/operation-policy.mjs",
     "clean": "tsc -b --clean",
-    "fixtures:generate": "pnpm --filter @tenancyjs/adapter-prisma prisma:generate && pnpm --filter @tenancyjs/adapter-prisma prisma:generate:mysql",
+    "fixtures:generate": "pnpm --filter tenancyjs-adapter-prisma prisma:generate && pnpm --filter tenancyjs-adapter-prisma prisma:generate:mysql",
     "typecheck": "pnpm fixtures:generate && tsc -b --pretty false && tsc -p tsconfig.test.json --pretty false",
     "lint": "eslint .",
     "format": "prettier --write . --ignore-path .prettierignore",

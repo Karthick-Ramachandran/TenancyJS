@@ -6,7 +6,7 @@ import { CliProjectError, CliUsageError } from "./errors.js";
 
 /**
  * The runtime contract the operational CLI reads from a host's tenancy config
- * (ADR-0027). It mirrors `@tenancyjs/core`'s `TenancyRuntime` structurally so
+ * (ADR-0027). It mirrors `tenancyjs-core`'s `TenancyRuntime` structurally so
  * the CLI stays zero-dependency; the brand below identifies it across package
  * versions via the global symbol registry.
  */
@@ -108,7 +108,7 @@ export async function loadTenancyRuntime(
  * Wrap a loaded store so its results are validated before any command acts on
  * them: `find`/`suspend`/`activate` must return the tenant that was asked for,
  * `list` must return unique well-formed tenants, and `create` must echo an
- * explicitly requested id. Mirrors `@tenancyjs/core`'s `hardenTenantStore`,
+ * explicitly requested id. Mirrors `tenancyjs-core`'s `hardenTenantStore`,
  * reimplemented here to keep the CLI zero-dependency. Fail-closed: a mismatch
  * throws rather than letting one tenant's data surface under another's id.
  */
@@ -249,7 +249,7 @@ function assertBrandedRuntime(
   ) {
     throw new CliProjectError(
       `Your tenancy config at ${configLabel(root, resolved)} must export a runtime built with ` +
-        "defineTenancyRuntime({ manager, store, adapters }) from @tenancyjs/core " +
+        "defineTenancyRuntime({ manager, store, adapters }) from tenancyjs-core " +
         "(as the default export, or a named `runtime`/`tenancy` export).",
     );
   }

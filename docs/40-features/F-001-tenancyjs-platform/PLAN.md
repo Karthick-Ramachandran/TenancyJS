@@ -14,7 +14,7 @@ evidence and may ship independently; later breadth cannot weaken earlier gates.
 
 ### Phase 1: Core And Testing Contracts
 
-- Implement `@tenancyjs/core`, identifiers, and `@tenancyjs/testing` core contracts.
+- Implement `tenancyjs-core`, identifiers, and `tenancyjs-testing` core contracts.
 - Prove concurrency, nesting, cleanup, bootstrap rollback, strict mode, and central scope.
 - Exit: no framework or ORM dependency in core; threat-model review and core tests pass.
 

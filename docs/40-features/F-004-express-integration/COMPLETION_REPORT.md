@@ -7,7 +7,7 @@ Complete and ready for review. Local and hosted Node 22/24 PostgreSQL evidence p
 ## Files Changed
 
 - Architecture: accepted ADR-0008 and updated product/architecture/security/threat memory.
-- Package: `@tenancyjs/integration-express` middleware, immutable request adaptation, typed errors,
+- Package: `tenancyjs-integration-express` middleware, immutable request adaptation, typed errors,
   public types, README, package metadata, build reference, coverage, and clean-consumer gate.
 - Tests: portable integration contract, fake lifecycle signals, Express 5/Supertest concurrency,
   thrown/rejected route handling, real client abort, resolution failures, and error redaction.

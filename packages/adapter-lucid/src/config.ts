@@ -2,13 +2,13 @@ import type {
   MaybePromise,
   TenancyManager,
   TenantRecord,
-} from "@tenancyjs/core";
+} from "tenancyjs-core";
 import {
   POSTGRES_CENTRAL_SETTING,
   POSTGRES_TENANT_SETTING,
   assertSqlIdentifier,
   normalizeQualifiedTable,
-} from "@tenancyjs/adapter-shared";
+} from "tenancyjs-adapter-shared";
 import type { Database } from "@adonisjs/lucid/database";
 import type { TransactionClientContract } from "@adonisjs/lucid/types/database";
 import type { LucidModel } from "@adonisjs/lucid/types/model";

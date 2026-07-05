@@ -8,7 +8,7 @@ PostgreSQL evidence. Provisioning remains.
 
 ## Files Changed
 
-- Added `@tenancyjs/adapter-shared`, accepted ADR-0019, and module memory.
+- Added `tenancyjs-adapter-shared`, accepted ADR-0019, and module memory.
 - Consolidated PostgreSQL RLS validation, transaction context, identifiers, and discriminator decisions.
 - Added the PostgreSQL schema strategy and thin Knex/Lucid bindings.
 - Added unit/security and real PostgreSQL schema isolation tests; updated capabilities and docs.

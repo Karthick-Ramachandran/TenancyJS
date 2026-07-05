@@ -15,8 +15,8 @@ context contracts without duplicating tenant state or ORM behavior.
 
 ## Does Not Own
 
-- Tenant context storage/lifecycle (`@tenancyjs/core`).
-- Identifier parsing, precedence, lookup, or tenant registry (`@tenancyjs/identifiers` and host app).
+- Tenant context storage/lifecycle (`tenancyjs-core`).
+- Identifier parsing, precedence, lookup, or tenant registry (`tenancyjs-identifiers` and host app).
 - Authentication, membership authorization, sessions, or central-route policy.
 - Prisma query enforcement or any other data-layer behavior.
 - CLI generation, migrations, provisioning, or database-per-tenant connection selection.

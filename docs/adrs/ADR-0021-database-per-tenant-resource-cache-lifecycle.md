@@ -13,7 +13,7 @@ database. Knex, Lucid, and Prisma need one lifecycle contract before any adapter
 
 ## Decision
 
-1. `@tenancyjs/adapter-shared` owns a generic, ORM-neutral `TenantResourceCache`. ORM adapters supply
+1. `tenancyjs-adapter-shared` owns a generic, ORM-neutral `TenantResourceCache`. ORM adapters supply
    resource creation/destruction and retain their native public clients.
 2. Every acquisition binds both the immutable tenant identity and an opaque, non-secret placement key.
    One tenant may have only one active placement and one placement key may belong to only one tenant;

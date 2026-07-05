@@ -8,7 +8,7 @@ Node 22/24 PostgreSQL CI and both Persist Doctor checks pass for the CR-001 comm
 ## Architecture Drift Review
 
 - The implementation follows ADR-0001 and ADR-0007: core gained data-only adapter vocabulary but no
-  Prisma import; `@tenancyjs/adapter-prisma` owns all Prisma behavior; testing remains runner/ORM-neutral.
+  Prisma import; `tenancyjs-adapter-prisma` owns all Prisma behavior; testing remains runner/ORM-neutral.
 - The package reads only the supplied `TenancyManager`; it introduces no second context store,
   framework integration, database-per-tenant behavior, migration runner, or schema writer.
 - Model/operation capability differences are explicit. The implementation does not claim nested/raw,
@@ -50,7 +50,7 @@ Node 22/24 PostgreSQL CI and both Persist Doctor checks pass for the CR-001 comm
 
 - Canonical `TenancyManager`, `TenancyAdapter`, `createPrismaTenancyExtension`, and
   `createRowLevelAdapterContract` names are used and recorded in `CONVENTIONS.md`.
-- The adapter package follows `@tenancyjs/adapter-*` naming and imports no integration. The testing
+- The adapter package follows `tenancyjs-adapter-*` naming and imports no integration. The testing
   contract uses the existing runner-neutral `{ name, run }` shape and typed assertion error.
 - No process-global tenant, duplicated context store, ORM import in core, or untested stable matrix
   claim was introduced.

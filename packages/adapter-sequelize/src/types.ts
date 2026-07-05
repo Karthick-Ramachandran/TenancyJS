@@ -1,4 +1,4 @@
-import type { MaybePromise } from "@tenancyjs/core";
+import type { MaybePromise } from "tenancyjs-core";
 import type { Model, ModelStatic } from "sequelize";
 
 export type SequelizeScalar = string | number | boolean | Date | null;

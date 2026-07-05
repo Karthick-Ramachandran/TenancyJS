@@ -4,7 +4,7 @@
 
 F-005 shipped a deterministic, argv-only CLI (`init`, `doctor`, `test:leak`) that scaffolds and
 diagnoses a single Express + Prisma stack. It deliberately deferred interactive prompts, more stacks,
-and any tenant operations. F-008 grows `@tenancyjs/cli` toward the v0.1 catalog in `docs/CLI-RESEARCH.md`
+and any tenant operations. F-008 grows `tenancyjs-cli` toward the v0.1 catalog in `docs/CLI-RESEARCH.md`
 so setup requires almost no hand-written code and the CLI is honest about what it supports.
 
 The product owner's UX direction: the CLI must be **helpful, not forceful**. When `init` cannot confirm

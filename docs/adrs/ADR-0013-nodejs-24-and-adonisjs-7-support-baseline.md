@@ -12,7 +12,7 @@ Accepted
 
 ## Superseded In Part
 
-Decisions 3 through 13 below — the AdonisJS 7 integration contract (the `@tenancyjs/integration-adonis`
+Decisions 3 through 13 below — the AdonisJS 7 integration contract (the `tenancyjs-integration-adonis`
 package boundary and AdonisJS 7.3 / Lucid 22.4 peer target, `defineAdonisTenancyConfig`, the provider
 lifecycle, tenant middleware, sanitized error mapping, tenant-route explicitness, the Japa helper, Ace
 factories, safe CLI init templates, the v6-to-v7 fixture, and the PostgreSQL 17 Adonis/Lucid isolation
@@ -49,7 +49,7 @@ npm `--force` upgrade commands never run at its root.
    install exceptions, and Node-version-specific test exclusions. Historical Node 22 evidence remains
    factual but is no longer part of the advertised support matrix.
 3. Continue targeting AdonisJS `>=7.3.0 <8` and Lucid `>=22.4.0 <23`. Publish
-   `@tenancyjs/integration-adonis` separately, depending inward on core, identifiers, and the Lucid
+   `tenancyjs-integration-adonis` separately, depending inward on core, identifiers, and the Lucid
    adapter. It imports no CLI package, base Knex client, or application model.
 4. Expose typed `defineAdonisTenancyConfig` for one application-owned manager, resolver, Lucid tenancy
    service, error mapping, and middleware options. Config contains no credentials, creates no hidden

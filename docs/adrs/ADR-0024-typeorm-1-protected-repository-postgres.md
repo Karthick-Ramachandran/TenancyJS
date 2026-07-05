@@ -13,7 +13,7 @@ engine without exposing a native object that bypasses it.
 
 ## Decision
 
-1. Publish `@tenancyjs/adapter-typeorm`, initially targeting TypeORM `>=1 <2`, PostgreSQL 17, and Node 24.
+1. Publish `tenancyjs-adapter-typeorm`, initially targeting TypeORM `>=1 <2`, PostgreSQL 17, and Node 24.
 2. Expose `createTypeOrmTenancy` with exhaustive tenant/central entity classification and a
    callback-scoped `run(protected => ...)` API. The base `DataSource`, transaction manager,
    `QueryRunner`, repository, query builder, and `.query()` never cross the boundary.

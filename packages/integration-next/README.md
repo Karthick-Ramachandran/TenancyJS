@@ -1,22 +1,22 @@
-# @tenancyjs/integration-next
+# tenancyjs-integration-next
 
 Fail-closed tenant context for Next.js 16.2 App Router Route Handlers and Server Actions.
 
 ## Install
 
 ```bash
-pnpm add @tenancyjs/core @tenancyjs/identifiers @tenancyjs/integration-next next
+pnpm add tenancyjs-core tenancyjs-identifiers tenancyjs-integration-next next
 ```
 
 ## Node runtime
 
 ```ts
-import { TenancyManager } from "@tenancyjs/core";
+import { TenancyManager } from "tenancyjs-core";
 import {
   HeaderTenantResolver,
   TenantResolutionChain,
-} from "@tenancyjs/identifiers";
-import { createNextTenancy } from "@tenancyjs/integration-next";
+} from "tenancyjs-identifiers";
+import { createNextTenancy } from "tenancyjs-integration-next";
 
 const manager = new TenancyManager();
 const resolver = new TenantResolutionChain({
@@ -43,7 +43,7 @@ Middleware may copy normalized identity metadata with the Edge-only export:
 
 ```ts
 import { NextResponse } from "next/server";
-import { withNextTenantHint } from "@tenancyjs/integration-next/edge";
+import { withNextTenantHint } from "tenancyjs-integration-next/edge";
 
 export function middleware(request: Request) {
   return NextResponse.next({

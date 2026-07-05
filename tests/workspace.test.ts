@@ -46,7 +46,7 @@ describe("workspace foundation", () => {
   it("keeps the core package free of framework and ORM dependencies", async () => {
     const manifest = await readJson("packages/core/package.json");
 
-    expect(manifest.name).toBe("@tenancyjs/core");
+    expect(manifest.name).toBe("tenancyjs-core");
     expect(manifest.dependencies ?? {}).toEqual({});
     expect(manifest.peerDependencies ?? {}).toEqual({});
     expect(manifest.exports).toHaveProperty(".");
@@ -57,7 +57,7 @@ describe("workspace foundation", () => {
       const manifest = await readJson(`packages/${packageName}/package.json`);
 
       expect(manifest.dependencies).toEqual({
-        "@tenancyjs/core": "workspace:*",
+        "tenancyjs-core": "workspace:*",
       });
       expect(manifest.peerDependencies ?? {}).toEqual({});
       expect(manifest.exports).toHaveProperty(".");
@@ -68,8 +68,8 @@ describe("workspace foundation", () => {
     const manifest = await readJson("packages/adapter-prisma/package.json");
 
     expect(manifest.dependencies).toEqual({
-      "@tenancyjs/adapter-shared": "workspace:*",
-      "@tenancyjs/core": "workspace:*",
+      "tenancyjs-adapter-shared": "workspace:*",
+      "tenancyjs-core": "workspace:*",
     });
     expect(manifest.peerDependencies).toEqual({
       "@prisma/client": ">=7.8.0 <7.9.0",

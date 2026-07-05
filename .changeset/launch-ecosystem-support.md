@@ -1,8 +1,8 @@
 ---
-"@tenancyjs/integration-nest": minor
-"@tenancyjs/adapter-typeorm": minor
-"@tenancyjs/adapter-sequelize": minor
-"@tenancyjs/adapter-mongoose": minor
+"tenancyjs-integration-nest": minor
+"tenancyjs-adapter-typeorm": minor
+"tenancyjs-adapter-sequelize": minor
+"tenancyjs-adapter-mongoose": minor
 ---
 
 Add NestJS 11 request lifecycle integration and protected row-level TypeORM 1, Sequelize 6, and

@@ -2,7 +2,7 @@ import type {
   MaybePromise,
   TenancyManager,
   TenantRecord,
-} from "@tenancyjs/core";
+} from "tenancyjs-core";
 
 export interface TenantFixture extends TenantRecord {
   readonly name: string;

@@ -13,7 +13,7 @@ must support both Nest's Express and Fastify platforms without importing either 
 
 ## Decision
 
-1. Publish `@tenancyjs/integration-nest` for NestJS `>=11 <12` and Node `>=24`.
+1. Publish `tenancyjs-integration-nest` for NestJS `>=11 <12` and Node `>=24`.
 2. `TenancyModule.forRoot(options)` registers a global tenant-resolution guard, context interceptor,
    and a singleton request-resolution service. `@TenantRoute()` explicitly marks tenant controllers or
    handlers; unmarked routes are not silently treated as tenant or central routes.

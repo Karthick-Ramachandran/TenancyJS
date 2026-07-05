@@ -1,4 +1,4 @@
-import { TenancyManager } from "@tenancyjs/core";
+import { TenancyManager } from "tenancyjs-core";
 import {
   createConnection,
   type Connection,

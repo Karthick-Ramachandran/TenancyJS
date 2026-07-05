@@ -6,8 +6,8 @@ import type {
   TenancyAdapterValidationResult,
   TenantContext,
   TenantRecord,
-} from "@tenancyjs/core";
-import { TenantContextError } from "@tenancyjs/core";
+} from "tenancyjs-core";
+import { TenantContextError } from "tenancyjs-core";
 import {
   PostgresStrategyValidationError,
   applyPostgresRowContext,
@@ -17,7 +17,7 @@ import {
   deferredDatabaseValidationResult,
   type PostgresExecutor,
   type PostgresSchemaStrategyEngine,
-} from "@tenancyjs/adapter-shared";
+} from "tenancyjs-adapter-shared";
 import type { TransactionClientContract } from "@adonisjs/lucid/types/database";
 import type {
   LucidModel,

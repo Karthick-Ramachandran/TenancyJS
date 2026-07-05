@@ -1,4 +1,4 @@
-import type { TenancyAdapterValidationResult } from "@tenancyjs/core";
+import type { TenancyAdapterValidationResult } from "tenancyjs-core";
 
 export function deferredDatabaseValidationResult(
   codePrefix: `TENANCY_${string}`,

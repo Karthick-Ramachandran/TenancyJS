@@ -1,5 +1,5 @@
 import { Logger } from "@adonisjs/core/logger";
-import { TenancyManager, type MaybePromise } from "@tenancyjs/core";
+import { TenancyManager, type MaybePromise } from "tenancyjs-core";
 import { Database } from "@adonisjs/lucid/database";
 import { BaseModel, column, hasMany } from "@adonisjs/lucid/orm";
 import type { HasMany } from "@adonisjs/lucid/types/relations";

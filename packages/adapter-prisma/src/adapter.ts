@@ -2,7 +2,7 @@ import type {
   TenancyAdapter,
   TenancyAdapterValidationResult,
   TenantRecord,
-} from "@tenancyjs/core";
+} from "tenancyjs-core";
 
 import { PRISMA_ADAPTER_CAPABILITIES } from "./capabilities.js";
 import {

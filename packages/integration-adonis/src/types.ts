@@ -3,11 +3,11 @@ import type {
   TenancyAdapterValidationResult,
   TenancyManager,
   TenantRecord,
-} from "@tenancyjs/core";
+} from "tenancyjs-core";
 import type {
   ResolverInput,
   TenantResolutionOutcome,
-} from "@tenancyjs/identifiers";
+} from "tenancyjs-identifiers";
 import type { HttpContext } from "@adonisjs/core/http";
 
 import type { AdonisTenancyResolutionError } from "./errors.js";
@@ -24,7 +24,7 @@ export interface AdonisTenantResolver<
 
 /**
  * The application-owned Lucid tenancy service the middleware runs tenant work
- * through. `@tenancyjs/adapter-lucid`'s `LucidTenancyAdapter` satisfies this
+ * through. `tenancyjs-adapter-lucid`'s `LucidTenancyAdapter` satisfies this
  * structurally; the integration creates no hidden database client of its own.
  */
 export interface AdonisTenancyRunner {

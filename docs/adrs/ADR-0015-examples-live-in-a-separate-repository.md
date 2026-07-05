@@ -10,14 +10,14 @@ The runnable example apps (AdonisJS/Lucid, Next.js/Prisma, Express/Prisma, Knex/
 committed inside this monorepo under `examples/*` and wired into the gate as workspace packages. That
 arrangement has a structural flaw: the examples depend on the libraries via `workspace:*`, so they
 exercise local source, not the packages an adopter actually installs from npm. They therefore cannot
-substantiate the core promise — "install `@tenancyjs/*` from npm and it works." They also drag their own
+substantiate the core promise — "install `tenancyjs-*` from npm and it works." They also drag their own
 toolchains (Next/Turbopack, the AdonisJS starter kit, Prisma generators) into the monorepo gate, and the
 examples are not publishable until the packages are on npm anyway.
 
 ## Decision
 
 The runnable examples do not live in this repository. They move to a **separate GitHub repository**,
-published after the `@tenancyjs/*` packages are live on npm, where each example installs the **published**
+published after the `tenancyjs-*` packages are live on npm, where each example installs the **published**
 packages the way a real adopter does and is tested E2E against them.
 
 This repository keeps only `packages/*` and their tests. `examples/` retains a single placeholder

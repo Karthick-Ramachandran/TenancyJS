@@ -1,5 +1,5 @@
 {
-  "name": "@tenancyjs/adapter-typeorm",
+  "name": "tenancyjs-adapter-typeorm",
   "version": "0.1.0-beta.0",
   "description": "Fail-closed TypeORM 1 tenant isolation for PostgreSQL.",
   "type": "module",
@@ -27,8 +27,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@tenancyjs/adapter-shared": "workspace:*",
-    "@tenancyjs/core": "workspace:*"
+    "tenancyjs-adapter-shared": "workspace:*",
+    "tenancyjs-core": "workspace:*"
   },
   "peerDependencies": {
     "typeorm": ">=1.0.0 <2"

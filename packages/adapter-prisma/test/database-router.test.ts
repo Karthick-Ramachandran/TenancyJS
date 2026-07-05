@@ -1,5 +1,5 @@
-import { TenantContextError, TenancyManager } from "@tenancyjs/core";
-import { TenantResourceCacheError } from "@tenancyjs/adapter-shared";
+import { TenantContextError, TenancyManager } from "tenancyjs-core";
+import { TenantResourceCacheError } from "tenancyjs-adapter-shared";
 import { describe, expect, it } from "vitest";
 
 import {

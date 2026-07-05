@@ -4,7 +4,7 @@ import type {
   NestInterceptor,
 } from "@nestjs/common";
 import type { Reflector } from "@nestjs/core";
-import type { TenancyManager, TenantRecord } from "@tenancyjs/core";
+import type { TenancyManager, TenantRecord } from "tenancyjs-core";
 import { Observable, type Subscriber, type Subscription } from "rxjs";
 
 import { isTenantRoute } from "./guard.js";

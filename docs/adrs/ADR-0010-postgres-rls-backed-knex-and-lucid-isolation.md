@@ -21,7 +21,7 @@ evidence without claiming every Knex/Lucid capability.
 
 ## Decision
 
-1. Publish separate `@tenancyjs/adapter-knex` and `@tenancyjs/adapter-lucid` packages. Knex depends on
+1. Publish separate `tenancyjs-adapter-knex` and `tenancyjs-adapter-lucid` packages. Knex depends on
    core and peers on Knex 3.3.x. Lucid remains a distinct public contract, may reuse reviewed Knex
    primitives, and initially peers on Lucid 21.8.x. The proven database is PostgreSQL 17 on Node 22/24.
 2. `createKnexTenancy` receives one application-owned `TenancyManager`, a private base Knex instance,
@@ -49,7 +49,7 @@ evidence without claiming every Knex/Lucid capability.
 8. Explicit core central context may access configured tenant tables through an adapter-owned central
    transaction flag; request input can never select it. Central tables remain separately allowlisted.
    The protected client still rejects raw/schema/client escapes in central mode.
-9. `@tenancyjs/adapter-lucid` exposes a Lucid-managed transaction service and `TenantScopedModel`
+9. `tenancyjs-adapter-lucid` exposes a Lucid-managed transaction service and `TenantScopedModel`
    lifecycle contract. Read/find/fetch/paginate hooks scope models; persistence hooks inject and lock
    the discriminator; all model/query work attaches to the active transaction. Forced RLS remains the
    final boundary for `.pojo()`, quiet, bulk, direct-builder, and relationship behavior.

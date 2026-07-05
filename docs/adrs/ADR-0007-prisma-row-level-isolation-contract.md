@@ -18,9 +18,9 @@ and where the reusable `TenancyAdapter` contract lives.
 ## Decision
 
 1. Add ORM-neutral `TenancyAdapter` name, strategy, capability, and validation-result types to
-   `@tenancyjs/core`. They are data-only contracts; core imports no Prisma code and implements no query
+   `tenancyjs-core`. They are data-only contracts; core imports no Prisma code and implements no query
    behavior.
-2. Publish the Prisma implementation separately as `@tenancyjs/adapter-prisma`, depending on core and
+2. Publish the Prisma implementation separately as `tenancyjs-adapter-prisma`, depending on core and
    declaring the CI-tested Prisma Client version as a peer. The initial compatibility target is Prisma
    7.8.x on current Node 22 and Node 24 lanes; broader ranges require explicit CI evidence.
 3. Expose a shareable query extension factory applied with `prisma.$extends(...)`. It reads context
@@ -43,7 +43,7 @@ and where the reusable `TenancyAdapter` contract lives.
    mechanism to enforce tenant isolation for arbitrary SQL; the adapter guarantees isolation only for
    supported Prisma Client operations. Future support requires a superseding or follow-up accepted ADR
    plus negative isolation tests.
-8. Add a runner-neutral two-tenant row-level adapter contract to `@tenancyjs/testing`; stable Prisma
+8. Add a runner-neutral two-tenant row-level adapter contract to `tenancyjs-testing`; stable Prisma
    claims require real PostgreSQL, Node/peer-version CI, and clean package-consumer evidence.
 9. Report typed errors using model/operation identifiers only. Do not include query arguments, row
    data, tenant records, or database connection values.

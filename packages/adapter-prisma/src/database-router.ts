@@ -2,12 +2,12 @@ import type {
   MaybePromise,
   TenancyManager,
   TenantRecord,
-} from "@tenancyjs/core";
-import { TenantContextError } from "@tenancyjs/core";
+} from "tenancyjs-core";
+import { TenantContextError } from "tenancyjs-core";
 import {
   createTenantResourceCache,
   type TenantResourceCache,
-} from "@tenancyjs/adapter-shared";
+} from "tenancyjs-adapter-shared";
 
 import { PrismaTenancyConfigurationError } from "./errors.js";
 

@@ -1,4 +1,4 @@
-import type { TenantRecord } from "@tenancyjs/core";
+import type { TenantRecord } from "tenancyjs-core";
 
 import {
   type PrismaTenancyConfig,

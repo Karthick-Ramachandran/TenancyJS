@@ -1,5 +1,5 @@
 import { PrismaPg } from "@prisma/adapter-pg";
-import { TenancyManager } from "@tenancyjs/core";
+import { TenancyManager } from "tenancyjs-core";
 import knex, { type Knex } from "knex";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 

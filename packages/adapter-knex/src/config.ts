@@ -2,13 +2,13 @@ import type {
   MaybePromise,
   TenancyManager,
   TenantRecord,
-} from "@tenancyjs/core";
+} from "tenancyjs-core";
 import {
   POSTGRES_CENTRAL_SETTING,
   POSTGRES_TENANT_SETTING,
   assertSqlIdentifier,
   normalizeQualifiedTable,
-} from "@tenancyjs/adapter-shared";
+} from "tenancyjs-adapter-shared";
 import type { Knex } from "knex";
 
 import {

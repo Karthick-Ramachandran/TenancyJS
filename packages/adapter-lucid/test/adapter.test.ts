@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { TenancyManager } from "@tenancyjs/core";
+import { TenancyManager } from "tenancyjs-core";
 import type { Database } from "@adonisjs/lucid/database";
 import type { TransactionClientContract } from "@adonisjs/lucid/types/database";
 import type { LucidModel, LucidRow } from "@adonisjs/lucid/types/model";

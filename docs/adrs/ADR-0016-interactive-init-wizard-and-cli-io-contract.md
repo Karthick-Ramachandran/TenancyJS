@@ -23,7 +23,7 @@ heavy dependency.
    `confirm(question)`. The real binary (`bin.ts`) implements them with Node's built-in
    `node:readline/promises` over the TTY. Tests inject a scripted prompter. `runCli` and the
    detection/plan core remain pure and deterministic — interactivity lives only at the `bin.ts` edge.
-3. **Zero new runtime dependency.** Prompts are built on the Node standard library; `@tenancyjs/cli`
+3. **Zero new runtime dependency.** Prompts are built on the Node standard library; `tenancyjs-cli`
    keeps zero runtime dependencies. No prompt library is added.
 4. **Non-interactive safety.** `--json`, `--yes`, and a non-TTY stdin never prompt. If a required field
    is unresolved in non-interactive mode, `init` emits a friendly error that names the exact flag to pass

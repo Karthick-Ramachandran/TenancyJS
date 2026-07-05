@@ -1,4 +1,4 @@
-import type { TenancyAdapterCapabilities } from "@tenancyjs/core";
+import type { TenancyAdapterCapabilities } from "tenancyjs-core";
 
 export const KNEX_ADAPTER_CAPABILITIES = Object.freeze({
   rowLevel: "supported",

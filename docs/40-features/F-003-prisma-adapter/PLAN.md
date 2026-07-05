@@ -6,7 +6,7 @@
 2. Implement pure configuration and operation-policy functions before coupling them to Prisma.
 3. Expose a shareable `$allModels.$allOperations` query extension that delegates each supported query
    exactly once after applying the policy.
-4. Add the runner-neutral row-level adapter contract to `@tenancyjs/testing`.
+4. Add the runner-neutral row-level adapter contract to `tenancyjs-testing`.
 5. Generate a dedicated Prisma integration client and run the contract against disposable PostgreSQL.
 6. Add package/consumer verification, documentation, Changeset, security review, and completion evidence.
 

@@ -8,7 +8,7 @@ surface, prove it on a real replica set, and reuse core context plus the shared 
 
 ## In Scope
 
-- `@tenancyjs/adapter-mongoose` for Mongoose 9.7, MongoDB 8 replica sets, and Node 24.
+- `tenancyjs-adapter-mongoose` for Mongoose 9.7, MongoDB 8 replica sets, and Node 24.
 - Adapter-enforced row-level isolation with exhaustive model classification and protected lean CRUD.
 - Database-per-tenant routing through the shared bounded cache; schema-per-tenant explicitly rejected.
 - Managed session/transaction lifecycle, colliding-ID adversarial tests, docs, changeset, and package evidence.

@@ -1,5 +1,5 @@
-import type { TenantContext } from "@tenancyjs/core";
-import { decideTenantDiscriminator } from "@tenancyjs/adapter-shared";
+import type { TenantContext } from "tenancyjs-core";
+import { decideTenantDiscriminator } from "tenancyjs-adapter-shared";
 import type { Knex } from "knex";
 
 import type { KnexTablePolicy } from "./config.js";

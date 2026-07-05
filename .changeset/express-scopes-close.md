@@ -1,5 +1,5 @@
 ---
-"@tenancyjs/integration-express": minor
+"tenancyjs-integration-express": minor
 ---
 
 Add fail-closed Express 5 tenant resolution middleware with full response lifecycle cleanup, typed

@@ -1,7 +1,7 @@
 export const EXPRESS_PRISMA_TEMPLATES = Object.freeze([
   Object.freeze({
     path: "tenancy.config.ts",
-    content: `import { defineConfig } from "@tenancyjs/core";
+    content: `import { defineConfig } from "tenancyjs-core";
 
 export default defineConfig({
   strategy: "rowLevel",
@@ -12,8 +12,8 @@ export default defineConfig({
   }),
   Object.freeze({
     path: "src/tenancy/register.ts",
-    content: `import { createPrismaTenancyExtension } from "@tenancyjs/adapter-prisma";
-import type { TenancyManager } from "@tenancyjs/core";
+    content: `import { createPrismaTenancyExtension } from "tenancyjs-adapter-prisma";
+import type { TenancyManager } from "tenancyjs-core";
 
 export function createTenancyExtension(manager: TenancyManager) {
   return createPrismaTenancyExtension({
@@ -27,9 +27,9 @@ export function createTenancyExtension(manager: TenancyManager) {
   }),
   Object.freeze({
     path: "src/middleware/tenancy.ts",
-    content: `import type { TenancyManager, TenantRecord } from "@tenancyjs/core";
-import type { TenantResolutionChain } from "@tenancyjs/identifiers";
-import { createExpressTenancyMiddleware } from "@tenancyjs/integration-express";
+    content: `import type { TenancyManager, TenantRecord } from "tenancyjs-core";
+import type { TenantResolutionChain } from "tenancyjs-identifiers";
+import { createExpressTenancyMiddleware } from "tenancyjs-integration-express";
 
 export function createTenancyMiddleware<TTenant extends TenantRecord>(
   manager: TenancyManager<TTenant>,
@@ -45,13 +45,13 @@ export const ADONIS_LUCID_TEMPLATES = Object.freeze([
   Object.freeze({
     path: "config/tenancy.ts",
     content: `import db from "@adonisjs/lucid/services/db";
-import { TenancyManager } from "@tenancyjs/core";
-import { createLucidTenancy } from "@tenancyjs/adapter-lucid";
+import { TenancyManager } from "tenancyjs-core";
+import { createLucidTenancy } from "tenancyjs-adapter-lucid";
 import {
   HeaderTenantResolver,
   TenantResolutionChain,
-} from "@tenancyjs/identifiers";
-import { defineAdonisTenancyConfig } from "@tenancyjs/integration-adonis";
+} from "tenancyjs-identifiers";
+import { defineAdonisTenancyConfig } from "tenancyjs-integration-adonis";
 
 // TODO: import your tenant-scoped Lucid models.
 // import Post from "#models/post";
@@ -97,7 +97,7 @@ export default defineAdonisTenancyConfig<Tenant>({
     path: "app/middleware/tenant_middleware.ts",
     content: `// Register the TenancyJS provider in adonisrc.ts, then apply this named
 // middleware to tenant route groups only. Central routes omit it.
-export { TenancyMiddleware as default } from "@tenancyjs/integration-adonis";
+export { TenancyMiddleware as default } from "tenancyjs-integration-adonis";
 `,
   }),
 ]);
@@ -105,7 +105,7 @@ export { TenancyMiddleware as default } from "@tenancyjs/integration-adonis";
 export const NEXT_PRISMA_TEMPLATES = Object.freeze([
   Object.freeze({
     path: "tenancy.config.ts",
-    content: `import { defineConfig } from "@tenancyjs/core";
+    content: `import { defineConfig } from "tenancyjs-core";
 
 export default defineConfig({
   strategy: "rowLevel",
@@ -116,8 +116,8 @@ export default defineConfig({
   }),
   Object.freeze({
     path: "lib/tenancy/register.ts",
-    content: `import { createPrismaTenancyExtension } from "@tenancyjs/adapter-prisma";
-import type { TenancyManager } from "@tenancyjs/core";
+    content: `import { createPrismaTenancyExtension } from "tenancyjs-adapter-prisma";
+import type { TenancyManager } from "tenancyjs-core";
 
 export function createTenancyExtension(manager: TenancyManager) {
   return createPrismaTenancyExtension({
@@ -131,9 +131,9 @@ export function createTenancyExtension(manager: TenancyManager) {
   }),
   Object.freeze({
     path: "lib/tenancy/server.ts",
-    content: `import type { TenancyManager, TenantRecord } from "@tenancyjs/core";
-import type { TenantResolutionChain } from "@tenancyjs/identifiers";
-import { createNextTenancy } from "@tenancyjs/integration-next";
+    content: `import type { TenancyManager, TenantRecord } from "tenancyjs-core";
+import type { TenantResolutionChain } from "tenancyjs-identifiers";
+import { createNextTenancy } from "tenancyjs-integration-next";
 
 // Wire this once, then import it from Route Handlers and Server Actions.
 // Do not run tenant-scoped database work inside a streamed response body.

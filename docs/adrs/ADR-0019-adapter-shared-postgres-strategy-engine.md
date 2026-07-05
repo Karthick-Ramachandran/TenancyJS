@@ -18,7 +18,7 @@ model hooks.
 
 ## Decision
 
-1. Add `@tenancyjs/adapter-shared` as a separately versioned but application-internal package. It owns
+1. Add `tenancyjs-adapter-shared` as a separately versioned but application-internal package. It owns
    dialect-neutral strategy contracts and PostgreSQL isolation primitives; public ORM packages remain
    the user-facing APIs.
 2. Move PostgreSQL RLS validation, transaction-context application, SQL-identifier/table-name

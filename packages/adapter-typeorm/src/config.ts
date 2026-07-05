@@ -1,5 +1,5 @@
-import type { TenancyManager, TenantRecord } from "@tenancyjs/core";
-import { normalizeQualifiedTable } from "@tenancyjs/adapter-shared";
+import type { TenancyManager, TenantRecord } from "tenancyjs-core";
+import { normalizeQualifiedTable } from "tenancyjs-adapter-shared";
 import type { DataSource, EntityTarget, ObjectLiteral } from "typeorm";
 
 import { TypeOrmTenancyConfigurationError } from "./errors.js";

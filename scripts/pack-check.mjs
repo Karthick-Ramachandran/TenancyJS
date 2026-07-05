@@ -6,21 +6,21 @@ import process from "node:process";
 
 const destination = await mkdtemp(join(tmpdir(), "tenancyjs-pack-"));
 const packages = [
-  { name: "@tenancyjs/adapter-shared", directory: "adapter-shared" },
-  { name: "@tenancyjs/adapter-knex", directory: "adapter-knex" },
-  { name: "@tenancyjs/adapter-lucid", directory: "adapter-lucid" },
-  { name: "@tenancyjs/adapter-mongoose", directory: "adapter-mongoose" },
-  { name: "@tenancyjs/core", directory: "core" },
-  { name: "@tenancyjs/adapter-prisma", directory: "adapter-prisma" },
-  { name: "@tenancyjs/adapter-sequelize", directory: "adapter-sequelize" },
-  { name: "@tenancyjs/adapter-typeorm", directory: "adapter-typeorm" },
-  { name: "@tenancyjs/cli", directory: "cli" },
-  { name: "@tenancyjs/identifiers", directory: "identifiers" },
-  { name: "@tenancyjs/integration-adonis", directory: "integration-adonis" },
-  { name: "@tenancyjs/integration-express", directory: "integration-express" },
-  { name: "@tenancyjs/integration-nest", directory: "integration-nest" },
-  { name: "@tenancyjs/integration-next", directory: "integration-next" },
-  { name: "@tenancyjs/testing", directory: "testing" },
+  { name: "tenancyjs-adapter-shared", directory: "adapter-shared" },
+  { name: "tenancyjs-adapter-knex", directory: "adapter-knex" },
+  { name: "tenancyjs-adapter-lucid", directory: "adapter-lucid" },
+  { name: "tenancyjs-adapter-mongoose", directory: "adapter-mongoose" },
+  { name: "tenancyjs-core", directory: "core" },
+  { name: "tenancyjs-adapter-prisma", directory: "adapter-prisma" },
+  { name: "tenancyjs-adapter-sequelize", directory: "adapter-sequelize" },
+  { name: "tenancyjs-adapter-typeorm", directory: "adapter-typeorm" },
+  { name: "tenancyjs-cli", directory: "cli" },
+  { name: "tenancyjs-identifiers", directory: "identifiers" },
+  { name: "tenancyjs-integration-adonis", directory: "integration-adonis" },
+  { name: "tenancyjs-integration-express", directory: "integration-express" },
+  { name: "tenancyjs-integration-nest", directory: "integration-nest" },
+  { name: "tenancyjs-integration-next", directory: "integration-next" },
+  { name: "tenancyjs-testing", directory: "testing" },
 ];
 
 try {
@@ -66,7 +66,7 @@ try {
         `${package_.name} contains forbidden files: ${forbiddenFiles.join(", ")}`,
       );
     }
-    if (package_.name === "@tenancyjs/adapter-prisma") {
+    if (package_.name === "tenancyjs-adapter-prisma") {
       const paths = new Set(packedFiles.map(({ path }) => path));
       for (const required of ["README.md", "MIGRATION.md", "BENCHMARK.md"]) {
         if (!paths.has(required)) {
@@ -100,22 +100,22 @@ try {
       "--input-type=module",
       "--eval",
       [
-        'import { TenancyManager, defineConfig } from "@tenancyjs/core";',
-        'import { assertSqlIdentifier } from "@tenancyjs/adapter-shared";',
-        'import { KNEX_ADAPTER_CAPABILITIES, createKnexTenancy } from "@tenancyjs/adapter-knex";',
-        'import { LUCID_ADAPTER_CAPABILITIES, createLucidTenancy } from "@tenancyjs/adapter-lucid";',
-        'import { PRISMA_ADAPTER_CAPABILITIES, createPrismaAdapter } from "@tenancyjs/adapter-prisma";',
-        'import { MONGOOSE_ADAPTER_CAPABILITIES, createMongooseTenancy } from "@tenancyjs/adapter-mongoose";',
-        'import { SEQUELIZE_ADAPTER_CAPABILITIES, createSequelizeTenancy } from "@tenancyjs/adapter-sequelize";',
-        'import { TYPEORM_ADAPTER_CAPABILITIES, createTypeOrmTenancy } from "@tenancyjs/adapter-typeorm";',
-        'import { redactText } from "@tenancyjs/cli";',
-        'import { HeaderTenantResolver, TenantResolutionChain } from "@tenancyjs/identifiers";',
-        'import { createExpressTenancyMiddleware } from "@tenancyjs/integration-express";',
-        'import { TenancyMiddleware, TenancyProvider, defineAdonisTenancyConfig } from "@tenancyjs/integration-adonis";',
-        'import { createNextTenancy } from "@tenancyjs/integration-next";',
-        'import { TenancyModule, TenantRoute } from "@tenancyjs/integration-nest";',
-        'import { createNextTenantHint } from "@tenancyjs/integration-next/edge";',
-        'import { createCoreTenancyContract, createTenantFixture } from "@tenancyjs/testing";',
+        'import { TenancyManager, defineConfig } from "tenancyjs-core";',
+        'import { assertSqlIdentifier } from "tenancyjs-adapter-shared";',
+        'import { KNEX_ADAPTER_CAPABILITIES, createKnexTenancy } from "tenancyjs-adapter-knex";',
+        'import { LUCID_ADAPTER_CAPABILITIES, createLucidTenancy } from "tenancyjs-adapter-lucid";',
+        'import { PRISMA_ADAPTER_CAPABILITIES, createPrismaAdapter } from "tenancyjs-adapter-prisma";',
+        'import { MONGOOSE_ADAPTER_CAPABILITIES, createMongooseTenancy } from "tenancyjs-adapter-mongoose";',
+        'import { SEQUELIZE_ADAPTER_CAPABILITIES, createSequelizeTenancy } from "tenancyjs-adapter-sequelize";',
+        'import { TYPEORM_ADAPTER_CAPABILITIES, createTypeOrmTenancy } from "tenancyjs-adapter-typeorm";',
+        'import { redactText } from "tenancyjs-cli";',
+        'import { HeaderTenantResolver, TenantResolutionChain } from "tenancyjs-identifiers";',
+        'import { createExpressTenancyMiddleware } from "tenancyjs-integration-express";',
+        'import { TenancyMiddleware, TenancyProvider, defineAdonisTenancyConfig } from "tenancyjs-integration-adonis";',
+        'import { createNextTenancy } from "tenancyjs-integration-next";',
+        'import { TenancyModule, TenantRoute } from "tenancyjs-integration-nest";',
+        'import { createNextTenantHint } from "tenancyjs-integration-next/edge";',
+        'import { createCoreTenancyContract, createTenantFixture } from "tenancyjs-testing";',
         "const manager = new TenancyManager();",
         "const prismaAdapter = createPrismaAdapter({ manager, tenantModels: { Post: {} } });",
         'const tenantId = await manager.runWithTenant({ id: "consumer" }, () => manager.getTenantOrFail().id);',

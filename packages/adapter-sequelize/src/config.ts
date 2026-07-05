@@ -1,5 +1,5 @@
-import type { TenancyManager, TenantRecord } from "@tenancyjs/core";
-import { normalizeQualifiedTable } from "@tenancyjs/adapter-shared";
+import type { TenancyManager, TenantRecord } from "tenancyjs-core";
+import { normalizeQualifiedTable } from "tenancyjs-adapter-shared";
 import type { Model, ModelStatic, Sequelize } from "sequelize";
 
 import { SequelizeTenancyConfigurationError } from "./errors.js";

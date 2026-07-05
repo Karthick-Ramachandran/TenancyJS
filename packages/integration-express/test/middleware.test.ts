@@ -1,15 +1,15 @@
 import { EventEmitter } from "node:events";
 
-import { TenancyManager } from "@tenancyjs/core";
-import type { TenantRecord } from "@tenancyjs/core";
+import { TenancyManager } from "tenancyjs-core";
+import type { TenantRecord } from "tenancyjs-core";
 import {
   HeaderTenantResolver,
   TenantResolutionChain,
-} from "@tenancyjs/identifiers";
+} from "tenancyjs-identifiers";
 import {
   createIntegrationTenancyContract,
   createTenantFixture,
-} from "@tenancyjs/testing";
+} from "tenancyjs-testing";
 import express from "express";
 import type { NextFunction, Request, Response } from "express";
 import request from "supertest";

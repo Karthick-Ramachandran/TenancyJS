@@ -1,5 +1,5 @@
 ---
-"@tenancyjs/cli": minor
+"tenancyjs-cli": minor
 ---
 
 `tenancy init` now detects AdonisJS 7.3 + Lucid 22.4 projects and scaffolds `config/tenancy.ts` and

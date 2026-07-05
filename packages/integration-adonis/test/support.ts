@@ -1,9 +1,9 @@
-import type { TenancyAdapterValidationResult } from "@tenancyjs/core";
+import type { TenancyAdapterValidationResult } from "tenancyjs-core";
 import type {
   ResolverInput,
   TenantIdentifier,
   TenantResolutionOutcome,
-} from "@tenancyjs/identifiers";
+} from "tenancyjs-identifiers";
 import type { HttpContext } from "@adonisjs/core/http";
 import type { NextFn } from "@adonisjs/core/types/http";
 import type { ApplicationService } from "@adonisjs/core/types";

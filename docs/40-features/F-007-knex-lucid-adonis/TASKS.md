@@ -53,7 +53,7 @@ reproduced locally against `postgres:17-alpine` (17.10).
 
 ## T5: Implement Adonis Provider And Middleware
 
-Status: Implemented — `@tenancyjs/integration-adonis` (typed config, provider, middleware, sanitized
+Status: Implemented — `tenancyjs-integration-adonis` (typed config, provider, middleware, sanitized
 error mapping) with 32 unit tests; full local gate green. Governed by ADR-0014 on the ADR-0013 Node 24
 baseline. Hosted Node 24 CI evidence pending a push; real AdonisJS/Lucid/PostgreSQL end-to-end proof is
 T6.

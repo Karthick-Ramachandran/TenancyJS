@@ -1,4 +1,4 @@
-import { TenancyManager, TenantContextError } from "@tenancyjs/core";
+import { TenancyManager, TenantContextError } from "tenancyjs-core";
 import type { ClientSession, Connection, Model } from "mongoose";
 import { describe, expect, it, vi } from "vitest";
 

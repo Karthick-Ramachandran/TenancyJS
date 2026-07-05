@@ -1,5 +1,5 @@
 {
-  "name": "@tenancyjs/integration-express",
+  "name": "tenancyjs-integration-express",
   "version": "0.1.0-beta.0",
   "description": "Fail-closed Express request lifecycle integration for TenancyJS.",
   "type": "module",
@@ -27,8 +27,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@tenancyjs/core": "workspace:*",
-    "@tenancyjs/identifiers": "workspace:*",
+    "tenancyjs-core": "workspace:*",
+    "tenancyjs-identifiers": "workspace:*",
     "@types/express": "5.0.6"
   },
   "peerDependencies": {

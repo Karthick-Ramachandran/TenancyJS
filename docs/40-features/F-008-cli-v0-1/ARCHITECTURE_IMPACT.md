@@ -2,7 +2,7 @@
 
 ## Affected Modules
 
-- `@tenancyjs/cli` (F-005): `detection.ts`, `types.ts`, `templates.ts`, `plan.ts`, `cli.ts`, `bin.ts`,
+- `tenancyjs-cli` (F-005): `detection.ts`, `types.ts`, `templates.ts`, `plan.ts`, `cli.ts`, `bin.ts`,
   `output.ts`/`errors.ts`, plus new `capabilities.ts`. Interactivity is added only at the `bin.ts`
   boundary; `runCli` and the plan/detection core stay pure.
 - Phase B will also touch a new tenant-registry module and the ORM adapters' migration surface.

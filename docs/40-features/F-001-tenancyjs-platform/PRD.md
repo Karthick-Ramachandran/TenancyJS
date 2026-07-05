@@ -25,8 +25,8 @@ feature, this feature is authoritative for initial delivery.
 - Data-layer adapter contract and stable adapters for Prisma, Sequelize, Knex, and Lucid.
 - Framework integration contract and stable integrations for Express, Next.js App Router, NestJS,
   and AdonisJS.
-- `@tenancyjs/testing` conformance suites and one runnable example for every advertised stable slice.
-- `@tenancyjs/cli` with safe stack detection, `init`, `doctor`, tenant registry operations, leak-test
+- `tenancyjs-testing` conformance suites and one runnable example for every advertised stable slice.
+- `tenancyjs-cli` with safe stack detection, `init`, `doctor`, tenant registry operations, leak-test
   execution, and later migration/seed delegation.
 - Row-level isolation for the first stable slices; database-per-tenant after row-level isolation and
   operational safety gates pass.

@@ -7,7 +7,7 @@ Accepted
 ## Supersedes
 
 - The AdonisJS 7 integration decisions of ADR-0013 (its Decisions 3 through 13): the separate
-  `@tenancyjs/integration-adonis` package boundary and its AdonisJS 7.3 / Lucid 22.4 peer target,
+  `tenancyjs-integration-adonis` package boundary and its AdonisJS 7.3 / Lucid 22.4 peer target,
   `defineAdonisTenancyConfig`, the provider lifecycle, the tenant middleware, the sanitized error
   mapping, tenant-route explicitness, the Japa helper/plugin, the Ace command factories, the safe CLI
   init templates, the v6-to-v7 compatibility fixture, and the PostgreSQL 17 Adonis/Lucid isolation
@@ -22,11 +22,11 @@ ADR-0013 was accepted to set Node.js 24 as the one repository-wide engine and CI
 superseded ADR-0012 wholesale, it also re-stated the entire AdonisJS 7 integration contract inside its
 own decision list. That conflated two unrelated concerns: a runtime baseline that applies to every
 package, and an integration-specific provider/middleware/testing contract that applies only to
-`@tenancyjs/integration-adonis`. The result forced integration and module memory to cite a Node
+`tenancyjs-integration-adonis`. The result forced integration and module memory to cite a Node
 baseline ADR for provider lifecycle and middleware decisions, which is structurally confusing and
 makes the accepted Adonis contract hard to locate and evolve.
 
-`@tenancyjs/integration-adonis` (F-007 task T5) has not been implemented yet, so extracting the
+`tenancyjs-integration-adonis` (F-007 task T5) has not been implemented yet, so extracting the
 integration contract into its own ADR now — before code is written against it — restores
 one-decision-per-ADR clarity at the lowest cost. No decision content changes; only its home does. The
 partial extraction follows the repository's established precedent, where ADR-0012 superseded only
@@ -34,7 +34,7 @@ specific decisions of ADR-0010 while ADR-0010 itself stayed accepted.
 
 ## Decision
 
-1. Publish `@tenancyjs/integration-adonis` separately. It targets AdonisJS `>=7.3.0 <8` and Lucid
+1. Publish `tenancyjs-integration-adonis` separately. It targets AdonisJS `>=7.3.0 <8` and Lucid
    `>=22.4.0 <23`, declares Node `>=24` (inheriting the ADR-0013 baseline), and depends inward on core,
    identifiers, and the Lucid adapter. It imports no CLI package, base Knex client, or application model.
 2. Expose typed `defineAdonisTenancyConfig` for one application-owned manager, resolver, Lucid tenancy

@@ -1,4 +1,4 @@
-# `@tenancyjs/identifiers`
+# `tenancyjs-identifiers`
 
 Framework-neutral tenant extraction and resolution outcomes for TenancyJS.
 

@@ -1,5 +1,5 @@
 ---
-"@tenancyjs/cli": minor
+"tenancyjs-cli": minor
 ---
 
 Add the safe Express + Prisma CLI foundation with dry-run initialization, conflict/symlink/path

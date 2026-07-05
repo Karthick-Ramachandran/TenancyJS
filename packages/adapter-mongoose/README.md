@@ -1,4 +1,4 @@
-# `@tenancyjs/adapter-mongoose`
+# `tenancyjs-adapter-mongoose`
 
 Fail-closed Mongoose 9 row-level isolation for MongoDB 8 replica sets and Node 24.
 

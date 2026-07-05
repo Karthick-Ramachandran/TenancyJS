@@ -13,7 +13,7 @@ can escape a protected query wrapper.
 
 ## Decision
 
-1. Publish `@tenancyjs/adapter-mongoose` for Mongoose `>=9.7 <10`, MongoDB 8 replica sets, and Node 24.
+1. Publish `tenancyjs-adapter-mongoose` for Mongoose `>=9.7 <10`, MongoDB 8 replica sets, and Node 24.
 2. Row-level isolation is explicitly **adapter-enforced**. A callback-scoped protected model facade
    injects/composes the tenant discriminator for reviewed CRUD/count operations, validates create and
    update conflicts, passes one adapter-owned session to every operation, and returns lean plain data.

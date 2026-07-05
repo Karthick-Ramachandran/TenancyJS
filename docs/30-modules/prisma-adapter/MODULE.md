@@ -31,7 +31,7 @@ core tenant context into safe Prisma query arguments.
 
 ## Boundaries
 
-Depends on public `@tenancyjs/core` context/contracts and a tested Prisma Client peer. It never imports
+Depends on public `tenancyjs-core` context/contracts and a tested Prisma Client peer. It never imports
 a framework or integration, stores tenant context, invokes Prisma CLI, rewrites schema files, or opens
 a second connection. Host applications apply the returned extension and expose only that extended
 client to tenant-aware code. Prisma's generated non-null create input still requires the discriminator;

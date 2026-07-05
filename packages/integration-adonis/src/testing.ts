@@ -1,4 +1,4 @@
-import type { MaybePromise, TenantRecord } from "@tenancyjs/core";
+import type { MaybePromise, TenantRecord } from "tenancyjs-core";
 
 import type { AdonisTenancyConfig } from "./types.js";
 

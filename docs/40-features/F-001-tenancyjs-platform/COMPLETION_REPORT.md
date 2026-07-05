@@ -9,16 +9,16 @@ hosted Node 22/24 verification on PR #7.
 
 - Persist OS product, architecture, security, testing, conventions, lessons, feature, module, and ADR memory.
 - Strict pnpm/TypeScript/ESLint/Prettier/Vitest/Changesets workspace with SHA-pinned CI and package gates.
-- `@tenancyjs/core`: async tenant/central lifecycle, rollback/events/errors, configuration, and
+- `tenancyjs-core`: async tenant/central lifecycle, rollback/events/errors, configuration, and
   ORM-neutral adapter capabilities.
-- `@tenancyjs/identifiers`: ordered fail-closed header/host/subdomain resolution.
-- `@tenancyjs/testing`: core/integration contracts and the shared row-level adapter contract.
-- `@tenancyjs/adapter-prisma`: Prisma 7.8 top-level row isolation, typed rejection boundaries,
+- `tenancyjs-identifiers`: ordered fail-closed header/host/subdomain resolution.
+- `tenancyjs-testing`: core/integration contracts and the shared row-level adapter contract.
+- `tenancyjs-adapter-prisma`: Prisma 7.8 top-level row isolation, typed rejection boundaries,
   explicit central access, transaction support, PostgreSQL conformance, and package documentation.
-- `@tenancyjs/integration-express`: Express 5 resolution, full response lifecycle cleanup, typed
+- `tenancyjs-integration-express`: Express 5 resolution, full response lifecycle cleanup, typed
   sanitized errors, and portable integration conformance.
 - `examples/express-prisma`: protected-client reference wiring and PostgreSQL HTTP isolation E2E.
-- `@tenancyjs/cli`: dry-run/apply initialization, safe staged new-file writes, Doctor inventory,
+- `tenancyjs-cli`: dry-run/apply initialization, safe staged new-file writes, Doctor inventory,
   redaction, JSON/exit codes, migration effort, and bounded explicit leak-test execution.
 - ADR-0001 through ADR-0008 are accepted.
 

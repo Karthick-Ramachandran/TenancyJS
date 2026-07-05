@@ -1,4 +1,4 @@
-# `@tenancyjs/adapter-prisma`
+# `tenancyjs-adapter-prisma`
 
 Fail-closed row-level tenant isolation for supported Prisma Client operations.
 
@@ -23,8 +23,8 @@ do not expose those nested operations as reliable interception hooks.
 
 ```ts
 import { PrismaClient } from "./generated/prisma/client.js";
-import { TenancyManager } from "@tenancyjs/core";
-import { createPrismaTenancyExtension } from "@tenancyjs/adapter-prisma";
+import { TenancyManager } from "tenancyjs-core";
+import { createPrismaTenancyExtension } from "tenancyjs-adapter-prisma";
 
 const tenancy = new TenancyManager();
 const basePrisma = new PrismaClient({ adapter: databaseDriverAdapter });

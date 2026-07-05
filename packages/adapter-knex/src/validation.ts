@@ -1,11 +1,11 @@
 import {
   validatePostgresRlsPolicies,
   type PostgresExecutor,
-} from "@tenancyjs/adapter-shared";
+} from "tenancyjs-adapter-shared";
 import type {
   TenancyAdapterValidationResult,
   TenantRecord,
-} from "@tenancyjs/core";
+} from "tenancyjs-core";
 
 import type { KnexTenancyConfig } from "./config.js";
 import { KNEX_CENTRAL_SETTING, KNEX_TENANT_SETTING } from "./config.js";

@@ -26,9 +26,9 @@ await tenancy.runWithTenant(tenant, async () => {
 ## Install
 
 ```bash
-npm install @tenancyjs/core
+npm install tenancyjs-core
 # then add an adapter + framework integration for your stack, e.g.
-npm install @tenancyjs/adapter-prisma @tenancyjs/integration-express
+npm install tenancyjs-adapter-prisma tenancyjs-integration-express
 ```
 
 ## Three isolation strategies, one contract
@@ -51,7 +51,7 @@ not `search_path`) — and the toolkit tells you so rather than pretending.
 
 ## Operational CLI
 
-`@tenancyjs/cli` scaffolds and operates a tenancy without ever guessing about your stack. It loads your
+`tenancyjs-cli` scaffolds and operates a tenancy without ever guessing about your stack. It loads your
 own `tenancy.config.ts` at runtime (Node 24 strips the types — no transpiler dependency) and acts
 against your live tenants:
 

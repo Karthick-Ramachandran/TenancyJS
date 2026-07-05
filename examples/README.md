@@ -2,7 +2,7 @@
 
 The runnable example apps do **not** live in this repository.
 
-They will be published as a **separate GitHub repository** once the `@tenancyjs/*`
+They will be published as a **separate GitHub repository** once the `tenancyjs-*`
 packages are live on npm. The examples must install TenancyJS the way a real adopter
 does — from the published npm packages — not through in-repo `workspace:*` links, which
 only exercise local source and cannot prove "install it and it works."

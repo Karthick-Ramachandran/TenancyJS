@@ -19,12 +19,12 @@ hosted CI.
 ## Files Changed
 
 - F-007 feature delivery memory, three module records, and accepted ADR-0010/ADR-0013/ADR-0014.
-- `@tenancyjs/integration-adonis`: typed `defineAdonisTenancyConfig`, AdonisJS 7 `TenancyProvider`,
+- `tenancyjs-integration-adonis`: typed `defineAdonisTenancyConfig`, AdonisJS 7 `TenancyProvider`,
   `TenancyMiddleware`, sanitized error types, package wiring (tsconfig/vitest/pack-check), and changeset.
-- `@tenancyjs/adapter-knex` config, typed errors, protected fluent client, managed transaction context,
+- `tenancyjs-adapter-knex` config, typed errors, protected fluent client, managed transaction context,
   forced-RLS validation, capability metadata, documentation, package wiring, and changeset.
 - Generic Knex/PostgreSQL reference migration/runtime and a real PostgreSQL 17 isolation suite for T3.
-- `@tenancyjs/adapter-lucid` config, forced-policy validation, managed Lucid transaction scope, model
+- `tenancyjs-adapter-lucid` config, forced-policy validation, managed Lucid transaction scope, model
   hooks, typed errors, documentation, packaging, and Lucid 22/PostgreSQL 17 test harness.
 
 ## Tests Run

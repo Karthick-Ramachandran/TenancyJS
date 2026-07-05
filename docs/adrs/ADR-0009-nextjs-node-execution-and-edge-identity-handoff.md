@@ -16,7 +16,7 @@ middleware can establish trusted tenant context.
 
 ## Decision
 
-1. Publish `@tenancyjs/integration-next` for Next.js 16.2.x on Node 22/24. It depends on core and
+1. Publish `tenancyjs-integration-next` for Next.js 16.2.x on Node 22/24. It depends on core and
    identifiers, uses Next as a peer, and imports no adapter.
 2. Expose `createNextTenancy(options)` returning `withRouteHandler`, `withServerAction`, and
    `runWithRequest` helpers over one application-owned manager and resolver.

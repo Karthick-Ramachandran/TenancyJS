@@ -1,5 +1,5 @@
-import { TenancyManager, TenantContextError } from "@tenancyjs/core";
-import type { TenantRecord } from "@tenancyjs/core";
+import { TenancyManager, TenantContextError } from "tenancyjs-core";
+import type { TenantRecord } from "tenancyjs-core";
 
 import { assertContract } from "./assertion.js";
 import { createTenantFixture } from "./fixtures.js";

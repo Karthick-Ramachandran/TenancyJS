@@ -1,4 +1,4 @@
-# @tenancyjs/adapter-knex
+# tenancyjs-adapter-knex
 
 Fail-closed Knex 3.3 row-level, schema-per-tenant, and database-per-tenant isolation for PostgreSQL 17.
 

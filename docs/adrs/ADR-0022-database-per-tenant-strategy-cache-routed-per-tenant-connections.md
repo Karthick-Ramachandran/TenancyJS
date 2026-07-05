@@ -16,7 +16,7 @@ tenant scope routes to its own connection, avoiding the mistakes made earlier th
 ## Decision
 
 1. **Cache-routed connections (shared orchestration, thin per-ORM binding).** The per-tenant connection
-   lifecycle lives in `@tenancyjs/adapter-shared` (the existing cache): `lease(tenantId, placementKey,
+   lifecycle lives in `tenancyjs-adapter-shared` (the existing cache): `lease(tenantId, placementKey,
    create, callback)`. Each adapter provides only `create` (build its own client/connection from the
    resolved config) and the query binding. No per-adapter reimplementation of routing/lifecycle.
 2. **Placement resolver (config now; `TenantStore` later).** Config gains, for `databasePerTenant`, a

@@ -1,4 +1,4 @@
-# `@tenancyjs/adapter-sequelize`
+# `tenancyjs-adapter-sequelize`
 
 Fail-closed stable Sequelize 6 row-level isolation for PostgreSQL 17 and Node 24.
 

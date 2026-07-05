@@ -9,9 +9,9 @@ patterns instead of creating framework-specific isolation logic.
 
 ## In Scope
 
-- `@tenancyjs/integration-nest` for NestJS 11 on Express and Fastify platforms.
-- `@tenancyjs/adapter-typeorm` for TypeORM 1 and PostgreSQL 17.
-- `@tenancyjs/adapter-sequelize` for stable Sequelize 6.37 and PostgreSQL 17.
+- `tenancyjs-integration-nest` for NestJS 11 on Express and Fastify platforms.
+- `tenancyjs-adapter-typeorm` for TypeORM 1 and PostgreSQL 17.
+- `tenancyjs-adapter-sequelize` for stable Sequelize 6.37 and PostgreSQL 17.
 - Row-level, schema-per-tenant, and database-per-tenant adapter modes where ADR-0024/0025 define them.
 - Unit, lifecycle, real-database adversarial, package-consumer, docs, and changeset evidence.
 

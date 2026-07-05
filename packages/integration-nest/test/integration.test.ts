@@ -7,7 +7,7 @@ import {
   type NestFastifyApplication,
 } from "@nestjs/platform-fastify";
 import { Test } from "@nestjs/testing";
-import { TenancyManager } from "@tenancyjs/core";
+import { TenancyManager } from "tenancyjs-core";
 import { firstValueFrom, Observable, of } from "rxjs";
 import request from "supertest";
 import { describe, expect, it, vi } from "vitest";

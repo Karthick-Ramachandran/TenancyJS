@@ -19,7 +19,7 @@ context or data.
 
 ## In Scope
 
-- Publish `@tenancyjs/integration-express` with an Express 5 middleware factory.
+- Publish `tenancyjs-integration-express` with an Express 5 middleware factory.
 - Adapt Express request headers and host information into the existing `TenantResolutionChain` input.
 - Enter `TenancyManager.runWithTenant` only after a `resolved` outcome.
 - Keep the lexical tenant lifecycle active through response finish, response close, request abort, or

@@ -2,7 +2,7 @@
 
 ## Affected Modules
 
-- New `integration-express` module and `@tenancyjs/integration-express` package.
+- New `integration-express` module and `tenancyjs-integration-express` package.
 - Existing `core-tenancy` public lifecycle through `TenancyManager`; no core implementation change.
 - Existing `tenant-identifiers` resolution outcomes and request-neutral input types.
 - Existing `testing-contracts` portable framework integration suite.
@@ -19,7 +19,7 @@ testing contracts -> public integration harness
 ```
 
 - `express` is a peer dependency and a pinned workspace dev dependency for tests.
-- `@tenancyjs/core` and `@tenancyjs/identifiers` are workspace runtime dependencies.
+- `tenancyjs-core` and `tenancyjs-identifiers` are workspace runtime dependencies.
 - Supertest and its types are test-only workspace dependencies.
 - The initial evidence target is Express 5.2.x; Express 4 is not implied.
 

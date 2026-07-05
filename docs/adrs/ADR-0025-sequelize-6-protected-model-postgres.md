@@ -13,7 +13,7 @@ and transactions that can bypass a simple tenant hook.
 
 ## Decision
 
-1. Publish `@tenancyjs/adapter-sequelize` for stable Sequelize `>=6.37 <7`, PostgreSQL 17, and Node 24.
+1. Publish `tenancyjs-adapter-sequelize` for stable Sequelize `>=6.37 <7`, PostgreSQL 17, and Node 24.
 2. Expose exhaustive model classification and callback-scoped protected model facades. Every operation
    receives the adapter-owned managed transaction explicitly; the adapter does not depend on global CLS.
 3. Row-level mode injects/composes the discriminator and validates forced PostgreSQL RLS through shared

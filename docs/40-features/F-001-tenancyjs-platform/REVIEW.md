@@ -22,7 +22,7 @@ Feature implementation in progress. T-01 passed architecture, conventions, and s
 
 - ADR-0001 through ADR-0004 are accepted; the workspace follows the documented package direction and
   uses the approved minimal toolchain without introducing a task orchestrator.
-- `@tenancyjs/core` is only a package shell. It has no framework, ORM, runtime dependency, or product
+- `tenancyjs-core` is only a package shell. It has no framework, ORM, runtime dependency, or product
   behavior, so T-02 remains the boundary for tenant-context implementation.
 - The README describes both single-database and database-per-tenant strategies while labeling all
   compatibility and installation examples as pre-alpha/planned.

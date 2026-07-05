@@ -47,7 +47,7 @@ captured base client.
 
 Status: Complete.
 
-Scope: Runner-neutral harness/cases in `@tenancyjs/testing` for two-tenant row-level isolation.
+Scope: Runner-neutral harness/cases in `tenancyjs-testing` for two-tenant row-level isolation.
 
 Acceptance: Contract cases cover AC-PRISMA-03 through AC-PRISMA-09 without importing Prisma.
 

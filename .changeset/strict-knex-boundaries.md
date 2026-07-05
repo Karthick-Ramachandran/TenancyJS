@@ -1,5 +1,5 @@
 ---
-"@tenancyjs/adapter-knex": minor
+"tenancyjs-adapter-knex": minor
 ---
 
 Add the fail-closed Knex 3.3/PostgreSQL row-level adapter boundary with protected fluent builders,

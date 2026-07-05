@@ -1,4 +1,4 @@
-# `@tenancyjs/cli`
+# `tenancyjs-cli`
 
 Safe, deterministic project initialization and diagnostics for TenancyJS.
 

@@ -1,5 +1,5 @@
-import type { TenancyManager, TenantRecord } from "@tenancyjs/core";
-import { assertSqlIdentifier } from "@tenancyjs/adapter-shared";
+import type { TenancyManager, TenantRecord } from "tenancyjs-core";
+import { assertSqlIdentifier } from "tenancyjs-adapter-shared";
 
 import {
   PrismaTenancyConfigurationError,

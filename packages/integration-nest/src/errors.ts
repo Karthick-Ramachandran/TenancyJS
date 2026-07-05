@@ -1,5 +1,5 @@
 import { HttpException } from "@nestjs/common";
-import { describeTenantResolutionFailure } from "@tenancyjs/identifiers";
+import { describeTenantResolutionFailure } from "tenancyjs-identifiers";
 
 import type { NestTenancyResolutionFailure } from "./types.js";
 

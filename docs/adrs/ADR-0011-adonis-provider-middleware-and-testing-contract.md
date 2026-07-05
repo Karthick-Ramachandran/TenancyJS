@@ -17,7 +17,7 @@ existing CI lanes.
 
 ## Decision
 
-1. Publish `@tenancyjs/integration-adonis` as a separate package depending inward on core,
+1. Publish `tenancyjs-integration-adonis` as a separate package depending inward on core,
    identifiers, and the Lucid adapter. It initially peers on AdonisJS 6.21.x and Lucid 21.8.x and is
    exercised on Node 22/24. AdonisJS 7/Lucid 22 requires a later Node-24 compatibility lane.
 2. Expose a typed `defineAdonisTenancyConfig` for one application-owned manager, resolver, Lucid
@@ -39,7 +39,7 @@ existing CI lanes.
 7. Export a Japa helper/plugin that runs callbacks under the same manager/Lucid service and restores
    both contexts after success/failure. HTTP evidence uses the Adonis Japa plugin and API client rather
    than treating Vitest-only unit tests as framework compatibility.
-8. Export thin Ace command factories only for operations already owned by `@tenancyjs/cli` (initially
+8. Export thin Ace command factories only for operations already owned by `tenancyjs-cli` (initially
    Doctor and leak-test/diagnostic services). Factories accept an application-injected structural CLI
    service port, so the integration does not depend on the CLI package. Commands map arguments/results/
    exits and never reimplement project writes, migration, seed, or tenant iteration. Operational

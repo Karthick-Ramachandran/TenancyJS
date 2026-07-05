@@ -1,5 +1,5 @@
 ---
-"@tenancyjs/integration-adonis": minor
+"tenancyjs-integration-adonis": minor
 ---
 
 Add the fail-closed AdonisJS 7 integration: typed `defineAdonisTenancyConfig` (accepting the Lucid

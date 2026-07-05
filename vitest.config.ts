@@ -4,52 +4,52 @@ import { fileURLToPath } from "node:url";
 export default defineConfig({
   resolve: {
     alias: {
-      "@tenancyjs/adapter-shared": fileURLToPath(
+      "tenancyjs-adapter-shared": fileURLToPath(
         new URL("./packages/adapter-shared/src/index.ts", import.meta.url),
       ),
-      "@tenancyjs/adapter-knex": fileURLToPath(
+      "tenancyjs-adapter-knex": fileURLToPath(
         new URL("./packages/adapter-knex/src/index.ts", import.meta.url),
       ),
-      "@tenancyjs/adapter-lucid": fileURLToPath(
+      "tenancyjs-adapter-lucid": fileURLToPath(
         new URL("./packages/adapter-lucid/src/index.ts", import.meta.url),
       ),
-      "@tenancyjs/adapter-mongoose": fileURLToPath(
+      "tenancyjs-adapter-mongoose": fileURLToPath(
         new URL("./packages/adapter-mongoose/src/index.ts", import.meta.url),
       ),
-      "@tenancyjs/adapter-prisma": fileURLToPath(
+      "tenancyjs-adapter-prisma": fileURLToPath(
         new URL("./packages/adapter-prisma/src/index.ts", import.meta.url),
       ),
-      "@tenancyjs/adapter-sequelize": fileURLToPath(
+      "tenancyjs-adapter-sequelize": fileURLToPath(
         new URL("./packages/adapter-sequelize/src/index.ts", import.meta.url),
       ),
-      "@tenancyjs/adapter-typeorm": fileURLToPath(
+      "tenancyjs-adapter-typeorm": fileURLToPath(
         new URL("./packages/adapter-typeorm/src/index.ts", import.meta.url),
       ),
-      "@tenancyjs/cli": fileURLToPath(
+      "tenancyjs-cli": fileURLToPath(
         new URL("./packages/cli/src/index.ts", import.meta.url),
       ),
-      "@tenancyjs/core": fileURLToPath(
+      "tenancyjs-core": fileURLToPath(
         new URL("./packages/core/src/index.ts", import.meta.url),
       ),
-      "@tenancyjs/identifiers": fileURLToPath(
+      "tenancyjs-identifiers": fileURLToPath(
         new URL("./packages/identifiers/src/index.ts", import.meta.url),
       ),
-      "@tenancyjs/integration-adonis": fileURLToPath(
+      "tenancyjs-integration-adonis": fileURLToPath(
         new URL("./packages/integration-adonis/src/index.ts", import.meta.url),
       ),
-      "@tenancyjs/integration-express": fileURLToPath(
+      "tenancyjs-integration-express": fileURLToPath(
         new URL("./packages/integration-express/src/index.ts", import.meta.url),
       ),
-      "@tenancyjs/integration-next/edge": fileURLToPath(
+      "tenancyjs-integration-next/edge": fileURLToPath(
         new URL("./packages/integration-next/src/edge.ts", import.meta.url),
       ),
-      "@tenancyjs/integration-next": fileURLToPath(
+      "tenancyjs-integration-next": fileURLToPath(
         new URL("./packages/integration-next/src/index.ts", import.meta.url),
       ),
-      "@tenancyjs/integration-nest": fileURLToPath(
+      "tenancyjs-integration-nest": fileURLToPath(
         new URL("./packages/integration-nest/src/index.ts", import.meta.url),
       ),
-      "@tenancyjs/testing": fileURLToPath(
+      "tenancyjs-testing": fileURLToPath(
         new URL("./packages/testing/src/index.ts", import.meta.url),
       ),
     },

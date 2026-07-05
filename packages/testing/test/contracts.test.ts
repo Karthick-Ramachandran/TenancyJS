@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { TenancyManager } from "@tenancyjs/core";
+import { TenancyManager } from "tenancyjs-core";
 
 import {
   TenancyContractAssertionError,

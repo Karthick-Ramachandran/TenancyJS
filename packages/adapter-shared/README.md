@@ -1,4 +1,4 @@
-# `@tenancyjs/adapter-shared`
+# `tenancyjs-adapter-shared`
 
 Internal isolation-strategy primitives shared by TenancyJS ORM adapters. Application code should use
 the public Prisma, Knex, or Lucid adapter package instead.

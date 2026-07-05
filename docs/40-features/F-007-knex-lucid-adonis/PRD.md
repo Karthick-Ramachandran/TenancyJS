@@ -21,12 +21,12 @@ surfaces fail closed.
 
 ## In Scope
 
-- `@tenancyjs/adapter-knex`: configured table classification, protected fluent builders, managed
+- `tenancyjs-adapter-knex`: configured table classification, protected fluent builders, managed
   transactions, RLS context, policy validation, typed errors, and an explicit operation matrix.
-- `@tenancyjs/adapter-lucid`: a distinct Lucid transaction/model lifecycle surface backed by the Knex
+- `tenancyjs-adapter-lucid`: a distinct Lucid transaction/model lifecycle surface backed by the Knex
   enforcement primitives, including read/paginate hooks, create injection, discriminator immutability,
   transaction attachment, and relationship/quiet/bulk behavior documentation.
-- `@tenancyjs/integration-adonis`: config helpers, IoC provider, tenant HTTP middleware, sanitized
+- `tenancyjs-integration-adonis`: config helpers, IoC provider, tenant HTTP middleware, sanitized
   errors, Japa helpers, and thin Ace wrappers over existing CLI services.
 - Safe CLI templates for an Adonis + Lucid project, using the existing preview/apply engine.
 - `examples/adonis-lucid` with PostgreSQL production HTTP, Lucid model, Japa, and isolation evidence.

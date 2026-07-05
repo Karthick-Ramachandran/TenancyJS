@@ -1,4 +1,4 @@
-import { AdapterTenancyError } from "@tenancyjs/adapter-shared";
+import { AdapterTenancyError } from "tenancyjs-adapter-shared";
 
 export type SequelizeTenancyErrorCode =
   | "TENANCY_SEQUELIZE_CONFIGURATION"

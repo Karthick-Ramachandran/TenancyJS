@@ -7,7 +7,7 @@ operations remain explicitly out of scope.
 
 ## Files Changed
 
-- `@tenancyjs/cli`: typed detection/plan/result contracts, safe init templates and staged apply engine,
+- `tenancyjs-cli`: typed detection/plan/result contracts, safe init templates and staged apply engine,
   Doctor static inventory/redaction, bounded explicit Node leak-test execution, human/JSON output, and
   the `tenancy` binary.
 - Safety: canonical roots, traversal/absolute/symlink/duplicate/conflict rejection, exclusive hard-link

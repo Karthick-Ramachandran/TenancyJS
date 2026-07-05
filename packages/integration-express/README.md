@@ -1,4 +1,4 @@
-# `@tenancyjs/integration-express`
+# `tenancyjs-integration-express`
 
 Fail-closed Express 5 request lifecycle integration for TenancyJS.
 
@@ -10,7 +10,7 @@ request-controlled central mode.
 ## Install
 
 ```bash
-pnpm add @tenancyjs/core @tenancyjs/identifiers @tenancyjs/integration-express express
+pnpm add tenancyjs-core tenancyjs-identifiers tenancyjs-integration-express express
 ```
 
 The supported target is Express 5.2.x on the repository's Node 24 baseline.
@@ -18,12 +18,12 @@ The supported target is Express 5.2.x on the repository's Node 24 baseline.
 ## Usage
 
 ```ts
-import { TenancyManager } from "@tenancyjs/core";
+import { TenancyManager } from "tenancyjs-core";
 import {
   HeaderTenantResolver,
   TenantResolutionChain,
-} from "@tenancyjs/identifiers";
-import { createExpressTenancyMiddleware } from "@tenancyjs/integration-express";
+} from "tenancyjs-identifiers";
+import { createExpressTenancyMiddleware } from "tenancyjs-integration-express";
 import express from "express";
 
 const manager = new TenancyManager();
@@ -51,7 +51,7 @@ Use an Express error handler to format `ExpressTenancyResolutionError`. Missing 
 maps to 400, unknown and suspended tenants share a generic 404, and ambiguous registry data maps to 500. Default errors contain no raw request identity or tenant record.
 
 ```ts
-import { ExpressTenancyResolutionError } from "@tenancyjs/integration-express";
+import { ExpressTenancyResolutionError } from "tenancyjs-integration-express";
 
 app.use((error, _request, response, next) => {
   if (error instanceof ExpressTenancyResolutionError) {

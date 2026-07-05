@@ -44,7 +44,7 @@
 
 ## T-02 Evidence
 
-AC-CORE-01 through AC-CORE-04 are implemented in `@tenancyjs/core` and covered by concurrency,
+AC-CORE-01 through AC-CORE-04 are implemented in `tenancyjs-core` and covered by concurrency,
 nesting, central-scope, fail-closed, bootstrap failure, reverse cleanup, lifecycle error, and packed
 consumer tests.
 

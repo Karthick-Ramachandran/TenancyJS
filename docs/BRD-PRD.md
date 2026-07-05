@@ -107,7 +107,7 @@ Unlike the Laravel ecosystem’s commercial split (free MIT package + paid SaaS 
 A developer runs:
 
 ```bash
-npm install @tenancyjs/core @tenancyjs/cli
+npm install tenancyjs-core tenancyjs-cli
 npx tenancy init
 ```
 
@@ -137,7 +137,7 @@ Concepts to port (not PHP APIs):
 | Resource syncing across tenant DBs | `ResourceSync` module (post-v1) |
 | User impersonation | `Impersonation` module (post-v1) |
 | Artisan: `tenants:migrate` | CLI: `tenancy migrate` |
-| High testability | `@tenancyjs/testing` helpers |
+| High testability | `tenancyjs-testing` helpers |
 
 **Laravel commercial model (for awareness, not replication):**
 
@@ -234,14 +234,14 @@ Ship a **monorepo** of MIT packages and a **CLI** that implements automatic/manu
 
 ### 8.1 In scope (core product)
 
-- `@tenancyjs/core` — context, config, events, bootstrappers, tenant registry.
-- `@tenancyjs/cli` — init, migrate, seed, list, run.
+- `tenancyjs-core` — context, config, events, bootstrappers, tenant registry.
+- `tenancyjs-cli` — init, migrate, seed, list, run.
 - ORM adapters (prioritized list in §18).
 - Framework integrations: **Next.js**, **AdonisJS**, Express, Fastify, NestJS.
 - Identification: domain, subdomain, header, path, JWT, custom resolver.
 - Strategies: row-level, database-per-tenant, schema-per-tenant (Postgres).
 - Central vs tenant execution contexts.
-- `@tenancyjs/testing` — harness for unit/integration/e2e.
+- `tenancyjs-testing` — harness for unit/integration/e2e.
 - Documentation site + example applications.
 
 ### 8.2 Out of scope (core repo)
@@ -414,7 +414,7 @@ type TenantDomain = {
                     └─────────────────┬───────────────────┘
                                       │
           ┌───────────────────────────▼───────────────────────────┐
-          │                    @tenancyjs/core                     │
+          │                    tenancyjs-core                     │
           │  Resolvers → TenancyManager → Bootstrappers → Events   │
           │           AsyncLocalStorage TenantContext              │
           └───────────────────────────┬───────────────────────────┘
@@ -490,16 +490,16 @@ tenancyjs/
 
 | Package | Purpose |
 |---------|---------|
-| `@tenancyjs/core` | Core engine |
-| `@tenancyjs/cli` | CLI binary `tenancy` |
-| `@tenancyjs/identifiers` | Built-in resolvers |
-| `@tenancyjs/adapter-*` | ORM plugins |
-| `@tenancyjs/integration-*` | Framework wiring |
-| `@tenancyjs/testing` | Test utilities |
+| `tenancyjs-core` | Core engine |
+| `tenancyjs-cli` | CLI binary `tenancy` |
+| `tenancyjs-identifiers` | Built-in resolvers |
+| `tenancyjs-adapter-*` | ORM plugins |
+| `tenancyjs-integration-*` | Framework wiring |
+| `tenancyjs-testing` | Test utilities |
 
 Optional meta package:
 
-- `@tenancyjs/tenancy` — re-exports core + docs pointer (no logic).
+- `tenancyjs-tenancy` — re-exports core + docs pointer (no logic).
 
 ### 13.3 Versioning
 
@@ -527,7 +527,7 @@ interface TenancyManager {
 ### 14.2 Configuration file (`tenancy.config.ts`)
 
 ```ts
-import { defineConfig } from '@tenancyjs/core'
+import { defineConfig } from 'tenancyjs-core'
 
 export default defineConfig({
   strategy: 'rowLevel', // | 'databasePerTenant' | 'schemaPerTenant'
@@ -554,8 +554,8 @@ export default defineConfig({
 ### 14.3 Adapter registration
 
 ```ts
-import { registerAdapter } from '@tenancyjs/core'
-import { prismaAdapter } from '@tenancyjs/adapter-prisma'
+import { registerAdapter } from 'tenancyjs-core'
+import { prismaAdapter } from 'tenancyjs-adapter-prisma'
 
 registerAdapter(prismaAdapter({ prisma, tenantScopedModels: ['Post', 'Order'] }))
 ```
@@ -737,11 +737,11 @@ interface OrmTenancyAdapter {
 
 | Framework | Integration package | Priority |
 |-----------|---------------------|----------|
-| **Next.js** (App Router) | `@tenancyjs/integration-next` | P0 |
-| **AdonisJS** v6/v7 | `@tenancyjs/integration-adonis` | P0 |
-| Express | `@tenancyjs/integration-express` | P0 |
-| Fastify | `@tenancyjs/integration-fastify` | P1 |
-| NestJS | `@tenancyjs/integration-nest` | P1 |
+| **Next.js** (App Router) | `tenancyjs-integration-next` | P0 |
+| **AdonisJS** v6/v7 | `tenancyjs-integration-adonis` | P0 |
+| Express | `tenancyjs-integration-express` | P0 |
+| Fastify | `tenancyjs-integration-fastify` | P1 |
+| NestJS | `tenancyjs-integration-nest` | P1 |
 | Hono | Community or P2 | P2 |
 | Remix | P2 | P2 |
 
@@ -825,7 +825,7 @@ Follow **BoringNode → `@adonisjs/queue`** pattern: framework-agnostic core, of
 ### 22.1 Binary
 
 - Command name: `tenancy`
-- Entry: `@tenancyjs/cli`
+- Entry: `tenancyjs-cli`
 - Invocation: `npx tenancy <cmd>` or devDependency script.
 
 ### 22.2 Commands (full)
@@ -966,7 +966,7 @@ Follow **BoringNode → `@adonisjs/queue`** pattern: framework-agnostic core, of
 
 ## 29. Testing strategy
 
-### 29.1 `@tenancyjs/testing` API
+### 29.1 `tenancyjs-testing` API
 
 ```ts
 await withTenant(tenantA, async () => {
@@ -1015,7 +1015,7 @@ await expectCrossTenantLeak(() => /* ... */).rejects.toThrow()
 
 ### 30.3 Types documentation
 
-- Export all public types from `@tenancyjs/core/types`.
+- Export all public types from `tenancyjs-core/types`.
 - `defineConfig` provides IntelliSense for config file.
 - Framework packages export augmentation instructions.
 
@@ -1044,9 +1044,9 @@ await expectCrossTenantLeak(() => /* ... */).rejects.toThrow()
 ### Phase 0 — Foundation (Weeks 1–3)
 
 - [ ] Monorepo scaffold (pnpm, turbo, changesets)
-- [ ] `@tenancyjs/core` ALS + TenancyManager + events
-- [ ] `@tenancyjs/identifiers` subdomain + header
-- [ ] `@tenancyjs/testing` withTenant helpers
+- [ ] `tenancyjs-core` ALS + TenancyManager + events
+- [ ] `tenancyjs-identifiers` subdomain + header
+- [ ] `tenancyjs-testing` withTenant helpers
 - [ ] Strict mode + leak test utilities
 - [ ] Docs: concepts + threat model draft
 
@@ -1054,9 +1054,9 @@ await expectCrossTenantLeak(() => /* ... */).rejects.toThrow()
 
 ### Phase 1 — First shippable vertical (Weeks 4–7)
 
-- [ ] `@tenancyjs/adapter-prisma` row-level
-- [ ] `@tenancyjs/integration-express`
-- [ ] `@tenancyjs/cli` — `init`, `list`
+- [ ] `tenancyjs-adapter-prisma` row-level
+- [ ] `tenancyjs-integration-express`
+- [ ] `tenancyjs-cli` — `init`, `list`
 - [ ] `examples/express-prisma`
 - [ ] README launch quality
 
@@ -1064,8 +1064,8 @@ await expectCrossTenantLeak(() => /* ... */).rejects.toThrow()
 
 ### Phase 2 — Mongo + SQL ORM breadth (Weeks 8–11)
 
-- [ ] `@tenancyjs/adapter-mongoose`
-- [ ] `@tenancyjs/adapter-sequelize`
+- [ ] `tenancyjs-adapter-mongoose`
+- [ ] `tenancyjs-adapter-sequelize`
 - [ ] CLI templates for both
 - [ ] `examples/express-mongoose`
 
@@ -1073,17 +1073,17 @@ await expectCrossTenantLeak(() => /* ... */).rejects.toThrow()
 
 ### Phase 3 — Next.js (Weeks 12–15)
 
-- [ ] `@tenancyjs/integration-next` middleware + handlers + actions
+- [ ] `tenancyjs-integration-next` middleware + handlers + actions
 - [ ] Edge vs Node documentation
 - [ ] `examples/next-prisma`
-- [ ] `@tenancyjs/adapter-drizzle` (P1)
+- [ ] `tenancyjs-adapter-drizzle` (P1)
 
 **Exit:** v0.3.0 — Next.js called out on README.
 
 ### Phase 4 — AdonisJS (Weeks 16–19)
 
-- [ ] `@tenancyjs/adapter-knex` + Lucid scoped model
-- [ ] `@tenancyjs/integration-adonis` provider + middleware
+- [ ] `tenancyjs-adapter-knex` + Lucid scoped model
+- [ ] `tenancyjs-integration-adonis` provider + middleware
 - [ ] Ace commands
 - [ ] Japa plugin
 - [ ] `examples/adonis-lucid`
@@ -1092,7 +1092,7 @@ await expectCrossTenantLeak(() => /* ... */).rejects.toThrow()
 
 ### Phase 5 — Database-per-tenant (Weeks 20–26)
 
-- [ ] `@tenancyjs/bootstrappers-database` provisioning
+- [ ] `tenancyjs-bootstrappers-database` provisioning
 - [ ] CLI `migrate` / `seed` loops
 - [ ] Event pipeline `tenant.created`
 - [ ] Nest + Fastify integrations

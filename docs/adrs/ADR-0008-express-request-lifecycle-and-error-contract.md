@@ -18,8 +18,8 @@ is supported. These choices define a public API and HTTP security boundary.
 
 ## Decision
 
-1. Publish `@tenancyjs/integration-express` as an Express-specific package depending on
-   `@tenancyjs/core` and `@tenancyjs/identifiers`, with Express as a peer dependency. The initial tested
+1. Publish `tenancyjs-integration-express` as an Express-specific package depending on
+   `tenancyjs-core` and `tenancyjs-identifiers`, with Express as a peer dependency. The initial tested
    target is Express 5.2.x on Node 22 and Node 24.
 2. Expose `createExpressTenancyMiddleware(options)` as the canonical factory. Applications supply one
    existing `TenancyManager`, a structurally typed resolution service compatible with

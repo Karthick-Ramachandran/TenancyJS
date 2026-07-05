@@ -8,10 +8,10 @@ loading, command engine, provisioning via host hooks) and ADR-0028 (tenant store
 
 ## Files Changed
 
-- `@tenancyjs/core`: `defineTenancyRuntime()`/`TenancyRuntime`/`TenancyProvisioner` (runtime.ts),
+- `tenancyjs-core`: `defineTenancyRuntime()`/`TenancyRuntime`/`TenancyProvisioner` (runtime.ts),
   `TenantStore` + `hardenTenantStore`/`requireStoreMethod` (tenant-store.ts), store/runtime error
   classes (errors.ts), index exports.
-- `@tenancyjs/cli`: `runtime-loader.ts` (Node-24 type-stripped config load + brand validation),
+- `tenancyjs-cli`: `runtime-loader.ts` (Node-24 type-stripped config load + brand validation),
   `runtime-command.ts` (`withRuntime` engine), `commands/{tenant,check,run,provision}.ts`, output
   formatters, `cli.ts` routing + flag/positional parser (`--config/--set/--tenant/--central/--all`),
   index exports.

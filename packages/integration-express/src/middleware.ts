@@ -1,9 +1,9 @@
-import type { TenantRecord } from "@tenancyjs/core";
+import type { TenantRecord } from "tenancyjs-core";
 import type {
   ResolverHeaderValue,
   ResolverInput,
   TenantResolutionOutcome,
-} from "@tenancyjs/identifiers";
+} from "tenancyjs-identifiers";
 import type { NextFunction, Request, RequestHandler, Response } from "express";
 
 import {

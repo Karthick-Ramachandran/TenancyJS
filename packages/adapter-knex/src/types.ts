@@ -1,4 +1,4 @@
-import type { MaybePromise } from "@tenancyjs/core";
+import type { MaybePromise } from "tenancyjs-core";
 
 export type KnexSafeScalar = string | number | boolean | Date | null;
 export type KnexDataRecord = Readonly<Record<string, KnexSafeScalar>>;

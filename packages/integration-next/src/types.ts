@@ -2,11 +2,11 @@ import type {
   MaybePromise,
   TenancyManager,
   TenantRecord,
-} from "@tenancyjs/core";
+} from "tenancyjs-core";
 import type {
   ResolverInput,
   TenantResolutionOutcome,
-} from "@tenancyjs/identifiers";
+} from "tenancyjs-identifiers";
 
 export interface NextTenantResolver<
   TTenant extends TenantRecord = TenantRecord,

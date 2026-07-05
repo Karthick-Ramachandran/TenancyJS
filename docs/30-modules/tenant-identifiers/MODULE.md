@@ -22,6 +22,6 @@ Convert untrusted request metadata into exhaustive, framework-neutral tenant res
 
 ## Boundaries
 
-Depends only on public `@tenancyjs/core` types. Framework integrations call this module and decide how
+Depends only on public `tenancyjs-core` types. Framework integrations call this module and decide how
 to map outcomes. It never calls `TenancyManager` or selects central context. Feature source:
 `docs/40-features/F-002-tenant-identification-testing-contracts/`.

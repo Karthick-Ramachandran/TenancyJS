@@ -1,4 +1,4 @@
-import type { MaybePromise } from "@tenancyjs/core";
+import type { MaybePromise } from "tenancyjs-core";
 import type { Model, Types } from "mongoose";
 
 export type MongooseScalar =

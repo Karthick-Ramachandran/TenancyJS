@@ -1,5 +1,5 @@
 {
-  "name": "@tenancyjs/adapter-prisma",
+  "name": "tenancyjs-adapter-prisma",
   "version": "0.1.0-beta.0",
   "description": "Fail-closed row-level tenant isolation for Prisma Client.",
   "type": "module",
@@ -29,8 +29,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@tenancyjs/adapter-shared": "workspace:*",
-    "@tenancyjs/core": "workspace:*"
+    "tenancyjs-adapter-shared": "workspace:*",
+    "tenancyjs-core": "workspace:*"
   },
   "peerDependencies": {
     "@prisma/client": ">=7.8.0 <7.9.0"

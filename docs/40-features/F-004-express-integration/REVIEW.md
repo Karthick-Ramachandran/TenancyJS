@@ -8,7 +8,7 @@ Node 22/24 PostgreSQL CI and both Persist Doctor runs pass on PR #7.
 ## Architecture Drift Review
 
 - The implementation follows ADR-0001 and ADR-0008: Express behavior is isolated in
-  `@tenancyjs/integration-express`, which depends toward core/identifiers and imports no adapter.
+  `tenancyjs-integration-express`, which depends toward core/identifiers and imports no adapter.
 - `TenancyManager` remains the only context/lifecycle owner. The integration composes an
   application-owned manager and resolver and adds no process-global/request-global tenant store.
 - Response finish, response close, request abort, synchronous dispatch failure, already-finished
@@ -47,7 +47,7 @@ Node 22/24 PostgreSQL CI and both Persist Doctor runs pass on PR #7.
 
 - Canonical `TenancyManager`, `TenantResolutionOutcome`, `createExpressTenancyMiddleware`,
   `createPrismaTenancyExtension`, and runner-neutral conformance vocabulary are reused.
-- The package follows `@tenancyjs/integration-*` naming, core remains framework-neutral, and the example
+- The package follows `tenancyjs-integration-*` naming, core remains framework-neutral, and the example
   does not introduce a competing context or resolver abstraction.
 - `createExpressTenancyMiddleware` is recorded in `CONVENTIONS.md`; no unnamed reusable primitive or
   prohibited process-global tenant state was introduced.

@@ -1,6 +1,6 @@
 import type { CanActivate, ExecutionContext } from "@nestjs/common";
 import type { Reflector } from "@nestjs/core";
-import type { TenantRecord } from "@tenancyjs/core";
+import type { TenantRecord } from "tenancyjs-core";
 
 import { NestTenancyResolutionError } from "./errors.js";
 import { createNestResolverInput } from "./request.js";

@@ -25,7 +25,7 @@ AdonisJS v6 application, so destructive npm `--force` upgrade commands cannot ru
 
 ## Decision
 
-1. `@tenancyjs/integration-adonis` targets AdonisJS `>=7.3.0 <8` and Lucid `>=22.4.0 <23`, declares
+1. `tenancyjs-integration-adonis` targets AdonisJS `>=7.3.0 <8` and Lucid `>=22.4.0 <23`, declares
    Node `>=24`, and receives hosted Node 24 production/Japa/PostgreSQL evidence. Core, Knex, Prisma,
    Express, Next, and CLI retain their existing Node 22/24 lanes.
 2. Publish the integration separately, depending inward on core, identifiers, and the Lucid adapter.

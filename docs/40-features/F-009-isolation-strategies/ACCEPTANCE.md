@@ -7,7 +7,7 @@
   runtime boundary.
 - `TenancyAdapterCapabilities` includes `schemaPerTenant`; Knex/Lucid declare it `supported` only after
   separate real-PostgreSQL two-schema adversarial tests pass. Prisma remains `unsupported`.
-- `@tenancyjs/adapter-shared` owns the single PostgreSQL RLS/context/schema engine implementation and
+- `tenancyjs-adapter-shared` owns the single PostgreSQL RLS/context/schema engine implementation and
   shared identifier/discriminator decisions; ORM packages provide thin bindings.
 - Knex/Lucid reject missing/invalid/central-colliding schema placement, qualified tenant tables, and
   unsupported raw/cross-placement paths.

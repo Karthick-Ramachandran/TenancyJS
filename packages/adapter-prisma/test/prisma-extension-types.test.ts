@@ -1,4 +1,4 @@
-import { TenancyManager } from "@tenancyjs/core";
+import { TenancyManager } from "tenancyjs-core";
 import { describe, expect, expectTypeOf, it } from "vitest";
 
 import type { PrismaClient } from "../../../.artifacts/prisma/adapter-prisma/client.js";

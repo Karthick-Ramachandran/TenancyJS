@@ -12,9 +12,9 @@
 
 ## Dependency Impact
 
-- `@tenancyjs/adapter-prisma` depends on `@tenancyjs/core` and declares Prisma Client as a peer.
+- `tenancyjs-adapter-prisma` depends on `tenancyjs-core` and declares Prisma Client as a peer.
 - Prisma CLI and the tested client version are development-only workspace dependencies.
-- `@tenancyjs/core` gains no runtime dependency. `@tenancyjs/testing` remains ORM-neutral.
+- `tenancyjs-core` gains no runtime dependency. `tenancyjs-testing` remains ORM-neutral.
 - The initial compatibility target is Prisma 7.8.x on the repository's supported Node 22/24 lanes;
   broader peer ranges require their own CI evidence.
 

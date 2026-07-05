@@ -1,4 +1,4 @@
-import type { MaybePromise } from "@tenancyjs/core";
+import type { MaybePromise } from "tenancyjs-core";
 
 export type TenantResourceCacheErrorCode =
   | "TENANCY_RESOURCE_CACHE_CONFIGURATION"

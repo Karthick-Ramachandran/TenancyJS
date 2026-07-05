@@ -1,10 +1,10 @@
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
-import { TenantContextError, TenancyManager } from "@tenancyjs/core";
-import { createRowLevelAdapterContract } from "@tenancyjs/testing";
+import { TenantContextError, TenancyManager } from "tenancyjs-core";
+import { createRowLevelAdapterContract } from "tenancyjs-testing";
 import type {
   RowLevelAdapterContractHarness,
   RowLevelAdapterContractOperations,
-} from "@tenancyjs/testing";
+} from "tenancyjs-testing";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { PrismaClient } from "../../../.artifacts/prisma/adapter-prisma-mysql/client.js";

@@ -1,7 +1,4 @@
-import type {
-  ResolverHeaderValue,
-  ResolverInput,
-} from "@tenancyjs/identifiers";
+import type { ResolverHeaderValue, ResolverInput } from "tenancyjs-identifiers";
 
 import { NestTenancyConfigurationError } from "./errors.js";
 import type { NestHttpRequest } from "./types.js";

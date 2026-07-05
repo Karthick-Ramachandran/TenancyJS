@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { TenantRecord } from "@tenancyjs/core";
+import type { TenantRecord } from "tenancyjs-core";
 
 import {
   HeaderTenantResolver,

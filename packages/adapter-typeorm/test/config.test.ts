@@ -1,4 +1,4 @@
-import { TenancyManager } from "@tenancyjs/core";
+import { TenancyManager } from "tenancyjs-core";
 import type { DataSource, EntityTarget, ObjectLiteral } from "typeorm";
 import { describe, expect, it } from "vitest";
 

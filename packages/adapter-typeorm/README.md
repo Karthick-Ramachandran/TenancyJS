@@ -1,4 +1,4 @@
-# `@tenancyjs/adapter-typeorm`
+# `tenancyjs-adapter-typeorm`
 
 Fail-closed TypeORM 1 row-level isolation for PostgreSQL 17 and Node 24.
 

@@ -4,9 +4,9 @@ import type {
   TenancyAdapterValidationResult,
   TenantContext,
   TenantRecord,
-} from "@tenancyjs/core";
-import { TenantContextError } from "@tenancyjs/core";
-import { decideTenantDiscriminator } from "@tenancyjs/adapter-shared";
+} from "tenancyjs-core";
+import { TenantContextError } from "tenancyjs-core";
+import { decideTenantDiscriminator } from "tenancyjs-adapter-shared";
 import { Types, type ClientSession, type Model } from "mongoose";
 
 import { MONGOOSE_ADAPTER_CAPABILITIES } from "./capabilities.js";

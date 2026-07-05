@@ -1,4 +1,4 @@
-import { TenancyManager, TenantContextError } from "@tenancyjs/core";
+import { TenancyManager, TenantContextError } from "tenancyjs-core";
 import type { Knex } from "knex";
 import { describe, expect, it, vi } from "vitest";
 

@@ -1,4 +1,4 @@
-# `@tenancyjs/core`
+# `tenancyjs-core`
 
 Framework-neutral tenant context and lifecycle primitives for TenancyJS.
 
@@ -16,7 +16,7 @@ Framework-neutral tenant context and lifecycle primitives for TenancyJS.
 ## Usage
 
 ```ts
-import { TenancyManager, type TenantRecord } from "@tenancyjs/core";
+import { TenancyManager, type TenantRecord } from "tenancyjs-core";
 
 interface Tenant extends TenantRecord {
   readonly slug: string;
@@ -83,7 +83,7 @@ Subscribe with `tenancy.on(event, listener)`. The returned function unsubscribes
 `defineConfig` accepts the two committed strategies:
 
 ```ts
-import { defineConfig } from "@tenancyjs/core";
+import { defineConfig } from "tenancyjs-core";
 
 export default defineConfig({
   strategy: "rowLevel", // or "databasePerTenant"

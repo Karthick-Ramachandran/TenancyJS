@@ -124,10 +124,10 @@ importers:
 
   packages/adapter-knex:
     dependencies:
-      '@tenancyjs/adapter-shared':
+      tenancyjs-adapter-shared:
         specifier: workspace:*
         version: link:../adapter-shared
-      '@tenancyjs/core':
+      tenancyjs-core:
         specifier: workspace:*
         version: link:../core
     devDependencies:
@@ -137,10 +137,10 @@ importers:
 
   packages/adapter-lucid:
     dependencies:
-      '@tenancyjs/adapter-shared':
+      tenancyjs-adapter-shared:
         specifier: workspace:*
         version: link:../adapter-shared
-      '@tenancyjs/core':
+      tenancyjs-core:
         specifier: workspace:*
         version: link:../core
     devDependencies:
@@ -162,10 +162,10 @@ importers:
 
   packages/adapter-mongoose:
     dependencies:
-      '@tenancyjs/adapter-shared':
+      tenancyjs-adapter-shared:
         specifier: workspace:*
         version: link:../adapter-shared
-      '@tenancyjs/core':
+      tenancyjs-core:
         specifier: workspace:*
         version: link:../core
     devDependencies:
@@ -175,19 +175,19 @@ importers:
 
   packages/adapter-prisma:
     dependencies:
-      '@tenancyjs/adapter-shared':
+      tenancyjs-adapter-shared:
         specifier: workspace:*
         version: link:../adapter-shared
-      '@tenancyjs/core':
+      tenancyjs-core:
         specifier: workspace:*
         version: link:../core
 
   packages/adapter-sequelize:
     dependencies:
-      '@tenancyjs/adapter-shared':
+      tenancyjs-adapter-shared:
         specifier: workspace:*
         version: link:../adapter-shared
-      '@tenancyjs/core':
+      tenancyjs-core:
         specifier: workspace:*
         version: link:../core
     devDependencies:
@@ -197,16 +197,16 @@ importers:
 
   packages/adapter-shared:
     dependencies:
-      '@tenancyjs/core':
+      tenancyjs-core:
         specifier: workspace:*
         version: link:../core
 
   packages/adapter-typeorm:
     dependencies:
-      '@tenancyjs/adapter-shared':
+      tenancyjs-adapter-shared:
         specifier: workspace:*
         version: link:../adapter-shared
-      '@tenancyjs/core':
+      tenancyjs-core:
         specifier: workspace:*
         version: link:../core
     devDependencies:
@@ -220,19 +220,19 @@ importers:
 
   packages/identifiers:
     dependencies:
-      '@tenancyjs/core':
+      tenancyjs-core:
         specifier: workspace:*
         version: link:../core
 
   packages/integration-adonis:
     dependencies:
-      '@tenancyjs/adapter-lucid':
+      tenancyjs-adapter-lucid:
         specifier: workspace:*
         version: link:../adapter-lucid
-      '@tenancyjs/core':
+      tenancyjs-core:
         specifier: workspace:*
         version: link:../core
-      '@tenancyjs/identifiers':
+      tenancyjs-identifiers:
         specifier: workspace:*
         version: link:../identifiers
     devDependencies:
@@ -254,22 +254,22 @@ importers:
 
   packages/integration-express:
     dependencies:
-      '@tenancyjs/core':
-        specifier: workspace:*
-        version: link:../core
-      '@tenancyjs/identifiers':
-        specifier: workspace:*
-        version: link:../identifiers
       '@types/express':
         specifier: 5.0.6
         version: 5.0.6
+      tenancyjs-core:
+        specifier: workspace:*
+        version: link:../core
+      tenancyjs-identifiers:
+        specifier: workspace:*
+        version: link:../identifiers
 
   packages/integration-nest:
     dependencies:
-      '@tenancyjs/core':
+      tenancyjs-core:
         specifier: workspace:*
         version: link:../core
-      '@tenancyjs/identifiers':
+      tenancyjs-identifiers:
         specifier: workspace:*
         version: link:../identifiers
     devDependencies:
@@ -285,10 +285,10 @@ importers:
 
   packages/integration-next:
     dependencies:
-      '@tenancyjs/core':
+      tenancyjs-core:
         specifier: workspace:*
         version: link:../core
-      '@tenancyjs/identifiers':
+      tenancyjs-identifiers:
         specifier: workspace:*
         version: link:../identifiers
     devDependencies:
@@ -298,7 +298,7 @@ importers:
 
   packages/testing:
     dependencies:
-      '@tenancyjs/core':
+      tenancyjs-core:
         specifier: workspace:*
         version: link:../core
 

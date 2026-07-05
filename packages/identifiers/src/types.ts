@@ -1,4 +1,4 @@
-import type { MaybePromise, TenantRecord } from "@tenancyjs/core";
+import type { MaybePromise, TenantRecord } from "tenancyjs-core";
 
 export type ResolverHeaderValue = string | readonly string[] | undefined;
 

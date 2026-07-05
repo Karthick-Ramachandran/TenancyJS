@@ -26,7 +26,7 @@ module.
 Built-in header, full-host, and subdomain resolvers share strict ASCII normalization, reject control
 characters and ambiguous multi-values, and never perform network or database access themselves.
 
-`@tenancyjs/testing` exposes immutable tenant fixtures and portable contract cases shaped as
+`tenancyjs-testing` exposes immutable tenant fixtures and portable contract cases shaped as
 `{ name, run }`. Contract cases throw typed assertion errors and have no runtime dependency on Vitest,
 Jest, or a framework. Consumers register each case with their chosen test runner.
 

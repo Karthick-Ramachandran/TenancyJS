@@ -1,4 +1,4 @@
-import { TenantContextError, TenancyManager } from "@tenancyjs/core";
+import { TenantContextError, TenancyManager } from "tenancyjs-core";
 import { describe, expect, it, vi } from "vitest";
 
 import {

@@ -1,4 +1,4 @@
-# `@tenancyjs/testing`
+# `tenancyjs-testing`
 
 Runner-neutral fixtures and contract cases for TenancyJS.
 

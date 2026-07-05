@@ -1,6 +1,6 @@
 import { Module, type DynamicModule, type Provider } from "@nestjs/common";
 import { APP_GUARD, APP_INTERCEPTOR, Reflector } from "@nestjs/core";
-import type { TenantRecord } from "@tenancyjs/core";
+import type { TenantRecord } from "tenancyjs-core";
 
 import { NestTenancyConfigurationError } from "./errors.js";
 import { NestTenantResolutionGuard } from "./guard.js";

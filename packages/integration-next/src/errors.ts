@@ -1,4 +1,4 @@
-import { describeTenantResolutionFailure } from "@tenancyjs/identifiers";
+import { describeTenantResolutionFailure } from "tenancyjs-identifiers";
 
 import type { NextTenancyResolutionFailure } from "./types.js";
 

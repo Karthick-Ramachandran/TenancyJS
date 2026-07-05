@@ -6,7 +6,7 @@ Complete and ready for merge review.
 
 ## Files Changed
 
-- Added `@tenancyjs/integration-next` with separate Node and Edge exports, typed fail-closed errors,
+- Added `tenancyjs-integration-next` with separate Node and Edge exports, typed fail-closed errors,
   Route Handler/Server Action wrappers, frozen resolver snapshots, and untrusted hint revalidation.
 - Added the Next 16.2 + Prisma 7.8 reference application with dynamic/no-store Route Handler and Server
   Action paths plus PostgreSQL production-start isolation tests.

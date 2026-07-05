@@ -1,5 +1,5 @@
-import { TenancyManager } from "@tenancyjs/core";
-import type { TenantResolutionOutcome } from "@tenancyjs/identifiers";
+import { TenancyManager } from "tenancyjs-core";
+import type { TenantResolutionOutcome } from "tenancyjs-identifiers";
 import { describe, expect, it } from "vitest";
 
 import {

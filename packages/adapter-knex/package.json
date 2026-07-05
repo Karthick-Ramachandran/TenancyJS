@@ -1,5 +1,5 @@
 {
-  "name": "@tenancyjs/adapter-knex",
+  "name": "tenancyjs-adapter-knex",
   "version": "0.1.0-beta.0",
   "description": "Fail-closed PostgreSQL row-level and schema-per-tenant isolation for Knex.",
   "type": "module",
@@ -27,8 +27,8 @@
     "access": "public"
   },
   "dependencies": {
-    "@tenancyjs/adapter-shared": "workspace:*",
-    "@tenancyjs/core": "workspace:*"
+    "tenancyjs-adapter-shared": "workspace:*",
+    "tenancyjs-core": "workspace:*"
   },
   "peerDependencies": {
     "knex": ">=3.3.0 <3.4.0"

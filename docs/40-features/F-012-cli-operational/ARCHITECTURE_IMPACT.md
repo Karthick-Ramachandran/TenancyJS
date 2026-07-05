@@ -2,9 +2,9 @@
 
 ## Affected Modules
 
-- `@tenancyjs/core` — new `defineTenancyRuntime()` runtime contract, `TenantStore<TTenant>` interface,
+- `tenancyjs-core` — new `defineTenancyRuntime()` runtime contract, `TenantStore<TTenant>` interface,
   and `assertStoreTenant` hardening wrappers.
-- `@tenancyjs/cli` — new runtime config loader, command engine, and operational commands (registry,
+- `tenancyjs-cli` — new runtime config loader, command engine, and operational commands (registry,
   run, migrate, provision); existing static commands (`init`, `doctor`, `test:leak`) unchanged except
   `doctor` gains a runtime/store round-trip check.
 - Adapters — expose the placement/migration hooks the CLI delegates to (no isolation-logic change).

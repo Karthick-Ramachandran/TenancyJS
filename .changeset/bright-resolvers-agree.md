@@ -1,6 +1,6 @@
 ---
-"@tenancyjs/identifiers": minor
-"@tenancyjs/testing": minor
+"tenancyjs-identifiers": minor
+"tenancyjs-testing": minor
 ---
 
 Add fail-closed header, host, and subdomain tenant resolution with exhaustive outcomes, plus immutable

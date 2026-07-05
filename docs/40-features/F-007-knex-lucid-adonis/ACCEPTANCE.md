@@ -12,7 +12,7 @@
   tenant/database values in adapter errors.
 - AC-KNEX-04: The shared adapter contract and real PostgreSQL tests prove two-tenant CRUD, bulk,
   aggregate, transaction, central-model, explicit-central, concurrency, rollback, and bypass cases.
-- AC-LUCID-01: `@tenancyjs/adapter-lucid` remains a distinct public package and provides a
+- AC-LUCID-01: `tenancyjs-adapter-lucid` remains a distinct public package and provides a
   `TenantScopedModel` lifecycle contract for reads, pagination, create/update/delete, relationships,
   transaction binding, and discriminator immutability.
 - AC-LUCID-02: Quiet operations, `.pojo()`, bulk query mutations, direct database builders, raw SQL,
@@ -22,7 +22,7 @@
   middleware resolves once, enters tenant and database scope around `await next()`, maps failures
   safely, and always commits/rolls back/releases resources.
 - AC-ADONIS-02: Config, Japa helpers, and Ace wrappers feel native to Adonis. Ace wrappers delegate to
-  `@tenancyjs/cli` services and do not duplicate migration, seed, or tenant-iteration logic.
+  `tenancyjs-cli` services and do not duplicate migration, seed, or tenant-iteration logic.
 - AC-ADONIS-03: Safe CLI init previews and applies conflict-aware Adonis/Lucid provider, middleware,
   config, model/migration, and test changes without reading `.env` or overwriting project files.
 - AC-COMPAT-KLA-01: Knex 3.3/PostgreSQL 17 and AdonisJS 7.3/Lucid 22.4 production/Japa examples pass

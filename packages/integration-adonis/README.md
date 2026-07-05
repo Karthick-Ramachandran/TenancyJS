@@ -1,9 +1,9 @@
-# @tenancyjs/integration-adonis
+# tenancyjs-integration-adonis
 
 Fail-closed AdonisJS 7 request lifecycle integration for TenancyJS Lucid tenancy.
 
 The application owns the `TenancyManager`, tenant resolver, and Lucid tenancy service
-(`@tenancyjs/adapter-lucid`). This package wires them into AdonisJS through a service provider
+(`tenancyjs-adapter-lucid`). This package wires them into AdonisJS through a service provider
 and a tenant-route middleware. It creates no hidden tenant state, database client, or central-mode
 path, and it never authenticates users.
 
@@ -15,7 +15,7 @@ path, and it never authenticates users.
 Define one application-owned config (`config/tenancy.ts`):
 
 ```ts
-import { defineAdonisTenancyConfig } from "@tenancyjs/integration-adonis";
+import { defineAdonisTenancyConfig } from "tenancyjs-integration-adonis";
 
 export default defineAdonisTenancyConfig({
   manager, // application-owned TenancyManager
@@ -27,7 +27,7 @@ export default defineAdonisTenancyConfig({
 Register the provider in `adonisrc.ts`:
 
 ```ts
-providers: [() => import("@tenancyjs/integration-adonis/provider")];
+providers: [() => import("tenancyjs-integration-adonis/provider")];
 ```
 
 Apply the middleware to tenant route groups only. Central routes omit it and enter explicit core

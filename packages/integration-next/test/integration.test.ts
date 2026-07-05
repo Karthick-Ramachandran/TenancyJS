@@ -1,9 +1,9 @@
-import { TenancyManager } from "@tenancyjs/core";
+import { TenancyManager } from "tenancyjs-core";
 import {
   HeaderTenantResolver,
   TenantResolutionChain,
   type TenantResolutionOutcome,
-} from "@tenancyjs/identifiers";
+} from "tenancyjs-identifiers";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const nextHeaders = vi.hoisted(() => vi.fn());

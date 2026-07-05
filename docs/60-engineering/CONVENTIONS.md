@@ -6,13 +6,13 @@ preferences.
 
 ## Canonical Primitives
 
-- `TenantContext`: immutable tenant execution state owned by `@tenancyjs/core`.
+- `TenantContext`: immutable tenant execution state owned by `tenancyjs-core`.
 - `TenancyManager`: the only public lifecycle entry point for tenant and central execution scopes.
 - `TenancyBootstrapper`: context-local setup/revert contract registered at manager construction.
 - `TenancyLifecycleError`: combined evidence when lifecycle cleanup fails.
 - `TenantResolver`: framework-neutral tenant resolution contract.
 - `TenantResolutionOutcome`: exhaustive, non-secret result of ordered resolver plus tenant-store lookup.
-- `TenancyContractCase`: runner-neutral `{ name, run }` conformance case from `@tenancyjs/testing`.
+- `TenancyContractCase`: runner-neutral `{ name, run }` conformance case from `tenancyjs-testing`.
 - `TenancyAdapter`: implemented ORM-neutral capability and validation contract owned by core.
 - `createPrismaTenancyExtension`: canonical Prisma row-level extension factory; never expose a base
   Prisma client as the protected application client.
@@ -25,7 +25,7 @@ preferences.
 - `createMongooseTenancy`: canonical adapter-enforced protected lean-model facade; it requires a
   replica set for managed transactions and never returns Mongoose documents or queries.
 - `createPostgresStrategyEngine`: canonical shared PostgreSQL schema-placement engine in
-  `@tenancyjs/adapter-shared`; Knex/Lucid bind their raw executor shapes to it and never duplicate its
+  `tenancyjs-adapter-shared`; Knex/Lucid bind their raw executor shapes to it and never duplicate its
   RLS/context/`search_path` SQL. It owns the lifetime tenant-to-schema collision guard; adapters do not
   implement their own placement maps.
 - `createTenantResourceCache`: canonical bounded database-per-tenant resource lifecycle; adapters use
@@ -47,7 +47,7 @@ preferences.
   normal output and every action is revalidated before commit.
 - `runDoctor`: canonical deterministic CLI diagnostic entry point with stable findings and exit mapping.
 - `TenancyIntegration`: framework lifecycle bridge contract.
-- Conformance suites in `@tenancyjs/testing`: required evidence for stable adapters and integrations.
+- Conformance suites in `tenancyjs-testing`: required evidence for stable adapters and integrations.
 - `pnpm check`: canonical repository gate for lint, format, types, tests, package verification, and
   Persist memory validation.
 
@@ -58,7 +58,7 @@ where applicable.
 
 ## Naming Conventions
 
-- npm packages use `@tenancyjs/<name>` with `adapter-*` and `integration-*` prefixes.
+- npm packages use `tenancyjs-<name>` with `adapter-*` and `integration-*` prefixes.
 - Repository module folders use kebab-case; public TypeScript types use PascalCase.
 - Adapter packages name the public data-layer surface: `adapter-prisma`, `adapter-sequelize`,
   `adapter-knex`, and `adapter-lucid`.
@@ -66,7 +66,7 @@ where applicable.
 
 ## Rules
 
-- Do not import a framework or ORM from `@tenancyjs/core`.
+- Do not import a framework or ORM from `tenancyjs-core`.
 - Do not publish an adapter or integration as stable unless its conformance suite and example E2E pass.
 - Do not duplicate tenant-context storage in an adapter or integration; use `TenancyManager`.
 - Do not execute ORM CLI commands through a shell; use an argument-array process runner.

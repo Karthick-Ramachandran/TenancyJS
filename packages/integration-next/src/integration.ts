@@ -1,9 +1,9 @@
-import type { MaybePromise, TenantRecord } from "@tenancyjs/core";
+import type { MaybePromise, TenantRecord } from "tenancyjs-core";
 import type {
   ResolverHeaderValue,
   ResolverInput,
   TenantResolutionOutcome,
-} from "@tenancyjs/identifiers";
+} from "tenancyjs-identifiers";
 import { headers as nextHeaders } from "next/headers.js";
 
 import {

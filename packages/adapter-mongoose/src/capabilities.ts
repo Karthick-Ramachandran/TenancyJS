@@ -1,4 +1,4 @@
-import type { TenancyAdapterCapabilities } from "@tenancyjs/core";
+import type { TenancyAdapterCapabilities } from "tenancyjs-core";
 
 export const MONGOOSE_ADAPTER_CAPABILITIES: Readonly<TenancyAdapterCapabilities> =
   Object.freeze({

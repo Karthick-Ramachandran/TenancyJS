@@ -7,9 +7,9 @@ contract cases that every future integration can run against the core lifecycle.
 
 ## In Scope
 
-- `@tenancyjs/identifiers`: ordered resolver chain, tenant-store port, typed outcomes, header, host, and
+- `tenancyjs-identifiers`: ordered resolver chain, tenant-store port, typed outcomes, header, host, and
   subdomain resolvers, strict normalization, ambiguity and suspension handling.
-- `@tenancyjs/testing`: immutable tenant fixtures, core manager contract cases, and a framework-neutral
+- `tenancyjs-testing`: immutable tenant fixtures, core manager contract cases, and a framework-neutral
   integration harness contract.
 - Package builds, public exports, Changesets, consumer checks, and module memory.
 

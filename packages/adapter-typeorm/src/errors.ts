@@ -1,4 +1,4 @@
-import { AdapterTenancyError } from "@tenancyjs/adapter-shared";
+import { AdapterTenancyError } from "tenancyjs-adapter-shared";
 
 export type TypeOrmTenancyErrorCode =
   | "TENANCY_TYPEORM_CONFIGURATION"

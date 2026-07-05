@@ -1,4 +1,4 @@
-import { TenancyManager, TenantContextError } from "@tenancyjs/core";
+import { TenancyManager, TenantContextError } from "tenancyjs-core";
 import knex, { type Knex } from "knex";
 import { DataSource, EntitySchema } from "typeorm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";

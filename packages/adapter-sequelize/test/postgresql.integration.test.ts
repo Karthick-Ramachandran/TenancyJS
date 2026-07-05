@@ -1,4 +1,4 @@
-import { TenancyManager, TenantContextError } from "@tenancyjs/core";
+import { TenancyManager, TenantContextError } from "tenancyjs-core";
 import knex, { type Knex } from "knex";
 import { DataTypes, Model, Sequelize } from "sequelize";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
