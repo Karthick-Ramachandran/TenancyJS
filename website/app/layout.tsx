@@ -59,7 +59,10 @@ export default function Layout({ children }: { children: ReactNode }) {
       suppressHydrationWarning
     >
       <body className="flex min-h-screen flex-col">
-        <RootProvider theme={{ defaultTheme: "light", enableSystem: false }}>
+        <RootProvider
+          theme={{ defaultTheme: "light", enableSystem: false }}
+          search={{ options: { type: "static" } }}
+        >
           {children}
         </RootProvider>
       </body>
