@@ -1,3 +1,5 @@
+import { describeTenantResolutionFailure } from "@tenancyjs/identifiers";
+
 import type { AdonisTenancyResolutionFailure } from "./types.js";
 
 export type AdonisTenancyErrorCode =
@@ -30,26 +32,9 @@ export class AdonisTenancyResolutionError extends AdonisTenancyError {
   readonly status: 400 | 404 | 500;
 
   constructor(reason: AdonisTenancyResolutionFailure) {
-    const { message, status } = resolutionErrorDetails(reason);
+    const { message, status } = describeTenantResolutionFailure(reason);
     super(message, "E_TENANCY_ADONIS_RESOLUTION");
     this.reason = reason;
     this.status = status;
-  }
-}
-
-function resolutionErrorDetails(reason: AdonisTenancyResolutionFailure): {
-  readonly message: string;
-  readonly status: 400 | 404 | 500;
-} {
-  switch (reason) {
-    case "no-identifier":
-      return { message: "Tenant identity is required.", status: 400 };
-    case "invalid":
-      return { message: "Tenant identity is invalid.", status: 400 };
-    case "not-found":
-    case "suspended":
-      return { message: "Tenant was not found.", status: 404 };
-    case "ambiguous":
-      return { message: "Tenant resolution is unavailable.", status: 500 };
   }
 }

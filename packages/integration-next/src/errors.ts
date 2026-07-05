@@ -1,3 +1,5 @@
+import { describeTenantResolutionFailure } from "@tenancyjs/identifiers";
+
 import type { NextTenancyResolutionFailure } from "./types.js";
 
 export type NextTenancyErrorCode =
@@ -24,26 +26,9 @@ export class NextTenancyResolutionError extends NextTenancyError {
   readonly statusCode: 400 | 404 | 500;
 
   constructor(reason: NextTenancyResolutionFailure) {
-    const { message, statusCode } = resolutionErrorDetails(reason);
+    const { message, status } = describeTenantResolutionFailure(reason);
     super(message, "TENANCY_NEXT_RESOLUTION");
     this.reason = reason;
-    this.statusCode = statusCode;
-  }
-}
-
-function resolutionErrorDetails(reason: NextTenancyResolutionFailure): {
-  readonly message: string;
-  readonly statusCode: 400 | 404 | 500;
-} {
-  switch (reason) {
-    case "no-identifier":
-      return { message: "Tenant identity is required.", statusCode: 400 };
-    case "invalid":
-      return { message: "Tenant identity is invalid.", statusCode: 400 };
-    case "not-found":
-    case "suspended":
-      return { message: "Tenant was not found.", statusCode: 404 };
-    case "ambiguous":
-      return { message: "Tenant resolution is unavailable.", statusCode: 500 };
+    this.statusCode = status;
   }
 }
