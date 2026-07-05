@@ -1,5 +1,6 @@
 import type {
   TenantListResult,
+  TenantMutationResult,
   TenantRecordView,
   TenantShowResult,
 } from "./commands/tenant.js";
@@ -28,6 +29,17 @@ export function formatTenantList(result: TenantListResult): string {
 
 export function formatTenantShow(result: TenantShowResult): string {
   return `${redactText(describeTenant(result.tenant, true))}\n`;
+}
+
+const MUTATION_VERB = {
+  create: "created",
+  suspend: "suspended",
+  activate: "activated",
+} as const;
+
+export function formatTenantMutation(result: TenantMutationResult): string {
+  const headline = `Tenant "${result.tenant.id}" ${MUTATION_VERB[result.subcommand]}.`;
+  return `${redactText([headline, describeTenant(result.tenant, true)].join("\n"))}\n`;
 }
 
 /**

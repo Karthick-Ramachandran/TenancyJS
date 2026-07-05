@@ -24,6 +24,13 @@ export interface TenantShowResult {
   readonly tenant: TenantRecordView;
 }
 
+export interface TenantMutationResult {
+  readonly schemaVersion: 1;
+  readonly command: "tenant";
+  readonly subcommand: "create" | "suspend" | "activate";
+  readonly tenant: TenantRecordView;
+}
+
 /**
  * `tenant list` — read every tenant from the host store. The store returned by
  * the loaded runtime is already hardened (ADR-0028), so unique-id and shape
@@ -68,6 +75,60 @@ export async function runTenantShow(
     subcommand: "show",
     tenant,
   };
+}
+
+export interface TenantCreateInput {
+  readonly id?: string;
+  /** Extra tenant fields (slug, plan, placement…) from repeated `--set key=value`. */
+  readonly fields: Readonly<Record<string, string>>;
+}
+
+/** `tenant create [<id>] [--set key=value …]` — persist a new tenant via the store. */
+export async function runTenantCreate(
+  runtime: LoadedTenancyRuntime,
+  input: TenantCreateInput,
+): Promise<TenantMutationResult> {
+  const store = requireStore(runtime);
+  if (typeof store.create !== "function") {
+    throw unsupported("create");
+  }
+  const payload: Record<string, unknown> = { ...input.fields };
+  if (input.id !== undefined) payload.id = input.id;
+  const tenant = (await store.create(payload)) as TenantRecordView;
+  return { schemaVersion: 1, command: "tenant", subcommand: "create", tenant };
+}
+
+/** `tenant suspend <id>` — mark a tenant suspended via the store. */
+export function runTenantSuspend(
+  runtime: LoadedTenancyRuntime,
+  id: string,
+): Promise<TenantMutationResult> {
+  return runTenantLifecycle(runtime, "suspend", id);
+}
+
+/** `tenant activate <id>` — reactivate a suspended tenant via the store. */
+export function runTenantActivate(
+  runtime: LoadedTenancyRuntime,
+  id: string,
+): Promise<TenantMutationResult> {
+  return runTenantLifecycle(runtime, "activate", id);
+}
+
+async function runTenantLifecycle(
+  runtime: LoadedTenancyRuntime,
+  action: "suspend" | "activate",
+  id: string,
+): Promise<TenantMutationResult> {
+  if (typeof id !== "string" || id.length === 0) {
+    throw new CliUsageError(`tenant ${action} requires a non-empty <id>.`);
+  }
+  const store = requireStore(runtime);
+  const method = store[action];
+  if (typeof method !== "function") {
+    throw unsupported(action);
+  }
+  const tenant = (await method(id)) as TenantRecordView;
+  return { schemaVersion: 1, command: "tenant", subcommand: action, tenant };
 }
 
 function requireStore(runtime: LoadedTenancyRuntime): LoadedTenantStore {

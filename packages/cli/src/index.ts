@@ -27,9 +27,17 @@ export {
   TenancyCliError,
 } from "./errors.js";
 export type { CliErrorCode } from "./errors.js";
-export { runTenantList, runTenantShow } from "./commands/tenant.js";
+export {
+  runTenantActivate,
+  runTenantCreate,
+  runTenantList,
+  runTenantShow,
+  runTenantSuspend,
+} from "./commands/tenant.js";
 export type {
+  TenantCreateInput,
   TenantListResult,
+  TenantMutationResult,
   TenantRecordView,
   TenantShowResult,
 } from "./commands/tenant.js";

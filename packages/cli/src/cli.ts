@@ -7,7 +7,13 @@ import {
   checkNodeVersion,
   ormForFramework,
 } from "./capabilities.js";
-import { runTenantList, runTenantShow } from "./commands/tenant.js";
+import {
+  runTenantActivate,
+  runTenantCreate,
+  runTenantList,
+  runTenantShow,
+  runTenantSuspend,
+} from "./commands/tenant.js";
 import { detectProject } from "./detection.js";
 import { CliProjectError, CliUsageError, TenancyCliError } from "./errors.js";
 import { runDoctor } from "./doctor.js";
@@ -19,6 +25,7 @@ import {
   formatPlan,
   formatTenantJson,
   formatTenantList,
+  formatTenantMutation,
   formatTenantShow,
 } from "./output.js";
 import { createInitPlan } from "./plan.js";
@@ -155,20 +162,67 @@ async function runTenant(
     return 0;
   }
   if (parsed.subcommand === "show") {
-    if (parsed.tenantId === undefined) {
-      throw new CliUsageError("tenant show requires <id>.");
-    }
+    const id = requireTenantId(parsed, "show");
     const result = await withRuntime(loadOptions, (runtime) =>
-      runTenantShow(runtime, parsed.tenantId!),
+      runTenantShow(runtime, id),
     );
     io.writeStdout(
       parsed.json ? formatTenantJson(result) : formatTenantShow(result),
     );
     return 0;
   }
+  if (parsed.subcommand === "create") {
+    // Validate --set before loading the runtime so bad args fail fast.
+    const fields = parseSetFields(parsed.set);
+    const result = await withRuntime(loadOptions, (runtime) =>
+      runTenantCreate(runtime, {
+        ...(parsed.tenantId === undefined ? {} : { id: parsed.tenantId }),
+        fields,
+      }),
+    );
+    io.writeStdout(
+      parsed.json ? formatTenantJson(result) : formatTenantMutation(result),
+    );
+    return 0;
+  }
+  if (parsed.subcommand === "suspend" || parsed.subcommand === "activate") {
+    const id = requireTenantId(parsed, parsed.subcommand);
+    const action =
+      parsed.subcommand === "suspend" ? runTenantSuspend : runTenantActivate;
+    const result = await withRuntime(loadOptions, (runtime) =>
+      action(runtime, id),
+    );
+    io.writeStdout(
+      parsed.json ? formatTenantJson(result) : formatTenantMutation(result),
+    );
+    return 0;
+  }
   throw new CliUsageError(
-    `Unknown tenant subcommand: ${parsed.subcommand ?? "(none)"}. Use "tenant list" or "tenant show <id>".`,
+    `Unknown tenant subcommand: ${parsed.subcommand ?? "(none)"}. ` +
+      'Use "tenant list", "show <id>", "create [<id>]", "suspend <id>", or "activate <id>".',
   );
+}
+
+function requireTenantId(parsed: ParsedArguments, subcommand: string): string {
+  if (parsed.tenantId === undefined) {
+    throw new CliUsageError(`tenant ${subcommand} requires <id>.`);
+  }
+  return parsed.tenantId;
+}
+
+/** Turn repeated `--set key=value` into a plain field record. */
+function parseSetFields(
+  pairs: readonly string[] | undefined,
+): Record<string, string> {
+  const fields: Record<string, string> = {};
+  for (const pair of pairs ?? []) {
+    const separator = pair.indexOf("=");
+    if (separator <= 0) {
+      throw new CliUsageError(`--set expects key=value, but got "${pair}".`);
+    }
+    fields[pair.slice(0, separator)] = pair.slice(separator + 1);
+  }
+  return fields;
 }
 
 async function resolveFramework(
@@ -236,6 +290,7 @@ interface ParsedArguments {
   readonly root?: string;
   readonly testFile?: string;
   readonly config?: string;
+  readonly set?: readonly string[];
   readonly framework?: InitFramework;
   readonly apply: boolean;
   readonly json: boolean;
@@ -267,6 +322,7 @@ function parseArguments(arguments_: readonly string[]): ParsedArguments {
     throw new CliUsageError(`Unknown command: ${commandValue}`);
   }
   const positionals: string[] = [];
+  const set: string[] = [];
   let root: string | undefined;
   let testFile: string | undefined;
   let config: string | undefined;
@@ -279,7 +335,14 @@ function parseArguments(arguments_: readonly string[]): ParsedArguments {
     if (argument === "--apply") apply = true;
     else if (argument === "--json") json = true;
     else if (argument === "--yes" || argument === "-y") yes = true;
-    else if (VALUE_FLAGS.has(argument)) {
+    else if (argument === "--set") {
+      const value = arguments_[index + 1];
+      if (value === undefined || value.startsWith("--")) {
+        throw new CliUsageError("--set requires a key=value.");
+      }
+      set.push(value);
+      index += 1;
+    } else if (VALUE_FLAGS.has(argument)) {
       const value = arguments_[index + 1];
       if (value === undefined || value.startsWith("--")) {
         throw new CliUsageError(`${argument} requires a value.`);
@@ -310,6 +373,8 @@ function parseArguments(arguments_: readonly string[]): ParsedArguments {
     throw new CliUsageError("--framework and --yes are valid only for init.");
   if (commandValue !== "tenant" && config !== undefined)
     throw new CliUsageError("--config is valid only for tenant commands.");
+  if (commandValue !== "tenant" && set.length > 0)
+    throw new CliUsageError("--set is valid only for tenant create.");
   return {
     command: commandValue,
     ...(commandValue === "tenant" && positionals[0] !== undefined
@@ -321,6 +386,7 @@ function parseArguments(arguments_: readonly string[]): ParsedArguments {
     ...(root === undefined ? {} : { root }),
     ...(testFile === undefined ? {} : { testFile }),
     ...(config === undefined ? {} : { config }),
+    ...(set.length === 0 ? {} : { set }),
     ...(framework === undefined ? {} : { framework }),
     apply,
     json,
@@ -349,6 +415,9 @@ Usage:
   tenancy test:leak --test-file <path> [--root <path>] [--json]
   tenancy tenant list [--config <path>] [--root <path>] [--json]
   tenancy tenant show <id> [--config <path>] [--root <path>] [--json]
+  tenancy tenant create [<id>] [--set key=value ...] [--config <path>] [--json]
+  tenancy tenant suspend <id> [--config <path>] [--json]
+  tenancy tenant activate <id> [--config <path>] [--json]
 
 init previews changes (dry run) unless --apply is present. It detects your stack and, when it cannot,
 asks you to choose one interactively; pass --framework to skip the prompt in CI. Supported stacks:

@@ -95,6 +95,88 @@ describe("runCli tenant show", () => {
   });
 });
 
+describe("runCli tenant create/suspend/activate", () => {
+  it("creates a tenant with --set fields", async () => {
+    const output = captureIo();
+    const code = await runCli(
+      [
+        "tenant",
+        "create",
+        "acme",
+        "--set",
+        "slug=acme-inc",
+        "--set",
+        "plan=pro",
+        "--config",
+        "store-writable.config.mjs",
+      ],
+      output.io,
+    );
+    expect(code).toBe(0);
+    const text = output.stdout.join("");
+    expect(text).toContain('Tenant "acme" created.');
+    expect(text).toContain("slug=acme-inc");
+    expect(text).toContain("plan=pro");
+  });
+
+  it("creates a tenant with a store-generated id when none is given", async () => {
+    const output = captureIo();
+    const code = await runCli(
+      ["tenant", "create", "--config", "store-writable.config.mjs", "--json"],
+      output.io,
+    );
+    expect(code).toBe(0);
+    expect(output.stdout.join("")).toContain("generated-1");
+  });
+
+  it("suspends and activates a tenant", async () => {
+    const suspend = captureIo();
+    expect(
+      await runCli(
+        ["tenant", "suspend", "seed", "--config", "store-writable.config.mjs"],
+        suspend.io,
+      ),
+    ).toBe(0);
+    expect(suspend.stdout.join("")).toContain('Tenant "seed" suspended.');
+
+    const activate = captureIo();
+    expect(
+      await runCli(
+        ["tenant", "activate", "seed", "--config", "store-writable.config.mjs"],
+        activate.io,
+      ),
+    ).toBe(0);
+    expect(activate.stdout.join("")).toContain('Tenant "seed" activated.');
+  });
+
+  it("requires an id for suspend", async () => {
+    const output = captureIo();
+    const code = await runCli(
+      ["tenant", "suspend", "--config", "store-writable.config.mjs"],
+      output.io,
+    );
+    expect(code).toBe(2);
+    expect(output.stderr.join("")).toMatch(/suspend requires <id>/);
+  });
+
+  it("rejects a malformed --set pair", async () => {
+    const output = captureIo();
+    const code = await runCli(
+      ["tenant", "create", "acme", "--set", "novalue"],
+      output.io,
+    );
+    expect(code).toBe(2);
+    expect(output.stderr.join("")).toMatch(/--set expects key=value/);
+  });
+
+  it("rejects --set outside tenant commands", async () => {
+    const output = captureIo();
+    const code = await runCli(["doctor", "--set", "a=b"], output.io);
+    expect(code).toBe(2);
+    expect(output.stderr.join("")).toMatch(/--set is valid only/);
+  });
+});
+
 describe("runCli tenant argument handling", () => {
   it("rejects an unknown subcommand", async () => {
     const output = captureIo();

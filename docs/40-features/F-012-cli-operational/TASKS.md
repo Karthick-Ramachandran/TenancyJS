@@ -44,9 +44,14 @@ Deferred to T7 (its own task): the `doctor` runtime-load + store round-trip chec
 
 ## T3: Registry write commands (Phase 3)
 
-Status: Todo
+Status: Done
 
 Scope: `tenant create | suspend | activate` through the hardened contract.
+
+Delivered: `tenant create [<id>] [--set key=value …]` (fields via repeatable `--set`, store may
+generate the id), `tenant suspend <id>` / `tenant activate <id>`, redacted human + `--json` output,
+fail-closed on missing store / unsupported method / bad `--set`. `--set` validated before the runtime
+is loaded so bad args fail fast.
 
 ## T4: run <script> (Phase 4)
 
