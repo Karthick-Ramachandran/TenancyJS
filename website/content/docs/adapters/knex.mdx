@@ -107,6 +107,35 @@ export const tenancy = createKnexTenancy({
   connection is disposed on teardown. See [Database per tenant](/docs/strategies/database-per-tenant).
 </Callout>
 
+## Full query freedom: `unrestricted()`
+
+In every other strategy the scoped client rejects raw SQL, joins, and nested queries — it's the only
+guard, so it can't let through what it can't prove is tenant-safe (see
+[Limitations](/docs/concepts/limitations)). **Database-per-tenant is different:** the leased connection
+*is* the tenant's own database, so any query is isolated by construction. There, the client gives you an
+escape hatch:
+
+```ts
+const report = await tenancy.run(async (db) => {
+  // The raw, tenant-scoped Knex transaction — full joins, raw SQL, nested reads/writes.
+  const trx = db.unrestricted();
+
+  return trx("orders")
+    .join("customers", "customers.id", "orders.customer_id")
+    .whereRaw("orders.total > ?", [1000])
+    .select("orders.id", "customers.name");
+});
+```
+
+<Callout type="warn">
+  `unrestricted()` is **fail-closed**. It returns the real transaction **only** in a genuinely
+  database-enforced scope — a database-per-tenant config running in tenant mode, where a per-tenant
+  connection was actually leased. It **throws** in row-level and schema-per-tenant scopes, and even in a
+  database-per-tenant config used in central mode (which runs on the shared admin connection, not a
+  tenant's database). The freedom comes from the connection boundary, never from the config name
+  ([ADR-0033](/docs/concepts/limitations#two-enforcement-tiers--and-when-the-restrictions-lift)).
+</Callout>
+
 ## Use a different framework
 
 Keep the adapter half; only swap the **integration** import:

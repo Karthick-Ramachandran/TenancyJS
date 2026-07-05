@@ -13,34 +13,63 @@ honest list of those restrictions, so nothing surprises you mid-build.
   on purpose. Where there's a workaround, it's noted.
 </Callout>
 
-## Raw queries — not supported
+## Two enforcement tiers — and when the restrictions lift
 
-Raw SQL and native query methods are **rejected** by every adapter: Prisma's `$queryRaw`/`$executeRaw`,
-Knex's `.raw()`, Drizzle's `sql`-template execution, native `execute`, and equivalents. The facade
-can't guarantee a hand-written query is filtered to the tenant, so it refuses rather than run it
-unscoped.
+The restrictions below exist **only where the facade is the sole thing keeping tenants apart**. That is
+not always the case, so TenancyJS classifies every active scope into one of two tiers ([ADR-0033](https://github.com/Karthick-Ramachandran/TenancyJS)):
+
+- **Facade-enforced** — the adapter facade is the *only* guard. Everything on this page applies: raw,
+  nested, and complex operations are rejected because the facade can't prove they're tenant-safe. This
+  is the tier for MySQL/MongoDB row-level, and for schema-per-tenant without a per-tenant role.
+- **Database-enforced** — the **database or connection itself** isolates every query, so the same raw /
+  nested / join operations are safe *by construction* and the facade doesn't need to reject them. A
+  database-enforced scope can hand you the **real, tenant-scoped client** for full query freedom.
+
+<Callout type="info">
+  **Available today:** [Knex](/docs/adapters/knex#full-query-freedom-unrestricted) **database-per-tenant**
+  exposes `client.unrestricted()` — the raw tenant-scoped transaction with full joins, raw SQL, and
+  nested queries, safe because the connection *is* the tenant's own database. This is fail-closed: it
+  **throws** in any facade-enforced scope (including a database-per-tenant config used in central mode).
+  Extending this to the other adapters, and to PostgreSQL forced-RLS and schema-plus-role scopes, is
+  [on the roadmap](/docs/concepts/capability-matrix#roadmap).
+</Callout>
+
+Everything below describes the **facade-enforced** tier. Read each restriction as "…unless the scope is
+database-enforced, where the database isolates it anyway."
+
+## Raw queries — not supported (facade-enforced scopes)
+
+In a facade-enforced scope, raw SQL and native query methods are **rejected** by every adapter: Prisma's
+`$queryRaw`/`$executeRaw`, Knex's `.raw()`, Drizzle's `sql`-template execution, native `execute`, and
+equivalents. The facade can't guarantee a hand-written query is filtered to the tenant, so it refuses
+rather than run it unscoped. (In a database-enforced scope the database isolates raw SQL anyway — today,
+Knex database-per-tenant via [`unrestricted()`](/docs/adapters/knex#full-query-freedom-unrestricted).)
 
 - **Workaround:** use the scoped query builder / model API the adapter gives you. If you genuinely need
   arbitrary raw access, use [database-per-tenant](/docs/strategies/database-per-tenant) — a physically
-  separate connection per tenant means raw queries are isolated by construction.
+  separate connection per tenant means raw queries are isolated by construction. On Knex that scope
+  gives you [`client.unrestricted()`](/docs/adapters/knex#full-query-freedom-unrestricted) for exactly
+  this.
 
-## Nested writes — not supported
+## Nested writes — not supported (facade-enforced scopes)
 
 Nested / relational **writes** (e.g. Prisma nested `create`/`connect`, cascading relation mutations)
-are **rejected** on all adapters. The facade scopes the top-level operation, but can't guarantee every
-nested branch lands in the right tenant.
+are **rejected** in facade-enforced scopes. The facade scopes the top-level operation, but can't
+guarantee every nested branch lands in the right tenant.
 
 - **Workaround:** split the mutation into separate scoped writes inside the same tenant scope (they all
-  run in one tenant transaction).
+  run in one tenant transaction) — or use a database-enforced scope, where nested writes are isolated by
+  the database (today: Knex database-per-tenant via `unrestricted()`).
 
-## Nested reads — not supported (except Lucid)
+## Nested reads — not supported (facade-enforced scopes; Lucid excepted)
 
 Nested / relational **reads** — includes, joins, `with`/`populate`, relation loaders — are **rejected**
-on Prisma, Knex, TypeORM, Sequelize, Mongoose, and Drizzle. **Lucid is the exception** and supports
-nested reads.
+in facade-enforced scopes on Prisma, Knex, TypeORM, Sequelize, Mongoose, and Drizzle. **Lucid is the
+exception** and supports nested reads on its facade.
 
 - **Workaround:** load the related rows as separate scoped queries. On Lucid, nested reads work
-  directly.
+  directly. In a database-enforced scope they're safe by construction (today: Knex database-per-tenant
+  via `unrestricted()`).
 
 ## Native handles bypass isolation
 

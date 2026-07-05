@@ -14,7 +14,7 @@ description: Start with the CLI - it scaffolds your tenancy for your stack. Or w
 TenancyJS composes from two axes that **don't need to know about each other**:
 
 1. An **integration** for your framework - Express, Next.js, NestJS, or AdonisJS.
-2. An **adapter** for your ORM - Prisma, Knex, Lucid, TypeORM, Sequelize, or Mongoose.
+2. An **adapter** for your ORM - Prisma, Knex, Lucid, TypeORM, Sequelize, Drizzle, or Mongoose.
 
 Integrations and adapters compose through the same `TenancyManager`; they do not import each other.
 That makes combinations such as **Express + Sequelize**, **Next.js + Knex**, and **NestJS + Mongoose**
@@ -36,11 +36,14 @@ you - no boilerplate.
 npx tenancy init
 ```
 
-Today it ships ready-made templates for these three popular combinations:
+Today it ships ready-made templates for these six popular combinations:
 
 | Framework | ORM | `tenancy init` |
 | --- | --- | :---: |
 | Express | Prisma | ✅ scaffolded |
+| Express | TypeORM | ✅ scaffolded |
+| Express | Sequelize | ✅ scaffolded |
+| Express | Drizzle | ✅ scaffolded |
 | AdonisJS | Lucid | ✅ scaffolded |
 | Next.js | Prisma | ✅ scaffolded |
 
@@ -53,7 +56,7 @@ npm install tenancyjs-core tenancyjs-adapter-prisma tenancyjs-integration-expres
 Then jump to the [Quickstart](/docs/getting-started/quickstart).
 
 <Callout type="info">
-  Any other combination - **Express + Sequelize**, **Next.js + Knex**, **NestJS + anything** - isn't
+  Any other combination - **Express + Knex**, **Next.js + Knex**, **NestJS + anything** - isn't
   scaffolded *yet*, but it's a few lines of manual wiring. Follow [manual setup](#manual-setup) below.
 </Callout>
 
@@ -69,13 +72,13 @@ listed below it - just install that adapter and use the same steps.
 
 <Cards>
   <Card title="Express" href="/docs/integrations/express">
-    Prisma · Knex · TypeORM · Sequelize · Mongoose
+    Prisma · Knex · TypeORM · Sequelize · Drizzle · Mongoose
   </Card>
   <Card title="Next.js" href="/docs/integrations/nextjs">
-    Prisma · Knex · TypeORM · Sequelize · Mongoose
+    Prisma · Knex · TypeORM · Sequelize · Drizzle · Mongoose
   </Card>
   <Card title="NestJS" href="/docs/integrations/nestjs">
-    Prisma · Knex · TypeORM · Sequelize · Mongoose
+    Prisma · Knex · TypeORM · Sequelize · Drizzle · Mongoose
   </Card>
   <Card title="AdonisJS" href="/docs/integrations/adonis">
     Lucid
@@ -103,7 +106,7 @@ framework half and the [adapter guide](/docs/adapters) for the ORM half. That's 
 | --- | --- |
 | `tenancyjs-core` | Framework-neutral tenant context, lifecycle, and the runtime contract |
 | `tenancyjs-identifiers` | Resolve a tenant from a request (subdomain, header, path…) |
-| `tenancyjs-adapter-prisma` · `-knex` · `-lucid` · `-typeorm` · `-sequelize` · `-mongoose` | Enforce isolation inside your ORM ([guides](/docs/adapters)) |
+| `tenancyjs-adapter-prisma` · `-knex` · `-lucid` · `-typeorm` · `-sequelize` · `-drizzle` · `-mongoose` | Enforce isolation inside your ORM ([guides](/docs/adapters)) |
 | `tenancyjs-integration-express` · `-next` · `-adonis` · `-nest` | Bind context to the request lifecycle ([guides](/docs/integrations)) |
 | `tenancyjs-cli` | The operational CLI (`tenancy …`) |
 | `tenancyjs-testing` | Fixtures and conformance helpers for your own tests |

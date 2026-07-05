@@ -12,9 +12,11 @@ supports.
 
 <Callout type="warn">
   To stay fail-closed, the scoped facade rejects what it can't safely scope — **raw queries, nested
-  reads/writes, native handles, and complex criteria**. This is uniform across adapters (Lucid is the
-  one exception: it supports nested reads). Read [Limitations](/docs/concepts/limitations) before you
-  build.
+  reads/writes, native handles, and complex criteria** — **wherever the facade is the only guard**
+  (Lucid is the one exception: it supports nested reads). Where the *database* enforces isolation, those
+  restrictions lift: Knex **database-per-tenant** gives you full query freedom via
+  [`unrestricted()`](/docs/adapters/knex#full-query-freedom-unrestricted). Read
+  [Limitations](/docs/concepts/limitations) before you build.
 </Callout>
 
 | Adapter | Package | Row-level | Schema-per-tenant | Database-per-tenant |
