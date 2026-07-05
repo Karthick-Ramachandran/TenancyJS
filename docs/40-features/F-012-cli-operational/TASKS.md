@@ -80,9 +80,14 @@ Plus capability-honesty: `tenant check` reads each adapter's own capability self
 
 ## T6: Polish (Phase 6)
 
-Status: Todo
+Status: Mostly done (built in per-phase)
 
 Scope: unified help, error taxonomy, `--json` audit, disposal audit, docs.
+
+Delivered per-phase: one help block covering every command; consistent `CliUsageError`/`CliProjectError`
+taxonomy with codes; `--json` on every operational command; dispose-always via `withRuntime`; redaction
+everywhere. Remaining: a user-facing CLI/`defineTenancyRuntime` guide, deferred to the npm-publish step
+(README stays minimal until then).
 
 ## T7: tenant check — runtime + store health (split from T2)
 
