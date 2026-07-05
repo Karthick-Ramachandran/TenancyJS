@@ -1,4 +1,9 @@
 export { TenantResolutionChain } from "./chain.js";
+export { describeTenantResolutionFailure } from "./resolution-http.js";
+export type {
+  TenantResolutionFailureHttp,
+  TenantResolutionFailureStatus,
+} from "./resolution-http.js";
 export {
   IdentifierConfigurationError,
   TenantResolutionError,
