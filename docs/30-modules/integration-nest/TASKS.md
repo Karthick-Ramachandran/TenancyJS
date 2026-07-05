@@ -2,10 +2,10 @@
 
 ## Active Work
 
-- F-010 T1 Nest lifecycle implementation.
+- F-010 T1/T6 Nest lifecycle and adapter-backed evidence.
 
 ## Tasks
 
 - Complete locally: config, metadata, private resolution store, global guard, and interceptor.
-- Complete locally: Express/Fastify Nest application lifecycle tests. Todo: adapter E2E.
-- Todo: docs, package consumer, review, and completion evidence.
+- Complete locally: Express/Fastify lifecycle tests and Nest + TypeORM/PostgreSQL adversarial E2E.
+- Complete locally: practical docs, packed-package consumer, review, and completion evidence.

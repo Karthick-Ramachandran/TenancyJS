@@ -22,14 +22,14 @@ another's.** Everything else is explicitly out of scope, and saying so is part o
 
 - **Not authorization.** Tenant identity is not permission. Your app still decides what a user may do
   _within_ a tenant. TenancyJS decides _which_ tenant, and keeps tenants apart.
-- **Not a database.** It doesn't host your tenants or run your migrations — it orchestrates and
+- **Not a database.** It doesn't host your tenants or run your migrations - it orchestrates and
   delegates to your store and your migrator.
 
 ## Enforcement depth
 
 | Strategy | Enforced by |
 | --- | --- |
-| Row-level (Postgres) | Forced Postgres **RLS** — the database rejects cross-tenant rows even under raw SQL |
+| Row-level (Postgres) | Forced Postgres **RLS** - the database rejects cross-tenant rows even under raw SQL |
 | Row-level (Prisma/Mongoose) | Adapter **query-scoping** / facade |
 | Schema-per-tenant | Transaction-local `search_path`, optionally a **per-tenant role** for database-enforced isolation |
 | Database-per-tenant | Physically separate databases, cache-routed per tenant |

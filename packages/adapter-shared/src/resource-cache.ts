@@ -264,7 +264,7 @@ function assertPlacementKey(value: unknown): asserts value is string {
     !/^[A-Za-z0-9._:-]+$/.test(value)
   ) {
     throw cacheError(
-      "Database placement keys must be short opaque identifiers and must not contain credentials or URLs.",
+      "Tenant resource placement keys must be short opaque identifiers and must not contain credentials or URLs.",
       "TENANCY_RESOURCE_CACHE_CONFIGURATION",
     );
   }

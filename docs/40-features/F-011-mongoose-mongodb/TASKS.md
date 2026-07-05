@@ -29,14 +29,18 @@ Scope:
 
 ## T3: Database-per-tenant router
 
-Status: Todo
+Status: Done locally
 
 Scope:
 - Shared-cache binding, host resource factory, collisions, bounded lifecycle, two-database evidence.
 
 ## T4: Release integration
 
-Status: Todo
+Status: Done locally
 
 Scope:
 - Capabilities/docs/changeset/module memory/package consumer/full gate/audit/reviews.
+
+Evidence:
+- Capability matrix, package/website guides, changeset, packed consumer import, full real-database gate,
+  audit gate, reviews, and Persist Doctor are current.

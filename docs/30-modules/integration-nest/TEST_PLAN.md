@@ -9,6 +9,8 @@
 
 - Nest 11 Express and Fastify test apps: concurrent tenants, handler failure, response completion,
   cancellation, and real adapter-backed two-tenant E2E.
+- Nest Express + TypeORM/PostgreSQL uses colliding row IDs and proves concurrent requests observe only
+  their tenant while a missing identifier never reaches controller data access.
 
 ## Security Tests
 

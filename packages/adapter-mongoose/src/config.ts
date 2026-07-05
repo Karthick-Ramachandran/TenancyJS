@@ -4,8 +4,11 @@ import type { Connection, Model } from "mongoose";
 import { MongooseTenancyConfigurationError } from "./errors.js";
 import type {
   MongooseCentralModelConfig,
+  MongooseDatabasePlacement,
   MongooseTenantModelConfig,
 } from "./types.js";
+
+const DEFAULT_MAX_CONNECTIONS = 25;
 
 export interface MongooseTenancyOptions<
   TTenant extends TenantRecord = TenantRecord,
@@ -14,6 +17,9 @@ export interface MongooseTenancyOptions<
   readonly connection: Connection;
   readonly tenantModels: readonly MongooseTenantModelConfig[];
   readonly centralModels?: readonly MongooseCentralModelConfig[];
+  readonly strategy?: "rowLevel" | "databasePerTenant";
+  readonly database?: (tenant: TTenant) => MongooseDatabasePlacement;
+  readonly maxConnections?: number;
 }
 
 export type MongooseModelPolicy =
@@ -25,6 +31,10 @@ export interface MongooseTenancyConfig<
 > {
   readonly manager: TenancyManager<TTenant>;
   readonly connection: Connection;
+  readonly strategy: "rowLevel" | "databasePerTenant";
+  readonly database:
+    ((tenant: TTenant) => MongooseDatabasePlacement) | undefined;
+  readonly maxConnections: number;
   classify(model: Model<unknown>): MongooseModelPolicy | undefined;
 }
 
@@ -37,6 +47,24 @@ export function defineMongooseTenancyConfig<
     configuration("requires a TenancyManager");
   if (typeof options.connection?.transaction !== "function")
     configuration("requires a Connection");
+  const strategy = options.strategy ?? "rowLevel";
+  if (strategy !== "rowLevel" && strategy !== "databasePerTenant")
+    configuration("strategy must be rowLevel or databasePerTenant");
+  if (
+    strategy === "databasePerTenant" &&
+    typeof options.database !== "function"
+  )
+    configuration("database-per-tenant requires a database resolver");
+  if (strategy !== "databasePerTenant" && options.database !== undefined)
+    configuration("only database-per-tenant accepts a database resolver");
+  if (strategy !== "databasePerTenant" && options.maxConnections !== undefined)
+    configuration("only database-per-tenant accepts maxConnections");
+  const maxConnections = options.maxConnections ?? DEFAULT_MAX_CONNECTIONS;
+  if (
+    strategy === "databasePerTenant" &&
+    (!Number.isSafeInteger(maxConnections) || maxConnections <= 0)
+  )
+    configuration("database-per-tenant requires a positive maxConnections");
   if (
     !Array.isArray(options.tenantModels) ||
     options.tenantModels.length === 0
@@ -85,6 +113,9 @@ export function defineMongooseTenancyConfig<
   return Object.freeze({
     manager: options.manager,
     connection: options.connection,
+    strategy,
+    database: options.database,
+    maxConnections,
     classify: (model: Model<unknown>) => policies.get(model),
   });
 }

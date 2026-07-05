@@ -33,14 +33,14 @@ npm install tenancyjs-adapter-prisma tenancyjs-integration-express
 
 ## Three isolation strategies, one contract
 
-| Strategy                        | What it means                                                                                                                     | Adapters                                               |
-| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
-| **Single database** (row-level) | Shared tables, `tenant_id` + forced Postgres RLS or query-scoping                                                                 | Knex · Lucid · Prisma · TypeORM · Sequelize · Mongoose |
-| **Schema per tenant**           | One Postgres schema per tenant via transaction-local `search_path` (optionally a per-tenant role for database-enforced isolation) | Knex · Lucid                                           |
-| **Database per tenant**         | A separate database per tenant, routed through a bounded connection cache                                                         | Knex · Lucid · Prisma                                  |
+| Strategy                        | What it means                                                                           | Adapters                                               |
+| ------------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| **Single database** (row-level) | Shared tables, `tenant_id` + forced Postgres RLS or query-scoping                       | Knex · Lucid · Prisma · TypeORM · Sequelize · Mongoose |
+| **Schema per tenant**           | One Postgres schema per tenant via `search_path` or a schema-bound Prisma driver client | Knex · Lucid · Prisma · TypeORM · Sequelize            |
+| **Database per tenant**         | A separate database per tenant, routed through a bounded connection cache               | Knex · Lucid · Prisma · TypeORM · Sequelize · Mongoose |
 
-Prisma schema-per-tenant is intentionally not supported (Prisma resolves tables from the datasource,
-not `search_path`) - and the toolkit tells you so rather than pretending.
+MySQL has no separate schema namespace (`SCHEMA` is a synonym for `DATABASE`), so its equivalent is
+database-per-tenant. MongoDB likewise supports database-per-tenant, not SQL schema-per-tenant.
 
 ## Supported stacks
 

@@ -135,8 +135,8 @@ Do Not: Open tenant database connections in Edge middleware or promise Pages Rou
 
 ## T-08: Implement Knex And Lucid/Adonis Vertical Slice
 
-Status: In progress through F-007; ADR-0010/ADR-0013 are accepted, and the Knex package boundary has
-hosted PostgreSQL evidence. Node 24 is now the repository support floor.
+Status: Complete through F-007/F-009; Knex, Lucid, AdonisJS 7, and all three isolation strategies have
+local real-database evidence. Node 24 is the repository support floor.
 
 Scope: Knex adapter, dedicated Lucid adapter, Adonis provider/middleware/config, Japa helper, Ace CLI
 wrappers, CLI template, and examples.
@@ -149,7 +149,8 @@ Do Not: Implement Ace command logic separately from CLI services or claim Lucid 
 
 ## T-09: Implement Sequelize And NestJS Vertical Slices
 
-Status: Todo.
+Status: Runtime complete through F-010. Original example/CLI-template breadth is deferred; Nest,
+Sequelize, and TypeORM package/runtime evidence is complete locally.
 
 Scope: Sequelize adapter, Nest dynamic module and lifecycle bridge, Nest+Prisma and Nest+Sequelize
 examples, and CLI templates.
@@ -162,7 +163,7 @@ Do Not: Depend on request-scoped providers for the core context or infer raw Exp
 
 ## T-10: Add Tenant Registry And Native Operation Delegates
 
-Status: Todo.
+Status: Complete through F-012's hardened store and operational host-hook delegation.
 
 Scope: Registry ports, list/create, bounded iteration, local executable resolution, migration/seed
 delegates, dry runs, cancellation, JSON summaries, and Ace mapping.
@@ -176,7 +177,7 @@ Do Not: Pass connection secrets as printed arguments or claim rollback parity wh
 
 ## T-11: Add Database-Per-Tenant Capability
 
-Status: Todo.
+Status: Complete through F-009/F-012 across the supported adapters and provisioner contract.
 
 Scope: Connection factory/provisioning port, lifecycle integration, one proven SQL adapter path, and
 then capability-gated expansion.
@@ -186,11 +187,14 @@ credential-safe; row-level remains default.
 
 Tests: Real-database provisioning, pool cleanup, concurrency limits, failure injection, and recovery.
 
-Do Not: Add schema-per-tenant or destructive defaults.
+Do Not: Add destructive defaults. The original schema-per-tenant exclusion was superseded by
+ADR-0017/0018 and F-009.
 
 ## T-12: Harden And Prepare v1
 
-Status: Todo.
+Status: In progress. Local API/security/docs/package review and the repeatable Prisma policy benchmark
+are complete; hosted matrix, representative threshold decisions, and actually-published clean-install
+examples remain release work.
 
 Scope: API review, peer-version CI, performance benchmarks, docs, upgrade policy, security review,
 release artifacts, and compatibility-table audit.

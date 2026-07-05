@@ -1,6 +1,6 @@
 ---
 title: Capability matrix
-description: Which databases, adapters, and strategies are tested-supported — and which aren't.
+description: Which databases, adapters, and strategies are tested-supported - and which aren't.
 ---
 
 TenancyJS only marks a combination **supported** after a real two-tenant adversarial isolation test on a
@@ -9,20 +9,20 @@ row. This page is the honest source of truth for what has actually been proven.
 
 ## By database
 
-Start here — it decides which strategies are even available to you.
+Start here - it decides which strategies are even available to you.
 
 | Database | Row-level | Schema-per-tenant | Database-per-tenant | Adapters |
 | --- | :---: | :---: | :---: | --- |
 | **PostgreSQL** | ✅ | ✅ | ✅ | Knex · Lucid · Prisma · TypeORM · Sequelize |
-| **MySQL** | 🧪 | — | — | Prisma |
-| **MongoDB** | ✅ ¹ | — | — | Mongoose |
+| **MySQL** | 🧪 | - | ✅ | Prisma |
+| **MongoDB** | ✅ ¹ | - | ✅ ² | Mongoose |
 
-✅ tested-supported · 🧪 experimental · — not available
+✅ tested-supported · 🧪 experimental · - not available
 
 <Callout type="warn">
-  **Schema-per-tenant and database-per-tenant are PostgreSQL-only.** They rely on Postgres mechanisms —
-  forced row-level security and a transaction-local `search_path`. On **MySQL** and **MongoDB** the
-  available strategy is **row-level** (via query-scoping, not RLS).
+  **Schema-per-tenant is PostgreSQL-only.** MySQL treats `SCHEMA` and `DATABASE` as the same namespace,
+  and MongoDB has no SQL schema/search-path equivalent. Both support the distinct
+  **database-per-tenant** strategy through cache-routed resources.
 </Callout>
 
 🧪 **MySQL row-level is experimental.** MySQL has no row-level security, so it's facade-only (no
@@ -31,8 +31,11 @@ tested, but treat it as experimental until it's proven in production. See
 [how it's enforced](#how-each-is-enforced).
 
 ¹ **MongoDB is facade-only.** It has no row-level security, so isolation is enforced entirely by the
-adapter's query facade — using the native model, collection, or connection bypasses it. Treat it as a
+adapter's query facade - using the native model, collection, or connection bypasses it. Treat it as a
 strong convention, not a database-level guarantee.
+
+² **MongoDB database-per-tenant is a routing boundary by default.** It becomes database-enforced only
+when each tenant connection uses credentials restricted to that tenant's database.
 
 ## By adapter × strategy
 
@@ -40,48 +43,50 @@ strong convention, not a database-level guarantee.
 | --- | --- | :---: | :---: | :---: |
 | **Knex** | PostgreSQL | ✅ | ✅ | ✅ |
 | **Lucid** (AdonisJS) | PostgreSQL | ✅ | ✅ | ✅ |
-| **Prisma** | PostgreSQL · MySQL 🧪 | ✅ | — | ✅ |
-| **TypeORM** | PostgreSQL | ✅ | — | — |
-| **Sequelize** | PostgreSQL | ✅ | — | — |
-| **Mongoose** | MongoDB | ✅ ¹ | — | — |
+| **Prisma** | PostgreSQL | ✅ | ✅ | ✅ |
+| **Prisma** | MySQL | 🧪 | - | ✅ |
+| **TypeORM** | PostgreSQL | ✅ | ✅ | ✅ |
+| **Sequelize** | PostgreSQL | ✅ | ✅ | ✅ |
+| **Mongoose** | MongoDB | ✅ ¹ | - | ✅ ² |
 
-✅ tested-supported · — not available yet
+✅ tested-supported · - not available yet
 
 ## How each is enforced
 
-- **PostgreSQL, row-level & schema-per-tenant** — forced Postgres **RLS** (the database rejects
-  cross-tenant rows even under raw SQL), plus the adapter's facade. Schema-per-tenant adds a
-  transaction-local `search_path` and an optional per-tenant role.
-- **MySQL, row-level (🧪 experimental)** — the Prisma adapter's **query-scoping**. MySQL has **no row-level security**, so
-  — like Mongoose — isolation is enforced *entirely by the adapter facade, with no database-level
+- **PostgreSQL, row-level** - forced Postgres **RLS** (the database rejects cross-tenant rows even under
+  raw SQL), plus the adapter's facade.
+- **PostgreSQL, schema-per-tenant** - Knex, Lucid, TypeORM, and Sequelize use a transaction-local
+  `search_path`; an optional per-tenant role makes the database reject sibling-schema access. Prisma
+  uses a cached Prisma 7 client whose PostgreSQL driver adapter is explicitly bound to the tenant
+  schema; credential restriction is required for a database-enforced guarantee.
+- **MySQL, row-level (🧪 experimental)** - the Prisma adapter's **query-scoping**. MySQL has **no row-level security**, so
+  - like Mongoose - isolation is enforced *entirely by the adapter facade, with no database-level
   backstop*. It's a weaker guarantee than Postgres row-level (which the database also enforces); keep
   all tenant access going through the adapter.
-- **MongoDB, row-level** — the Mongoose adapter's **query facade** (see the caveat above).
-- **Database-per-tenant** (PostgreSQL) — physically separate databases, cache-routed per tenant.
+- **MongoDB, row-level** - the Mongoose adapter's **query facade** (see the caveat above).
+- **Database-per-tenant** - separate PostgreSQL/MySQL databases or MongoDB databases, cache-routed per
+  tenant. Credential scope determines whether this is only a routing boundary or also a database
+  authorization boundary.
 
 ## What's _not_ there yet
 
-- **Prisma schema-per-tenant** is intentionally unsupported: Prisma resolves tables from the datasource,
-  not the session `search_path`, so a per-schema `search_path` doesn't route its queries. Use
-  database-per-tenant for hard isolation with Prisma.
-- **TypeORM / Sequelize** ship row-level today; schema- and database-per-tenant for them are on the
-  roadmap, not yet adversarially proven.
-- **MySQL, schema-per-tenant** isn't a thing — in MySQL, "schema" and "database" are synonyms, so
+- **Prisma schema-per-tenant does not use `search_path`.** That approach remains rejected. Prisma 7's
+  PostgreSQL driver adapter now supplies an explicit schema binding, and TenancyJS cache-routes one
+  callback-scoped client per tenant schema.
+- **MySQL, schema-per-tenant** isn't a thing - in MySQL, "schema" and "database" are synonyms, so
   there's no `search_path` namespace to switch. The Postgres schema-per-tenant concept simply maps to
   database-per-tenant in MySQL terms.
-- **MySQL, database-per-tenant** is technically feasible (separate database per tenant, cache-routed —
-  the routing pattern is database-agnostic), but it isn't adversarially tested on MySQL yet, so it isn't
-  claimed. It's on the roadmap, not a dead end.
-- **MongoDB** beyond row-level would need mechanisms MongoDB doesn't offer — row-level (facade) is the
-  supported model there by design.
+- **TypeORM and Sequelize on MySQL** are not claimed; their supported and adversarially tested target is
+  PostgreSQL. Prisma is the current MySQL adapter.
+- **MongoDB schema-per-tenant** is not available because MongoDB has no schema/search-path namespace.
 
 ## The CLI tells you too
 
 You don't have to memorise this. `tenancy tenant check` reads each configured adapter's own capability
-self-report and warns you — to your face — about any combination that isn't tested-supported:
+self-report and warns you - to your face - about any combination that isn't tested-supported:
 
 ```ansi
-WARN adapter:prisma: schemaPerTenant is reported as "unsupported", not
-     tested-supported — this combination is not in the verified matrix;
+WARN adapter:mongoose: schemaPerTenant is reported as "rejected", not
+     tested-supported - this combination is not in the verified matrix;
      use at your own risk
 ```

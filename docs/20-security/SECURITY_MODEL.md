@@ -4,10 +4,11 @@
 
 Active and incremental. Core async context, fail-closed tenant access, explicit central scope,
 lifecycle cleanup, tenant resolution, Prisma/Knex/Lucid row-level isolation, PostgreSQL
-schema-per-tenant isolation for Knex/Lucid, Express and Next.js request lifecycle boundaries, and the
+schema-per-tenant isolation across PostgreSQL adapters, framework request lifecycle boundaries, and the
 reference safe CLI foundation are implemented and tested. Database-per-tenant routing is implemented
-for Knex, Lucid, and Prisma, and database-enforced schema roles are implemented for Knex. Other
-adapters, provisioning, and operational CLI commands remain later tasks.
+for the supported SQL and Mongoose adapters, and database-enforced schema roles are implemented for
+the shared PostgreSQL engine. Provisioning and migration orchestration delegate to explicit host hooks;
+TenancyJS never constructs DDL or invokes ORM migration CLIs itself.
 
 ## Baseline Rules
 
@@ -89,6 +90,9 @@ only to locally installed, allowlisted ORM executables using argument arrays rat
 - Query callbacks delegate exactly once through Prisma's provided callback so transactions retain scope.
 - Errors contain model/operation identifiers but never query arguments, rows, tenants, or database URLs.
 - The tenancy extension must be registered last so later query extensions cannot remove scoped arguments.
+- Prisma schema-per-tenant uses a bounded, callback-scoped client whose Prisma 7 PostgreSQL driver
+  adapter is bound to one schema. It does not use `search_path`; a shared credential remains an
+  adapter-routed guarantee unless its role is restricted to that schema.
 
 ## Implemented Knex Adapter Controls
 
@@ -138,6 +142,9 @@ only to locally installed, allowlisted ORM executables using argument arrays rat
   validate the discriminator, and updates cannot move rows. Forced PostgreSQL RLS remains the final
   boundary and startup validation is mandatory.
 - ORM transactions are adapter-owned and transaction-local tenant settings revert on completion.
+- Schema mode rejects ORM metadata with a fixed schema, uses the shared transaction-local search-path
+  engine, and blocks central/tenant cross-placement model access. Database mode resolves only registered
+  entities/models on a cache-leased tenant ORM resource.
 
 ## Implemented Mongoose Controls
 
@@ -148,6 +155,9 @@ only to locally installed, allowlisted ORM executables using argument arrays rat
 - Validation requires a reachable replica set and reports the weaker enforcement tier as a warning.
   Transactions provide rollback/session lifecycle; they do not turn document filters into a database
   authorization policy.
+- Database mode cache-routes one replica-set connection per tenant and resolves only registered model
+  names on that connection. Shared credentials make this a routing boundary; tenant-database-restricted
+  credentials add MongoDB authorization enforcement.
 
 ## Implemented NestJS Controls
 
@@ -161,12 +171,14 @@ only to locally installed, allowlisted ORM executables using argument arrays rat
 
 - Forced PostgreSQL RLS is **database-enforced** for supported row-level Knex/Lucid operations when the
   reviewed runtime-role conditions hold.
-- Prisma query rewriting and default schema-per-tenant `search_path` are **adapter-enforced**. Retaining
-  a base/raw client bypasses those guarantees. They must not be presented as equivalent to forced RLS.
+- Prisma query rewriting, schema-bound Prisma clients, and default schema-per-tenant `search_path` are
+  **adapter-enforced**. Retaining a base/raw client bypasses those guarantees. They must not be presented
+  as equivalent to forced RLS.
 - A configured per-tenant PostgreSQL role makes schema-per-tenant database-enforced for that scope:
   transaction-local role and search path state revert before a pooled connection is reused.
-- Database-per-tenant is database-enforced when the host placement resolver connects each opaque key
-  to the intended separate database. The host-owned resolver/factory remains part of that boundary.
+- Database-per-tenant always separates storage placement through the protected router. It is also
+  database-enforced only when each resource's credentials cannot access sibling databases. The
+  host-owned resolver/factory and credential scope remain part of that boundary.
 
 ## Database-Per-Tenant Resource Lifecycle
 
@@ -176,12 +188,13 @@ only to locally installed, allowlisted ORM executables using argument arrays rat
   resource creation or callback execution. Placement keys reject URL/credential-shaped values.
 - Creation/destruction failures are sanitized. Failed creation is not cached; failed destruction is
   retained for retry rather than losing ownership of a possibly live pool.
-- Knex/Lucid `validate()` verifies database-per-tenant configuration but reports a warning that the
+- Database-strategy `validate()` verifies static configuration but reports a warning that the
   open-ended set of tenant factories and connections is checked only when each tenant is first used.
 - Host factories own credentials and the correctness of key-to-database placement; placement metadata
   and cache diagnostics never contain connection URLs.
-- A Prisma routed client is callback-scoped. Returning, storing, or using it after the callback settles
-  is unsupported because its cache lease has ended and eviction may disconnect it.
+- Prisma routed clients and every leased ORM/Mongoose resource are callback-scoped. Returning, storing,
+  or using one after the callback settles is unsupported because its cache lease has ended and eviction
+  may disconnect it.
 
 ## Implemented Express Integration Controls
 

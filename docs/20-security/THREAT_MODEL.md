@@ -2,10 +2,10 @@
 
 ## Status
 
-Active and incremental. Core context, tenant resolution, Prisma/Knex/Lucid row-level adapters,
-Knex/Lucid adapter-enforced PostgreSQL schema-per-tenant, Express and Next.js request lifecycles, and
-reference CLI safety controls are implemented. Other adapter, integration, database-per-tenant,
-provisioning, and operational CLI controls remain delivery requirements.
+Active and incremental. Core context, tenant resolution, supported framework lifecycles, all current
+adapter strategy cells, bounded database routing, and the operational CLI/provisioner contract are
+implemented. Hosted CI, published-package consumers, and future adapter/peer additions remain delivery
+requirements.
 
 ## Assets
 
@@ -72,7 +72,7 @@ provisioning, and operational CLI controls remain delivery requirements.
   `search_path`; a retained shared-role raw client can qualify another schema. The protected Knex
   surface rejects that path, and Lucid validation requires tenant-table names to be absent centrally
   and across the effective default search path so hook-skipping unqualified paths fail closed.
-  Per-tenant roles remain the stronger future tier.
+  Per-tenant roles are the stronger implemented opt-in tier.
 - Database-per-tenant pools risk cardinality exhaustion, placement-key collisions, use-after-eviction,
   and secret leakage in creation failures. ADR-0021 mitigates these with bounded idle-only LRU,
   reference-counted leases, one-to-one active mappings, sanitized errors, and retryable destruction.
@@ -82,7 +82,10 @@ provisioning, and operational CLI controls remain delivery requirements.
 - Explicit leak-test files execute as trusted local code rather than in a sandbox; the CLI constrains
   path, environment, duration, output, and shell use, while users remain responsible for reviewing the
   selected test behavior.
-- Unimplemented framework and ORM peer versions remain unresolved until their integration tasks;
-  AdonisJS 7.3/Lucid 22.4 and Node 24 are fixed by ADR-0013 for the active slice.
+- Mongoose row-level filtering and shared-credential database routing are adapter-enforced; native
+  MongoDB handles bypass the facade. Database-restricted credentials are required for server-side
+  sibling-database denial.
+- Future framework/ORM major versions remain unsupported until their own compatibility evidence;
+  Node 24 is the common baseline and the documented peer ranges are the only current commitments.
 - Shallow tenant snapshots do not freeze custom nested metadata: host applications must treat nested
   values as application-owned and avoid mutating security-relevant metadata during a scope.

@@ -2,8 +2,8 @@
 
 ## Purpose
 
-Enforce row-level tenant isolation for supported Prisma Client operations by translating the active
-core tenant context into safe Prisma query arguments.
+Enforce row-level tenant isolation for supported Prisma Client operations and route callback-scoped
+schema/database-bound clients from the active tenant context.
 
 ## Owns
 
@@ -12,17 +12,19 @@ core tenant context into safe Prisma query arguments.
 - Filter composition, create/update tenant-field enforcement, and typed unsupported-path failures.
 - The shareable Prisma query extension factory and Prisma-specific errors.
 - Prisma/PostgreSQL conformance evidence, operation matrix, migration guidance, and policy benchmark.
+- PostgreSQL schema-bound and PostgreSQL/MySQL database-bound client routing over the shared cache.
 
 ## Does Not Own
 
 - Tenant context storage, tenant identification, authentication, or membership authorization.
-- Prisma schema generation, migrations, client construction, connection URLs, or secret management.
+- Prisma schema generation, migrations, concrete client factories, connection URLs, or secret management.
 - Framework middleware, database-per-tenant provisioning, RLS, raw SQL safety, or nested relation support.
 - Protection for a base Prisma client retained outside the returned extension.
 
 ## Public Interfaces
 
 - `createPrismaTenancyExtension(options)` and `createPrismaAdapter(options)`.
+- `createPrismaSchemaTenancy(options)` and `createPrismaDatabaseTenancy(options)`.
 - `definePrismaTenancyConfig`, `classifyPrismaModel`, and immutable
   `PRISMA_ADAPTER_CAPABILITIES`/supported-operation metadata.
 - Typed configuration, unregistered-model, tenant-field-conflict, and unsupported-operation errors.
@@ -33,8 +35,8 @@ core tenant context into safe Prisma query arguments.
 
 Depends on public `tenancyjs-core` context/contracts and a tested Prisma Client peer. It never imports
 a framework or integration, stores tenant context, invokes Prisma CLI, rewrites schema files, or opens
-a second connection. Host applications apply the returned extension and expose only that extended
-client to tenant-aware code. Prisma's generated non-null create input still requires the discriminator;
+a hidden connection. Host applications apply the returned extension or provide explicit routed-client
+factories and expose only the protected callback. Prisma's generated non-null create input still requires the discriminator;
 the adapter validates it and injects it for runtime inputs that omit it. Feature source:
 `docs/40-features/F-003-prisma-adapter/`.
 

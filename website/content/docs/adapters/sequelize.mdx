@@ -1,14 +1,11 @@
 ---
 title: Sequelize
-description: Row-level tenant isolation on PostgreSQL with Sequelize — wired end to end into any framework.
+description: All three PostgreSQL tenancy strategies through a protected Sequelize model facade.
 ---
 
-`tenancyjs-adapter-sequelize` provides **row-level** isolation on PostgreSQL using forced Postgres
-**RLS** plus a query facade. This page shows it wired **end to end with Express**; for another
+`tenancyjs-adapter-sequelize` provides row-level, schema-per-tenant, and database-per-tenant isolation
+on PostgreSQL. This page shows it wired **end to end with Express**; for another
 framework, swap only the integration ([see below](#use-a-different-framework)).
-
-Schema- and database-per-tenant for Sequelize are on the roadmap — see the
-[capability matrix](/docs/concepts/capability-matrix).
 
 ## Install
 
@@ -24,7 +21,7 @@ npm install tenancyjs-core tenancyjs-adapter-sequelize tenancyjs-integration-exp
 ### Create the manager + adapter
 
 Register your tenant-scoped models. On PostgreSQL, set up a forced RLS policy on each tenant table (the
-database backstop) — the adapter's `validate()` checks the contract is in place.
+database backstop) - the adapter's `validate()` checks the contract is in place.
 
 ```ts title="tenancy.ts"
 import { TenancyManager } from "tenancyjs-core";
@@ -40,7 +37,14 @@ export const manager = new TenancyManager<Tenant>();
 export const tenancy = createSequelizeTenancy({
   manager,
   sequelize,
-  tenantModels: [Order],
+  tenantModels: [
+    {
+      model: Order,
+      table: "app.orders",
+      tenantAttribute: "tenantId",
+      tenantColumn: "tenant_id",
+    },
+  ],
 });
 
 await tenancy.validate();
@@ -58,12 +62,7 @@ import { Order } from "./models";
 
 const app = express();
 
-app.use(
-  createExpressTenancyMiddleware({
-    manager,
-    resolver: (req) => ({ id: req.subdomains.at(-1) ?? "" }),
-  }),
-);
+app.use(createExpressTenancyMiddleware({ manager, resolver }));
 
 app.get("/orders", async (_req, res) => {
   const orders = await tenancy.run((client) => client.model(Order).findAll());
@@ -74,9 +73,41 @@ app.get("/orders", async (_req, res) => {
 
 </Steps>
 
-The facade rejects unsafe criteria — including Symbol-keyed operators (`Op.*`) that would otherwise slip
-past a plain-object guard — and forced Postgres RLS is a second backstop, so a query can't escape its
+The facade rejects unsafe criteria - including Symbol-keyed operators (`Op.*`) that would otherwise slip
+past a plain-object guard - and forced Postgres RLS is a second backstop, so a query can't escape its
 tenant scope. Outside a tenant scope, it fails closed.
+
+## Other strategies
+
+Schema mode requires models without a fixed schema and unqualified table config:
+
+```ts
+createSequelizeTenancy({
+  manager,
+  sequelize,
+  strategy: "schemaPerTenant",
+  schema: (tenant) => tenant.schemaName,
+  tenantModels: [{ model: Order, table: "orders" }],
+});
+```
+
+Database mode leases tenant Sequelize instances. Each instance must register the configured model name:
+
+```ts
+createSequelizeTenancy({
+  manager,
+  sequelize: landlordSequelize,
+  strategy: "databasePerTenant",
+  tenantModels: [{ model: Order, table: "orders" }],
+  connection: (tenant) => ({
+    key: tenant.databaseKey,
+    create: () => createTenantSequelize(tenant.databaseSecretRef),
+  }),
+});
+```
+
+Call `validate()` before traffic and `close()` on shutdown. Native models, instances, includes,
+operators/literals, QueryInterface, raw SQL, sync, and migrations remain outside the guarantee.
 
 ## Use a different framework
 

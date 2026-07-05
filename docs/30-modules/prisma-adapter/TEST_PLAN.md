@@ -11,6 +11,8 @@
 - Shared two-tenant adapter contract against generated Prisma Client and disposable PostgreSQL.
 - Batch/interactive transaction behavior and package-consumer extension execution.
 - Tested Prisma peer on the current Node 24 support floor.
+- PostgreSQL schema-bound, PostgreSQL database-bound, and MySQL database-bound routers use colliding IDs
+  and prove tenant-A mutations do not alter tenant B.
 
 ## Security Tests
 

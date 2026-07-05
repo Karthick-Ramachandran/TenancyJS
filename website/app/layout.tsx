@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "TenancyJS — Fail-closed multi-tenancy for Node.js",
+    default: "TenancyJS - Fail-closed multi-tenancy for Node.js",
     template: "%s · TenancyJS",
   },
   description: SITE_DESCRIPTION,
@@ -40,12 +40,12 @@ export const metadata: Metadata = {
     type: "website",
     url: SITE_URL,
     siteName: "TenancyJS",
-    title: "TenancyJS — Fail-closed multi-tenancy for Node.js",
+    title: "TenancyJS - Fail-closed multi-tenancy for Node.js",
     description: SITE_DESCRIPTION,
   },
   twitter: {
     card: "summary_large_image",
-    title: "TenancyJS — Fail-closed multi-tenancy for Node.js",
+    title: "TenancyJS - Fail-closed multi-tenancy for Node.js",
     description: SITE_DESCRIPTION,
   },
   alternates: { canonical: SITE_URL },

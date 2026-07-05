@@ -20,5 +20,7 @@
 - Deferred: native `node ace tenancy:*` commands ship with the operational CLI (a single
   decorator/tsconfig decision for all of them; see LESSONS on AdonisJS legacy decorators). `npx tenancy
   init` already scaffolds AdonisJS today.
-- Todo: v6→v7 CLI fixture, T7 reviews, and published/hosted example evidence when the example moves to
-  its own repository.
+- Complete: v6 detection is rejected with an upgrade-range explanation; explicit AdonisJS 7 selection
+  produces the Lucid templates.
+- Complete locally: T7 architecture/conventions/security review and current full gates.
+- External: published/hosted example evidence when the example moves to its own repository.

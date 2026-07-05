@@ -1,10 +1,10 @@
 ---
 title: Express
-description: Add multi-tenancy to Express with one middleware — works with any ORM.
+description: Add multi-tenancy to Express with one middleware - works with any ORM.
 ---
 
 `tenancyjs-integration-express` resolves the tenant for each request and runs that request inside the
-tenant's scope. Everything downstream — routes, services, ORM queries — is automatically scoped.
+tenant's scope. Everything downstream - routes, services, ORM queries - is automatically scoped.
 
 > **Works with any ORM.** [Prisma](/docs/adapters/prisma) · [Knex](/docs/adapters/knex) ·
 > [TypeORM](/docs/adapters/typeorm) · [Sequelize](/docs/adapters/sequelize) ·
@@ -75,7 +75,7 @@ app.get("/orders", async (_req, res) => {
 - **On success:** the tenant scope is open for the whole request; adapters are scoped, and the scope is
   torn down when the response finishes.
 - **On a resolution failure:** a missing/invalid identifier or an unknown/suspended tenant makes the
-  middleware respond **400**/**404** — your handler never runs.
+  middleware respond **400**/**404** - your handler never runs.
 
 ## Use a different ORM
 
@@ -91,5 +91,5 @@ Keep the middleware; swap the adapter half. Each adapter page has a complete Exp
 
 ## Resolving the tenant
 
-The resolver is yours — subdomain, header, path, JWT claim. For lookups against your store and
+The resolver is yours - subdomain, header, path, JWT claim. For lookups against your store and
 consistent 400/404 semantics, see [Resolving tenants](/docs/guides/resolving-tenants).

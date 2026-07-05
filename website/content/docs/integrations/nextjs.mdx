@@ -1,10 +1,10 @@
 ---
 title: Next.js
-description: Tenant context across the Edge/Node boundary in the Next.js App Router — works with any ORM.
+description: Tenant context across the Edge/Node boundary in the Next.js App Router - works with any ORM.
 ---
 
 `tenancyjs-integration-next` supports the Next.js **App Router**. Next runs middleware on the Edge and
-your handlers on Node, so identity has to cross that boundary. The integration handles the hand-off —
+your handlers on Node, so identity has to cross that boundary. The integration handles the hand-off -
 your Server Components and Route Handlers see the resolved tenant.
 
 > **Works with any ORM.** [Prisma](/docs/adapters/prisma) · [Knex](/docs/adapters/knex) ·
@@ -42,7 +42,7 @@ export const config = {
 };
 ```
 
-Then run scoped work inside a Route Handler or Server Component — the tenant is already in context:
+Then run scoped work inside a Route Handler or Server Component - the tenant is already in context:
 
 ```ts title="app/orders/route.ts"
 import { tenancy } from "@/lib/tenancy";
@@ -69,5 +69,5 @@ export async function GET() {
   <Card title="Mongoose" href="/docs/adapters/mongoose" />
 </Cards>
 
-Static routes with no tenant should not call scoped adapters — guard them, or open a
+Static routes with no tenant should not call scoped adapters - guard them, or open a
 [central scope](/docs/concepts/tenant-context#central-context) explicitly.

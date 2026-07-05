@@ -14,13 +14,13 @@ everything else in these docs click.
     contracts. Framework- and ORM-neutral.
   </Card>
   <Card title="Adapters" href="/docs/adapters">
-    Enforce isolation *inside* your ORM — filter reads, stamp writes, and (on SQL) lean on forced RLS.
+    Enforce isolation *inside* your ORM - filter reads, stamp writes, and (on SQL) lean on forced RLS.
   </Card>
   <Card title="Integrations" href="/docs/integrations">
     Bind tenant context to your framework's request lifecycle, so every request runs scoped.
   </Card>
   <Card title="CLI" href="/docs/cli">
-    Operate the tenancy — inspect, create, migrate, provision, and run scripts against live tenants.
+    Operate the tenancy - inspect, create, migrate, provision, and run scripts against live tenants.
   </Card>
 </Cards>
 
@@ -41,7 +41,7 @@ Your **integration** middleware runs first. It calls your **resolver** to turn t
 ### Identity is validated
 
 If the tenant is unknown, suspended, or ambiguous, the request **fails closed** with the right status
-(400/404) — before any handler runs. No unscoped request reaches your code.
+(400/404) - before any handler runs. No unscoped request reaches your code.
 </Step>
 
 <Step>
@@ -61,7 +61,7 @@ database's forced **RLS** is a second backstop. Outside a scope, adapters throw.
 <Step>
 ### The scope tears down
 
-When the request ends — success or error — the scope is disposed. Nothing leaks to the next request.
+When the request ends - success or error - the scope is disposed. Nothing leaks to the next request.
 </Step>
 
 </Steps>
@@ -79,7 +79,7 @@ TenancyJS deliberately enforces at more than one layer, so a single mistake can'
 
 ## What TenancyJS does *not* own
 
-- **Auth.** Tenant identity is not authorization — your app decides what a user may do within a tenant.
+- **Auth.** Tenant identity is not authorization - your app decides what a user may do within a tenant.
 - **Your database.** It orchestrates and delegates (to your store and migrator); it doesn't host tenants.
 
 Read on: [Tenant context](/docs/concepts/tenant-context) goes deep on the fail-closed model, and the

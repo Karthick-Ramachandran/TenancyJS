@@ -32,7 +32,7 @@ Acceptance:
 
 ## T3: TypeORM schema and database strategies
 
-Status: Todo
+Status: Done locally
 
 Scope:
 - Bind shared schema engine and resource cache; add real schema/database adversarial evidence.
@@ -46,14 +46,20 @@ Scope:
 
 ## T5: Sequelize schema and database strategies
 
-Status: Todo
+Status: Done locally
 
 Scope:
 - Bind shared engines and prove isolation with real PostgreSQL.
 
 ## T6: Cross-stack release evidence
 
-Status: Todo
+Status: Done locally
 
 Scope:
 - Nest + adapter E2E, package consumers, capabilities, docs, changesets, reviews, audit, and full gate.
+
+Evidence:
+- Real NestJS 11 Express + TypeORM/PostgreSQL test proves concurrent colliding-ID request isolation and
+  missing-tenant failure before controller data access.
+- Packed consumers import every package plus execute both new Prisma placement routers.
+- Public adapter/integration guides match the shipped strategy APIs and security tiers.

@@ -2,7 +2,8 @@
 
 ## Status
 
-Planning accepted; Knex implementation and hosted evidence are complete; Lucid is in progress.
+Implementation review passed locally for Knex, Lucid, and AdonisJS 7. Hosted/published example
+consumption remains external evidence.
 
 ## Findings
 
@@ -33,5 +34,6 @@ Planning accepted; Knex implementation and hosted evidence are complete; Lucid i
 - Security review found no blocker. Transaction settings are parameterized and local, policy
   introspection fails closed, errors omit SQL/bindings/tenant values, hook-skipping paths rely on
   forced RLS, and retained Lucid/raw/privileged surfaces remain explicitly outside the guarantee.
-- Remaining gate: the four Lucid 22/PostgreSQL 17 tests must pass in hosted Node 24 CI before T4 is
-  complete or any operation is promoted from evidence-pending to supported.
+- Current gate: the full PostgreSQL/MySQL/MongoDB repository suite, package consumers, docs build,
+  audit threshold, and Persist Doctor pass. AdonisJS 6 remains explicitly unsupported; CLI tests explain
+  the supported v7 range.

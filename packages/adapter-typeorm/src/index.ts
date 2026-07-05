@@ -22,6 +22,7 @@ export type {
   ProtectedTypeOrmRepository,
   TypeOrmCentralEntityConfig,
   TypeOrmCriteria,
+  TypeOrmDatabasePlacement,
   TypeOrmScalar,
   TypeOrmTenantEntityConfig,
   TypeOrmValues,

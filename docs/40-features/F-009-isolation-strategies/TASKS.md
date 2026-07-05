@@ -96,11 +96,17 @@ Evidence:
 
 ## T8: Provisioning
 
-Status: Todo
+Status: Done through F-012 / ADR-0029
 
 Scope:
-- `tenancy provision`/`deprovision`: `CREATE SCHEMA` + per-schema migrate (+ per-tenant role in
-DB-enforced mode).
+- `tenant provision`/`deprovision`/`migrate` delegates to host provisioner hooks after resolving the
+  hardened tenant record and placement. The host invokes its native ORM/DDL tooling; TenancyJS does not
+  reimplement schema/database creation or migration.
+
+Evidence:
+- CLI unit/binary tests cover explicit-id provisioning/deprovisioning, migrate-all partial failure,
+  wrong-tenant store rejection, secret redaction, and missing hook/store failures.
+- F-012 and ADR-0029 supersede the earlier direct-DDL design.
 
 ## T9: Isolation review hardening
 
@@ -116,3 +122,15 @@ Scope:
 Do Not:
 - Flip any `schemaPerTenant` capability to `"supported"` before its two-tenant adversarial test passes.
 - Set `search_path` outside a transaction (must be transaction-local so it reverts).
+
+## T10: Cross-adapter strategy completion
+
+Status: Done
+
+Scope:
+- Prisma/PostgreSQL schema-bound driver clients; TypeORM/Sequelize PostgreSQL schema and database
+  bindings; Prisma/MySQL and Mongoose/MongoDB database routing.
+
+Evidence:
+- Real two-tenant tests use colliding IDs in two PostgreSQL schemas, two PostgreSQL databases, two MySQL
+  databases, and two MongoDB databases. Tenant-A mutations leave tenant B unchanged.

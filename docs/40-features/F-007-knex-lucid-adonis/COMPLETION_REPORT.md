@@ -11,10 +11,9 @@ kit, kept local/gitignored per the demo-repo decision) passes 4/4 Japa + `@japa/
 E2E against live forced RLS. Building it refined the package (lazy tenancy factory,
 web-environment-gated policy validation).
 
-Follow-ups (do not block the ready-to-use status): native `node ace tenancy:*` commands ship with the
-operational CLI (AdonisJS legacy-decorator/tsconfig constraint — see LESSONS); the T7 formal
-security/conventions/architecture reviews; and moving the example into its own repo so its E2E runs in
-hosted CI.
+Follow-up that does not block the ready-to-use status: move the example into its own repository so it
+installs published npm packages and runs in hosted CI. Operational commands intentionally ship through
+the shared `tenancy` CLI rather than duplicated Ace implementations; T7 reviews are complete locally.
 
 ## Files Changed
 
@@ -60,8 +59,5 @@ hosted CI.
 
 ## Remaining Risks
 
-- The AdonisJS 7 integration (T5) is unit-tested and local-gate green but has no hosted Node 24 CI run
-  yet, so per the PRD its compatibility is not yet advertised.
-- T5 uses unit tests with structural fakes; real AdonisJS provider boot, HTTP request handling, and
-  live PostgreSQL rollback are proven only by the Japa + compiled-app example in T6, which remains
-  incomplete. AdonisJS lifecycle compatibility is not claimed until that example E2E passes in CI.
+- The compiled-app/Japa example is local and uses workspace code; an external example installing the
+  actually published packages is still required for final release evidence.

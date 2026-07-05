@@ -1,11 +1,11 @@
 ---
 title: CLI
-description: Inspect, manage, migrate, provision, and run against your live tenants — from one command.
+description: Inspect, manage, migrate, provision, and run against your live tenants - from one command.
 ---
 
 The `tenancy` CLI (`tenancyjs-cli`) is how you _operate_ a tenancy. It loads your
-[`tenancy.config.ts`](/docs/getting-started/configuration) at runtime — Node 24 strips the types, so
-there's no transpiler dependency — and acts against your real tenants through **your** store and hooks.
+[`tenancy.config.ts`](/docs/getting-started/configuration) at runtime - Node 24 strips the types, so
+there's no transpiler dependency - and acts against your real tenants through **your** store and hooks.
 It orchestrates and fails closed, but never invents ORM behaviour it hasn't tested.
 
 ```bash
@@ -16,7 +16,7 @@ Every operational command:
 
 - loads your runtime, resolves tenants through the **hardened** store,
 - **redacts secrets** from human and `--json` output,
-- **disposes** connections on exit — including on failure,
+- **disposes** connections on exit - including on failure,
 - exits non-zero on error (so it's CI-friendly).
 
 ## Set up a project
@@ -32,8 +32,8 @@ adapter/strategy combination that isn't tested-supported, instead of pretending 
 ```ansi
 OK   runtime: tenancy config loaded
 OK   adapters: 1 adapter(s) configured
-WARN adapter:prisma: schemaPerTenant is reported as "unsupported", not
-     tested-supported — not in the verified matrix; use at your own risk
+WARN adapter:mongoose: schemaPerTenant is reported as "rejected", not
+     tested-supported - not in the verified matrix; use at your own risk
 OK   store: implements list, find, create
 OK   store.list: read 12 tenant(s)
 ```
@@ -57,7 +57,7 @@ is optional on `create` if your store generates it.
 
 ## Run a script in a tenant scope
 
-Run a one-off script — a backfill, an admin task — inside a resolved tenant (or the central) scope. The
+Run a one-off script - a backfill, an admin task - inside a resolved tenant (or the central) scope. The
 script's top-level code **and** its default export run with the active context.
 
 ```bash
@@ -70,14 +70,14 @@ through your store before the script runs.
 
 ## Provision & migrate
 
-For schema- and database-per-tenant, these delegate to the `provisioner` hooks in your config — the CLI
+For schema- and database-per-tenant, these delegate to the `provisioner` hooks in your config - the CLI
 never runs an ORM itself. It resolves each tenant's placement from the store record and runs your hook.
 
 ```bash
 npx tenancy tenant provision acme     # create the tenant's schema/database
 npx tenancy tenant migrate acme       # run your migrator for one tenant
 npx tenancy tenant migrate --all      # ...for every tenant, reporting each outcome
-npx tenancy tenant deprovision acme   # drop it — explicit id only
+npx tenancy tenant deprovision acme   # drop it - explicit id only
 ```
 
 <Callout type="warn">

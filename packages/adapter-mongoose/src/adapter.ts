@@ -6,8 +6,18 @@ import type {
   TenantRecord,
 } from "tenancyjs-core";
 import { TenantContextError } from "tenancyjs-core";
-import { decideTenantDiscriminator } from "tenancyjs-adapter-shared";
-import { Types, type ClientSession, type Model } from "mongoose";
+import {
+  createTenantResourceCache,
+  decideTenantDiscriminator,
+  deferredDatabaseValidationResult,
+  type TenantResourceCache,
+} from "tenancyjs-adapter-shared";
+import {
+  Types,
+  type ClientSession,
+  type Connection,
+  type Model,
+} from "mongoose";
 
 import { MONGOOSE_ADAPTER_CAPABILITIES } from "./capabilities.js";
 import {
@@ -34,7 +44,7 @@ export interface MongooseTenancyAdapter<
   TTenant extends TenantRecord = TenantRecord,
 > extends TenancyAdapter {
   readonly name: "mongoose";
-  readonly strategy: "rowLevel";
+  readonly strategy: "rowLevel" | "databasePerTenant";
   readonly config: MongooseTenancyConfig<TTenant>;
   run<TResult>(
     callback: (client: ProtectedMongooseClient) => MaybePromise<TResult>,
@@ -46,11 +56,21 @@ export function createMongooseTenancy<
   TTenant extends TenantRecord = TenantRecord,
 >(options: MongooseTenancyOptions<TTenant>): MongooseTenancyAdapter<TTenant> {
   const config = defineMongooseTenancyConfig(options);
+  const connectionCache: TenantResourceCache<Connection> | undefined =
+    config.strategy === "databasePerTenant"
+      ? createTenantResourceCache<Connection>({
+          capacity: config.maxConnections,
+          destroy: (connection) => connection.close(),
+        })
+      : undefined;
   let validated = false;
 
   async function validate(): Promise<TenancyAdapterValidationResult> {
     const replicaSet = await detectReplicaSet(config);
     validated = replicaSet;
+    if (replicaSet && config.strategy === "databasePerTenant") {
+      return deferredDatabaseValidationResult("TENANCY_MONGOOSE", "Mongoose");
+    }
     return Object.freeze({
       valid: replicaSet,
       issues: Object.freeze([
@@ -85,19 +105,47 @@ export function createMongooseTenancy<
     }
     const context = config.manager.getContext();
     if (context === undefined) throw new TenantContextError("missing");
-    return config.connection.transaction(async (session) =>
-      callback(createProtectedClient(config, session, context)),
-    );
+    const runScope = (connection: Connection) =>
+      connection.transaction(async (session) =>
+        callback(
+          createProtectedClient(
+            config,
+            connection,
+            session,
+            context,
+            config.strategy,
+          ),
+        ),
+      );
+    if (config.strategy === "databasePerTenant" && context.mode === "tenant") {
+      const placement = config.database!(context.tenant);
+      return connectionCache!.lease(
+        context.tenant.id,
+        placement.key,
+        async () => {
+          const connection = await placement.create();
+          if (!(await detectReplicaSet({ connection }))) {
+            await connection.close().catch(() => undefined);
+            throw new MongooseValidationError();
+          }
+          return connection;
+        },
+        runScope,
+      );
+    }
+    return runScope(config.connection);
   }
 
   return Object.freeze({
     name: "mongoose" as const,
-    strategy: "rowLevel" as const,
+    strategy: config.strategy,
     capabilities: MONGOOSE_ADAPTER_CAPABILITIES,
     config,
     validate,
     run,
-    async close() {},
+    async close() {
+      await connectionCache?.close();
+    },
   });
 }
 
@@ -114,14 +162,34 @@ async function detectReplicaSet(
 
 function createProtectedClient<TTenant extends TenantRecord>(
   config: MongooseTenancyConfig<TTenant>,
+  connection: Connection,
   session: ClientSession,
   context: TenantContext<TTenant>,
+  strategy: "rowLevel" | "databasePerTenant",
 ): ProtectedMongooseClient {
   return Object.freeze({
     model(model: Model<unknown>) {
       const policy = config.classify(model);
       if (policy === undefined) throw new MongooseModelUnregisteredError();
-      return createProtectedModel(model, policy, session, context);
+      if (
+        strategy === "databasePerTenant" &&
+        ((context.mode === "tenant" && policy.kind === "central") ||
+          (context.mode === "central" && policy.kind === "tenant"))
+      ) {
+        throw new MongooseUnsafeFilterError();
+      }
+      const boundModel =
+        strategy === "databasePerTenant"
+          ? (connection.models[model.modelName] as Model<unknown> | undefined)
+          : model;
+      if (boundModel === undefined) throw new MongooseModelUnregisteredError();
+      return createProtectedModel(
+        boundModel,
+        policy,
+        session,
+        context,
+        strategy,
+      );
     },
   });
 }
@@ -131,9 +199,13 @@ function createProtectedModel(
   policy: MongooseModelPolicy,
   session: ClientSession,
   context: TenantContext,
+  strategy: "rowLevel" | "databasePerTenant",
 ): ProtectedMongooseModel {
   const native = model as Model<Record<string, unknown>>;
-  const tenantField = policy.kind === "tenant" ? policy.tenantField : undefined;
+  const tenantField =
+    strategy === "rowLevel" && policy.kind === "tenant"
+      ? policy.tenantField
+      : undefined;
   return Object.freeze({
     async find(filter: MongooseFilter = {}) {
       const rows = await native

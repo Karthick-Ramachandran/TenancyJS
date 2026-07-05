@@ -1,5 +1,5 @@
 import type { MaybePromise } from "tenancyjs-core";
-import type { Model, ModelStatic } from "sequelize";
+import type { Model, ModelStatic, Sequelize } from "sequelize";
 
 export type SequelizeScalar = string | number | boolean | Date | null;
 export type SequelizeCriteria = Readonly<Record<string, SequelizeScalar>>;
@@ -39,4 +39,9 @@ export interface SequelizeTenancyRunner {
   run<TResult>(
     callback: (client: ProtectedSequelizeClient) => MaybePromise<TResult>,
   ): Promise<TResult>;
+}
+
+export interface SequelizeDatabasePlacement {
+  readonly key: string;
+  readonly create: () => MaybePromise<Sequelize>;
 }

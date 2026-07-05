@@ -1,10 +1,10 @@
 ---
 title: TypeORM
-description: Row-level tenant isolation on PostgreSQL with TypeORM — wired end to end into any framework.
+description: All three PostgreSQL tenancy strategies through a protected TypeORM repository facade.
 ---
 
-`tenancyjs-adapter-typeorm` provides **row-level** isolation on PostgreSQL, using forced Postgres
-**RLS** plus a query facade. Schema- and database-per-tenant are on the roadmap. This page shows it wired
+`tenancyjs-adapter-typeorm` provides row-level, schema-per-tenant, and database-per-tenant isolation on
+PostgreSQL. This page shows it wired
 **end to end with Express**; for another framework, swap only the integration
 ([see below](#use-a-different-framework)).
 
@@ -35,7 +35,14 @@ export const manager = new TenancyManager<Tenant>();
 export const tenancy = createTypeOrmTenancy({
   manager,
   dataSource,
-  tenantEntities: [Order],
+  tenantEntities: [
+    {
+      entity: Order,
+      table: "app.orders",
+      tenantProperty: "tenantId",
+      tenantColumn: "tenant_id",
+    },
+  ],
 });
 
 await tenancy.validate();
@@ -45,7 +52,7 @@ await tenancy.validate();
 <Step>
 ### Bind it to requests
 
-`tenancy.run` gives you a tenant-scoped EntityManager.
+`tenancy.run` gives you a narrow protected client-not a native `EntityManager` or repository.
 
 ```ts title="server.ts"
 import express from "express";
@@ -55,15 +62,12 @@ import { Order } from "./data-source";
 
 const app = express();
 
-app.use(
-  createExpressTenancyMiddleware({
-    manager,
-    resolver: (req) => ({ id: req.subdomains.at(-1) ?? "" }),
-  }),
-);
+app.use(createExpressTenancyMiddleware({ manager, resolver }));
 
 app.get("/orders", async (_req, res) => {
-  const orders = await tenancy.run((em) => em.find(Order));
+  const orders = await tenancy.run((client) =>
+    client.repository(Order).findBy({ status: "open" }),
+  );
   res.json(orders); // only the current tenant's rows
 });
 ```
@@ -71,10 +75,37 @@ app.get("/orders", async (_req, res) => {
 
 </Steps>
 
-<Callout type="warn">
-  Only row-level is tested-supported for TypeORM. `tenant check` warns if you configure an untested
-  strategy — see the [capability matrix](/docs/concepts/capability-matrix).
-</Callout>
+## Other strategies
+
+Schema mode requires unqualified entity metadata and table config:
+
+```ts
+createTypeOrmTenancy({
+  manager,
+  dataSource,
+  strategy: "schemaPerTenant",
+  schema: (tenant) => tenant.schemaName,
+  tenantEntities: [{ entity: Order, table: "orders" }],
+});
+```
+
+Database mode leases initialized tenant `DataSource` objects from the bounded cache:
+
+```ts
+createTypeOrmTenancy({
+  manager,
+  dataSource: landlordDataSource,
+  strategy: "databasePerTenant",
+  tenantEntities: [{ entity: Order, table: "orders" }],
+  connection: (tenant) => ({
+    key: tenant.databaseKey,
+    create: () => createTenantDataSource(tenant.databaseSecretRef),
+  }),
+});
+```
+
+Call `validate()` before serving traffic and `close()` during shutdown. Native managers, query
+builders, relations, raw SQL, schema sync, and migrations remain outside the protected surface.
 
 ## Use a different framework
 

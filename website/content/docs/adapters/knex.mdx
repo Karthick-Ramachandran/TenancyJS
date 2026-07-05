@@ -1,9 +1,9 @@
 ---
 title: Knex
-description: All three isolation strategies on PostgreSQL with Knex — wired end to end into any framework.
+description: All three isolation strategies on PostgreSQL with Knex - wired end to end into any framework.
 ---
 
-`tenancyjs-adapter-knex` is the most complete adapter — it supports **all three strategies** on
+`tenancyjs-adapter-knex` is the most complete adapter - it supports **all three strategies** on
 PostgreSQL. This page shows **row-level with Express** end to end, then the other strategies. Different
 framework? Swap only the integration ([see below](#use-a-different-framework)).
 
@@ -46,7 +46,7 @@ On PostgreSQL, add a forced RLS policy to each tenant table (the database backst
 <Step>
 ### Bind it to requests
 
-Inside a request, run your queries through `tenancy.run` — it hands you a tenant-scoped Knex.
+Inside a request, run your queries through `tenancy.run` - it hands you a tenant-scoped Knex.
 
 ```ts title="server.ts"
 import express from "express";

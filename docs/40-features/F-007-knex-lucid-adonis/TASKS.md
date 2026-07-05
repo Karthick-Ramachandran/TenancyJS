@@ -73,8 +73,9 @@ environment (so console migrations and tests can provision the schema the check 
 
 ## T6: Add Japa, Ace, CLI Templates, And Reference Example
 
-Status: In Progress — Japa helper, the reference example, and the safe CLI `init` Adonis/Lucid
-templates are complete; Ace wrappers and reviews (T7) remain.
+Status: Complete locally — Japa helper, reference example, safe CLI `init` templates, v6 rejection/
+upgrade-choice coverage, and reviews are complete. Operational commands use the shared CLI rather than
+duplicated Ace implementations.
 
 Scope: Japa helper/plugin, thin Ace wrappers, safe Adonis/Lucid init plan, and production example.
 
@@ -83,22 +84,26 @@ Acceptance: AC-ADONIS-02, AC-ADONIS-03, and AC-COMPAT-KLA-01.
 Tests: Japa HTTP/plugin, Ace delegation, CLI malicious/conflict fixtures, production Adonis/Lucid E2E,
 clean package consumers, and the common Node 24 CI lane.
 
-Evidence: `withTenant` helper (part 1) unit-tested. Reference example `examples/adonis-lucid`
+Evidence: `withTenant` helper unit-tested. Reference example `examples/adonis-lucid`
 (scaffolded from the official AdonisJS 7 `api` starter kit; kept local/gitignored/standalone) passes
 4/4 Japa + `@japa/api-client` E2E against live PostgreSQL 17 with forced RLS and a non-privileged
 runtime role — two-tenant isolation, tenant injection on create, and sanitized 400/404. The safe CLI
 now detects AdonisJS 7.3 + Lucid 22.4 and scaffolds `config/tenancy.ts` +
 `app/middleware/tenant_middleware.ts` (unit-tested and verified end-to-end via the built binary). Ace
-wrappers, the v6→v7 CLI fixture, and published/hosted example evidence remain. The example is
-local-only for now (demos are maintained as clone-able apps, not published); see the ADONISJS_V7 note
-in the module memory.
+wrappers were superseded by shared operational CLI commands. The example is local-only for now (demos
+are maintained as clone-able apps, not published); see the ADONISJS_V7 note in the module memory. CLI
+tests reject detected AdonisJS 6 as unsupported, explain the range, and allow an explicit AdonisJS 7/
+Lucid template choice. Published/hosted example evidence remains external.
 
 ## T7: Review And Promote Evidence
 
-Status: Todo
+Status: Done locally
 
 Scope: Security/conventions/architecture reviews, docs/matrices/module memory, completion evidence.
 
 Acceptance: No blocker; full gate and Persist Doctor pass; only CI-proven support is advertised.
 
 Tests: `pnpm check`, dependency audit, clean pack consumers, production/Japa E2E, Persist Doctor.
+
+Evidence: current full real-database gate, audit gate, 15 packed consumers, production docs build, and
+Persist Doctor pass; hosted/published example consumption remains external evidence.

@@ -89,10 +89,9 @@ model preferences.
   its queries to that schema — an adversarial two-schema test showed tenant A's client reading tenant B's
   rows, and the `pg.Pool` `options` form errors on connect. Prisma resolves table names from the
   datasource, not the session `search_path`, so runtime search_path pinning is silently ignored. This is
-  why Prisma schema-per-tenant is deferred (ADR-0018): a real implementation needs the tenant's schema in
-  the **datasource** (a per-tenant generated client, or Prisma multi-schema), not a runtime session
-  setting. Database-per-tenant (a `PrismaClient` per DB URL) and row-level (query-arg rewriting) work
-  fine; only schema-per-tenant hits this wall. Do not re-attempt the search_path route.
+  why Prisma schema-per-tenant cannot reuse ADR-0018: a real implementation needs the tenant's schema in
+  the **datasource/driver**, not a runtime session setting. Prisma 7's explicit PostgreSQL driver-adapter
+  schema option now supplies that mechanism under ADR-0030. Do not re-attempt the `search_path` route.
 - An `AsyncLocalStorage`-scoped per-tenant transaction/connection must be keyed on tenant identity, or a
   nested `run()` for a *different* tenant silently reuses the parent's transaction and leaks. The Lucid
   adapter re-read the fresh context but reused an existing ALS transaction with it, so a tenant-B `run()`
@@ -101,3 +100,8 @@ model preferences.
   scope key alongside the ALS transaction and fail closed when a nested scope's key differs (same-tenant
   nesting stays a savepoint; cross-tenant and central-in-tenant are rejected). Knex is immune because it
   captures `context` once at scope entry and only re-applies it inside its own savepoints.
+- A workspace package that exposes peer-library types must pin the peer's optional driver in its own
+  dev dependencies. Otherwise pnpm can instantiate the same ORM version under two driver peer graphs
+  (for example TypeORM with `pg@8.16` and `pg@8.22`), making nominal class types incompatible in a
+  cross-package consumer even though runtime behavior works. Align the package test peer graph and keep
+  a cross-package typecheck/E2E to catch it.

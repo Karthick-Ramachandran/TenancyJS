@@ -8,11 +8,17 @@ import type {
 import { TenantContextError } from "tenancyjs-core";
 import {
   applyPostgresRowContext,
+  createPostgresStrategyEngine,
+  createTenantResourceCache,
+  deferredDatabaseValidationResult,
   decideTenantDiscriminator,
   validatePostgresRlsPolicies,
   type PostgresExecutor,
+  type PostgresSchemaStrategyEngine,
+  type TenantResourceCache,
 } from "tenancyjs-adapter-shared";
 import type {
+  DataSource,
   EntityManager,
   EntityTarget,
   FindOptionsWhere,
@@ -47,7 +53,7 @@ export interface TypeOrmTenancyAdapter<
   TTenant extends TenantRecord = TenantRecord,
 > extends TenancyAdapter {
   readonly name: "typeorm";
-  readonly strategy: "rowLevel";
+  readonly strategy: "rowLevel" | "schemaPerTenant" | "databasePerTenant";
   readonly config: TypeOrmTenancyConfig<TTenant>;
   run<TResult>(
     callback: (client: ProtectedTypeOrmClient) => MaybePromise<TResult>,
@@ -59,21 +65,40 @@ export function createTypeOrmTenancy<
   TTenant extends TenantRecord = TenantRecord,
 >(options: TypeOrmTenancyOptions<TTenant>): TypeOrmTenancyAdapter<TTenant> {
   const config = defineTypeOrmTenancyConfig(options);
+  const schemaEngine = createSchemaEngine(config);
+  const connectionCache: TenantResourceCache<DataSource> | undefined =
+    config.strategy === "databasePerTenant"
+      ? createTenantResourceCache<DataSource>({
+          capacity: config.maxConnections,
+          destroy: async (dataSource) => {
+            if (dataSource.isInitialized) await dataSource.destroy();
+          },
+        })
+      : undefined;
   let validated = false;
 
   async function validate(): Promise<TenancyAdapterValidationResult> {
+    if (config.strategy === "databasePerTenant") {
+      validated = true;
+      return deferredDatabaseValidationResult("TENANCY_TYPEORM", "TypeORM");
+    }
     try {
-      const result = await validatePostgresRlsPolicies({
-        codePrefix: "TENANCY_TYPEORM",
-        adapterName: "TypeORM",
-        execute: typeOrmExecutor(config.dataSource.manager),
-        tables: config.tenantEntities.map((entry) => ({
-          schema: entry.schema,
-          table: entry.table,
-          qualifiedName: entry.qualifiedName,
-          policyName: entry.policyName,
-        })),
-      });
+      const result =
+        config.strategy === "rowLevel"
+          ? await validatePostgresRlsPolicies({
+              codePrefix: "TENANCY_TYPEORM",
+              adapterName: "TypeORM",
+              execute: typeOrmExecutor(config.dataSource.manager),
+              tables: config.tenantEntities.map((entry) => ({
+                schema: entry.schema!,
+                table: entry.table,
+                qualifiedName: entry.qualifiedName,
+                policyName: entry.policyName,
+              })),
+            })
+          : await schemaEngine!.validate(
+              typeOrmExecutor(config.dataSource.manager),
+            );
       validated = result.valid;
       return result;
     } catch {
@@ -103,20 +128,39 @@ export function createTypeOrmTenancy<
     }
     const context = config.manager.getContext();
     if (context === undefined) throw new TenantContextError("missing");
-    return config.dataSource.transaction(async (manager) => {
-      await applyPostgresRowContext(typeOrmExecutor(manager), context);
-      return callback(createProtectedClient(config, manager, context));
-    });
+    const runScope = (dataSource: DataSource) =>
+      dataSource.transaction(async (manager) => {
+        if (config.strategy === "rowLevel") {
+          await applyPostgresRowContext(typeOrmExecutor(manager), context);
+        } else if (config.strategy === "schemaPerTenant") {
+          await schemaEngine!.applyContext(typeOrmExecutor(manager), context);
+        }
+        return callback(
+          createProtectedClient(config, manager, context, config.strategy),
+        );
+      });
+    if (config.strategy === "databasePerTenant" && context.mode === "tenant") {
+      const placement = config.connection!(context.tenant);
+      return connectionCache!.lease(
+        context.tenant.id,
+        placement.key,
+        placement.create,
+        runScope,
+      );
+    }
+    return runScope(config.dataSource);
   }
 
   return Object.freeze({
     name: "typeorm" as const,
-    strategy: "rowLevel" as const,
+    strategy: config.strategy,
     capabilities: TYPEORM_ADAPTER_CAPABILITIES,
     config,
     validate,
     run,
-    async close() {},
+    async close() {
+      await connectionCache?.close();
+    },
   });
 }
 
@@ -124,15 +168,24 @@ function createProtectedClient<TTenant extends TenantRecord>(
   config: TypeOrmTenancyConfig<TTenant>,
   manager: EntityManager,
   context: TenantContext<TTenant>,
+  strategy: "rowLevel" | "schemaPerTenant" | "databasePerTenant",
 ): ProtectedTypeOrmClient {
   return Object.freeze({
     repository<TEntity extends ObjectLiteral>(entity: EntityTarget<TEntity>) {
       const policy = config.classify(entity);
       if (policy === undefined) throw new TypeOrmEntityUnregisteredError();
+      if (
+        strategy !== "rowLevel" &&
+        ((context.mode === "tenant" && policy.kind === "central") ||
+          (context.mode === "central" && policy.kind === "tenant"))
+      ) {
+        throw new TypeOrmUnsafeCriteriaError();
+      }
       return createProtectedRepository(
         manager.getRepository(entity),
         policy,
         context,
+        strategy,
       );
     },
   });
@@ -142,8 +195,12 @@ function createProtectedRepository<TEntity extends ObjectLiteral>(
   repository: Repository<TEntity>,
   policy: TypeOrmEntityPolicy,
   context: TenantContext,
+  strategy: "rowLevel" | "schemaPerTenant" | "databasePerTenant",
 ): ProtectedTypeOrmRepository<TEntity> {
-  const tenant = policy.kind === "tenant" ? policy.config : undefined;
+  const tenant =
+    strategy === "rowLevel" && policy.kind === "tenant"
+      ? policy.config
+      : undefined;
   return Object.freeze({
     async findBy(where: TypeOrmCriteria = {}) {
       const rows = await repository.findBy(
@@ -199,6 +256,21 @@ function createProtectedRepository<TEntity extends ObjectLiteral>(
       );
       return result.affected ?? 0;
     },
+  });
+}
+
+function createSchemaEngine<TTenant extends TenantRecord>(
+  config: TypeOrmTenancyConfig<TTenant>,
+): PostgresSchemaStrategyEngine<TTenant> | undefined {
+  if (config.strategy !== "schemaPerTenant") return undefined;
+  return createPostgresStrategyEngine({
+    codePrefix: "TENANCY_TYPEORM",
+    adapterName: "TypeORM",
+    resolveSchema: config.schema!,
+    centralSchema: config.centralSchema,
+    ...(config.role === undefined ? {} : { resolveRole: config.role }),
+    tenantTables: config.tenantEntities.map((entry) => entry.table),
+    centralTables: [],
   });
 }
 

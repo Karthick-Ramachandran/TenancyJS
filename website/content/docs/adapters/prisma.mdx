@@ -1,11 +1,11 @@
 ---
 title: Prisma
-description: Row-level and database-per-tenant isolation for Prisma (PostgreSQL + experimental MySQL) — wired end to end.
+description: Row, PostgreSQL schema, and database-per-tenant routing for Prisma 7.
 ---
 
 `tenancyjs-adapter-prisma` scopes Prisma queries to the active tenant via a **Prisma Client extension**.
-It supports **row-level** (PostgreSQL + MySQL 🧪 experimental) and **database-per-tenant**. Schema-per-tenant is
-intentionally unsupported — Prisma resolves tables from the datasource, not the session `search_path`.
+It supports **row-level** (PostgreSQL + MySQL 🧪 experimental), PostgreSQL **schema-per-tenant**, and
+**database-per-tenant** on PostgreSQL and MySQL.
 
 This page shows it wired **end to end with Express**; for another framework, swap only the integration
 ([see below](#use-a-different-framework)).
@@ -42,7 +42,7 @@ const adapter = createPrismaAdapter({
   tenantModels: { Order: {}, Post: {} },
 });
 
-// Apply the tenancy extension — `db` is your tenant-scoped Prisma client.
+// Apply the tenancy extension - `db` is your tenant-scoped Prisma client.
 export const db = new PrismaClient().$extends(adapter.extension);
 ```
 </Step>
@@ -73,12 +73,12 @@ app.get("/orders", async (_req, res) => {
 </Steps>
 
 Inside a tenant scope the extension injects the tenant filter on reads and the tenant field on writes;
-outside a scope it fails closed. On PostgreSQL, forced **RLS** is a second, database-level backstop; on
-MySQL, isolation is enforced by the extension's query-scoping.
+outside a scope it fails closed. Row-level Prisma isolation is adapter-enforced query rewriting on both
+databases; using an unextended client bypasses it.
 
 ## Database per tenant
 
-For hard isolation, route a dedicated Prisma client per tenant with `createPrismaDatabaseTenancy`. You
+Route a dedicated Prisma client per tenant with `createPrismaDatabaseTenancy`. You
 supply how to create and dispose a client for a given tenant; clients are pooled in a bounded cache and
 reused.
 
@@ -87,16 +87,45 @@ import { createPrismaDatabaseTenancy } from "tenancyjs-adapter-prisma";
 
 const tenancy = createPrismaDatabaseTenancy({
   manager,
-  create: (tenant) =>
-    new PrismaClient({ datasources: { db: { url: tenant.databaseUrl } } }),
+  connection: (tenant) => ({
+    key: tenant.databaseKey, // opaque: never put a URL or credential here
+    create: () => createPrismaClient(tenant.databaseSecretRef),
+  }),
+  disconnect: (client) => client.$disconnect(),
+  maxConnections: 25,
+});
+```
+
+The client is valid only inside the `run` callback; do not store or return it after the lease ends.
+
+## PostgreSQL schema per tenant
+
+Prisma model queries do not follow a runtime `search_path`. Prisma 7 instead exposes an explicit schema
+option on its PostgreSQL driver adapter:
+
+```ts
+import { PrismaPg } from "@prisma/adapter-pg";
+import { createPrismaSchemaTenancy } from "tenancyjs-adapter-prisma";
+
+const tenancy = createPrismaSchemaTenancy({
+  manager,
+  schema: (tenant) => ({
+    key: tenant.schemaKey,
+    create: () =>
+      new PrismaClient({
+        adapter: new PrismaPg(
+          { connectionString: process.env.DATABASE_URL! },
+          { schema: tenant.schemaName },
+        ),
+      }),
+  }),
   disconnect: (client) => client.$disconnect(),
 });
 ```
 
 <Callout type="warn">
-  Prisma **schema-per-tenant** is not supported (Prisma resolves tables from its datasource, not
-  `search_path`). Use database-per-tenant for hard isolation. `tenant check` warns if a config claims
-  otherwise.
+  The router proves one tenant maps to one cached client placement. A shared database role may still
+  have permission on sibling schemas; use schema-restricted roles for database-side denial.
 </Callout>
 
 ## Use a different framework

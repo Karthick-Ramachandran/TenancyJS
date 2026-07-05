@@ -7,6 +7,7 @@ import {
   MongooseTenantFieldConflictError,
   MongooseUnsafeFilterError,
   MongooseValidationError,
+  MONGOOSE_ADAPTER_CAPABILITIES,
   createMongooseTenancy,
 } from "../src/index.js";
 
@@ -66,6 +67,10 @@ function harness() {
 }
 
 describe("Mongoose tenancy adapter", () => {
+  it("publishes database routing but rejects SQL schema routing", () => {
+    expect(MONGOOSE_ADAPTER_CAPABILITIES.databasePerTenant).toBe("supported");
+    expect(MONGOOSE_ADAPTER_CAPABILITIES.schemaPerTenant).toBe("rejected");
+  });
   it("rejects a standalone topology during validation", async () => {
     const fixture = harness();
     Object.defineProperty(fixture.connection, "db", {

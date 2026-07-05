@@ -12,7 +12,8 @@
 - Complete: full PostgreSQL 17 gate, package-consumer verification, dependency audit, and Persist Doctor.
 - Complete: ADR-0021 bounded resource-cache foundation with collision, concurrency, eviction, failure,
   lease, and shutdown tests.
-- Complete: Knex, Lucid, and Prisma database-per-tenant bindings over the shared cache.
+- Complete: Knex, Lucid, Prisma, TypeORM, Sequelize, and Mongoose database-per-tenant bindings over the shared cache.
 - Complete: optional per-tenant role support and pooled-connection role/search-path reversion evidence.
 - Complete: engine-lifetime tenant/schema collision guard and shared deferred-validation warning.
-- Deferred: provisioning, Prisma schema-per-tenant, and non-PostgreSQL schema dialects.
+- Complete: Prisma schema-per-tenant via schema-bound Prisma 7 driver clients (ADR-0030).
+- Deferred: provisioning; non-PostgreSQL schema dialects are rejected where the namespace does not exist.
