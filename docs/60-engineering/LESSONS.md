@@ -109,6 +109,12 @@ model preferences.
   (for example TypeORM with `pg@8.16` and `pg@8.22`), making nominal class types incompatible in a
   cross-package consumer even though runtime behavior works. Align the package test peer graph and keep
   a cross-package typecheck/E2E to catch it.
+- Lucid's database-per-tenant strategy is dialect-agnostic — it isolates purely by routing each tenant
+  scope to its own leased connection (no forced RLS, no `search_path`), so it works on MySQL as well as
+  PostgreSQL (row-level and schema-per-tenant remain Postgres-only). Gotcha found while adding the MySQL
+  test: Lucid's `MysqlConfig` type does NOT accept a `connection` URL string the way `PostgreConfig`
+  does — pass an object (`{ host, port, user, password, database }`). Runtime tolerates the string
+  (knex/mysql2 parse it), so the mismatch only surfaces at `tsc`, not at test runtime.
 - ADR-0033 tier-aware query freedom: the enforcement tier must be derived from the *actual connection
   that was leased*, never from the strategy string. The Knex `unrestricted()` accessor first gated on
   `strategy === "databasePerTenant"` — but a database-per-tenant config in **central mode** falls through

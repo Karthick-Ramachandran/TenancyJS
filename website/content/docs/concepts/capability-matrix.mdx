@@ -20,7 +20,7 @@ Start here - it decides which strategies are even available to you.
 | Database | Row-level | Schema-per-tenant | Database-per-tenant | Adapters |
 | --- | :---: | :---: | :---: | --- |
 | **PostgreSQL** | ✅ | ✅ | ✅ | Knex · Lucid · Prisma · TypeORM · Sequelize · Drizzle |
-| **MySQL** | 🧪 | - | ✅ | Prisma · TypeORM · Sequelize · Drizzle |
+| **MySQL** | 🧪 | - | ✅ | Prisma · TypeORM · Sequelize · Drizzle · Lucid ³ |
 | **MongoDB** | ✅ ¹ | - | ✅ ² | Mongoose |
 | **SQL Server** | 📋 | 📋 | 📋 | _planned - see [roadmap](#roadmap)_ |
 
@@ -44,12 +44,17 @@ strong convention, not a database-level guarantee.
 ² **MongoDB database-per-tenant is a routing boundary by default.** It becomes database-enforced only
 when each tenant connection uses credentials restricted to that tenant's database.
 
+³ **Lucid on MySQL supports database-per-tenant only.** Its row-level and schema-per-tenant strategies
+are PostgreSQL-only (they rely on forced RLS / `search_path`), but database-per-tenant is pure
+connection-routing, so it works on MySQL too - proven by a two-tenant adversarial test.
+
 ## By adapter × strategy
 
 | Adapter | Database | Row-level | Schema-per-tenant | Database-per-tenant |
 | --- | --- | :---: | :---: | :---: |
 | **Knex** | PostgreSQL | ✅ | ✅ | ✅ |
 | **Lucid** (AdonisJS) | PostgreSQL | ✅ | ✅ | ✅ |
+| **Lucid** (AdonisJS) | MySQL | - | - | ✅ |
 | **Prisma** | PostgreSQL | ✅ | ✅ | ✅ |
 | **Prisma** | MySQL | 🧪 | - | ✅ |
 | **TypeORM** | PostgreSQL | ✅ | ✅ | ✅ |

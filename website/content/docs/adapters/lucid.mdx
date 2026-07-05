@@ -82,6 +82,14 @@ export const tenancy = createLucidTenancy({
 See [Database per tenant](/docs/strategies/database-per-tenant) and
 [Schema per tenant](/docs/strategies/schema-per-tenant) for how each is enforced.
 
+<Callout type="info">
+  **Works on MySQL too - database-per-tenant only.** Row-level and schema-per-tenant are PostgreSQL-only
+  (they rely on forced RLS / `search_path`), but database-per-tenant isolates purely by routing each
+  tenant to its own leased connection, so it runs on MySQL just as well (point your `connection` factory
+  at MySQL). It's covered by a two-tenant adversarial test on MySQL. `scope.unrestricted()` works there
+  too.
+</Callout>
+
 ## Full query freedom: `scope.unrestricted()`
 
 In every other strategy your Lucid models are constrained to the tenant-safe path - it's the only guard,
