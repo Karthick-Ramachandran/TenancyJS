@@ -1,22 +1,12 @@
+import { AdapterTenancyError } from "@tenancyjs/adapter-shared";
+
 export type LucidTenancyErrorCode =
   | "TENANCY_LUCID_CONFIGURATION"
   | "TENANCY_LUCID_POLICY_VALIDATION"
   | "TENANCY_LUCID_SCOPE"
   | "TENANCY_LUCID_TENANT_FIELD_CONFLICT";
 
-export class LucidTenancyError extends Error {
-  readonly code: LucidTenancyErrorCode;
-
-  constructor(
-    message: string,
-    code: LucidTenancyErrorCode,
-    options?: ErrorOptions,
-  ) {
-    super(message, options);
-    this.name = new.target.name;
-    this.code = code;
-  }
-}
+export class LucidTenancyError extends AdapterTenancyError<LucidTenancyErrorCode> {}
 
 export class LucidTenancyConfigurationError extends LucidTenancyError {
   constructor(message: string) {

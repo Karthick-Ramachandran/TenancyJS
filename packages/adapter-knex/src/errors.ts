@@ -1,3 +1,5 @@
+import { AdapterTenancyError } from "@tenancyjs/adapter-shared";
+
 export type KnexTenancyErrorCode =
   | "TENANCY_KNEX_CONFIGURATION"
   | "TENANCY_KNEX_POLICY_VALIDATION"
@@ -5,19 +7,7 @@ export type KnexTenancyErrorCode =
   | "TENANCY_KNEX_UNREGISTERED_TABLE"
   | "TENANCY_KNEX_UNSUPPORTED_OPERATION";
 
-export class KnexTenancyError extends Error {
-  readonly code: KnexTenancyErrorCode;
-
-  constructor(
-    message: string,
-    code: KnexTenancyErrorCode,
-    options?: ErrorOptions,
-  ) {
-    super(message, options);
-    this.name = new.target.name;
-    this.code = code;
-  }
-}
+export class KnexTenancyError extends AdapterTenancyError<KnexTenancyErrorCode> {}
 
 export class KnexTenancyConfigurationError extends KnexTenancyError {
   constructor(message: string) {
