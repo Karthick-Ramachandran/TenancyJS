@@ -11,6 +11,7 @@ import {
   applyPostgresRowContext,
   createPostgresStrategyEngine,
   createTenantResourceCache,
+  deferredDatabaseValidationResult,
   type PostgresExecutor,
   type PostgresSchemaStrategyEngine,
 } from "@tenancyjs/adapter-shared";
@@ -58,12 +59,12 @@ export function createKnexTenancy<TTenant extends TenantRecord = TenantRecord>(
   let validated = false;
 
   async function validate(): Promise<TenancyAdapterValidationResult> {
-    // Database-per-tenant isolation is structural (separate databases); there
-    // is no RLS/schema contract to introspect, so the strategy is valid once
-    // configured. Per-tenant connectivity fails closed at first lease.
+    // There is no finite tenant-database set to inspect at startup. Report
+    // configuration validity without implying every tenant placement was
+    // connected or inspected.
     if (config.strategy === "databasePerTenant") {
       validated = true;
-      return Object.freeze({ valid: true, issues: Object.freeze([]) });
+      return deferredDatabaseValidationResult("TENANCY_KNEX", "Knex");
     }
     try {
       const result =

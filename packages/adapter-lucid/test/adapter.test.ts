@@ -261,6 +261,36 @@ describe("createLucidTenancy", () => {
     );
   });
 
+  it("reports tenant database validation as deferred", async () => {
+    const manager = new TenancyManager<Tenant>();
+    const model = createFakeModel("Post", "posts");
+    const database = createFakeDatabase();
+    const adapter = createLucidTenancy({
+      manager,
+      database: database.database,
+      strategy: "databasePerTenant",
+      connection: () => ({
+        key: "tenant-db",
+        create: () => ({
+          transaction: database.database.transaction.bind(database.database),
+          destroy: () => undefined,
+        }),
+      }),
+      tenantModels: [{ model: model.model }],
+    });
+
+    await expect(adapter.validate()).resolves.toEqual({
+      valid: true,
+      issues: [
+        {
+          code: "TENANCY_LUCID_TENANT_DATABASE_VALIDATION_DEFERRED",
+          severity: "warning",
+          message: expect.stringContaining("first used"),
+        },
+      ],
+    });
+  });
+
   it("fails closed on cross-tenant and central-in-tenant run() nesting", async () => {
     const manager = new TenancyManager();
     const model = createFakeModel("Post", "posts");

@@ -378,6 +378,29 @@ describe("Knex tenancy configuration", () => {
     });
   });
 
+  it("reports tenant database validation as deferred", async () => {
+    const manager = new TenancyManager<Tenant>();
+    const { knex } = createKnexDouble();
+    const adapter = createKnexTenancy({
+      manager,
+      knex,
+      strategy: "databasePerTenant",
+      connection: () => ({ key: "tenant-db", create: () => knex }),
+      tenantTables: { posts: {} },
+    });
+
+    await expect(adapter.validate()).resolves.toEqual({
+      valid: true,
+      issues: [
+        {
+          code: "TENANCY_KNEX_TENANT_DATABASE_VALIDATION_DEFERRED",
+          severity: "warning",
+          message: expect.stringContaining("first used"),
+        },
+      ],
+    });
+  });
+
   it("publishes a conservative capability matrix", () => {
     expect(KNEX_ADAPTER_CAPABILITIES).toEqual({
       rowLevel: "supported",

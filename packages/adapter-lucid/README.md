@@ -1,6 +1,6 @@
 # @tenancyjs/adapter-lucid
 
-**Fail-closed Lucid 22 row-level and schema-per-tenant isolation for AdonisJS 7 and PostgreSQL 17.**
+**Fail-closed Lucid 22 row-level, schema-per-tenant, and database-per-tenant isolation for AdonisJS 7 and PostgreSQL 17.**
 
 ![Node](https://img.shields.io/badge/Node.js-%3E%3D24-brightgreen)
 ![AdonisJS](https://img.shields.io/badge/AdonisJS-7-5A45FF)
@@ -123,4 +123,29 @@ schema on the runtime role's effective default `search_path` must not contain th
 `.pojo()`, quiet, bulk, and direct builder paths skip Lucid hooks and therefore receive no managed
 `search_path`; keeping the names absent makes those paths fail closed.
 Retained or qualified base-database access remains outside the guarantee. Per-tenant roles and schema
-provisioning are not yet implemented.
+provisioning are application-owned. The shared engine rejects a tenant that changes schemas and two
+tenant identities that resolve to the same schema. Configure `role: (tenant) => tenant.role` for the
+optional database-enforced tier.
+
+## Database per tenant
+
+Database mode resolves an opaque key and a tenant-specific Lucid transaction provider. The shared
+bounded cache enforces a one-to-one tenant/key mapping and disposes idle connections on eviction.
+`validate()` returns a warning because tenant factories and connectivity are exercised lazily, when
+each tenant is first used.
+
+```ts
+const lucidTenancy = createLucidTenancy({
+  manager,
+  database: landlordDatabase,
+  strategy: "databasePerTenant",
+  connection: (tenant) => ({
+    key: tenant.connectionName,
+    create: () => tenantConnection(tenant),
+  }),
+  tenantModels: [{ model: Post }],
+});
+```
+
+The host resolver/factory must map each key to the intended separate database. Keys must never contain
+URLs or credentials, and `close()` must run during application shutdown.

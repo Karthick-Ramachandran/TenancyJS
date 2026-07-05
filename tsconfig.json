@@ -5,11 +5,15 @@
     { "path": "./packages/core" },
     { "path": "./packages/adapter-knex" },
     { "path": "./packages/adapter-lucid" },
+    { "path": "./packages/adapter-mongoose" },
     { "path": "./packages/adapter-prisma" },
+    { "path": "./packages/adapter-sequelize" },
+    { "path": "./packages/adapter-typeorm" },
     { "path": "./packages/cli" },
     { "path": "./packages/identifiers" },
     { "path": "./packages/integration-adonis" },
     { "path": "./packages/integration-express" },
+    { "path": "./packages/integration-nest" },
     { "path": "./packages/integration-next" },
     { "path": "./packages/testing" }
   ]

@@ -1,6 +1,6 @@
 # @tenancyjs/adapter-knex
 
-Fail-closed Knex 3.3 row-level and schema-per-tenant isolation for PostgreSQL 17.
+Fail-closed Knex 3.3 row-level, schema-per-tenant, and database-per-tenant isolation for PostgreSQL 17.
 
 This package is experimental until its PostgreSQL conformance matrix passes. The protected callback
 client exposes a deliberately narrow fluent subset. It combines application-level discriminator
@@ -67,6 +67,31 @@ await manager.runWithTenant(tenant, () =>
 ```
 
 Tenant and central table names must be unqualified. A tenant schema may not equal the central schema;
-raw/qualified access is unavailable through the protected client. A retained base Knex client can
-bypass this adapter-enforced tier. Database-enforced per-tenant roles and provisioning are not yet
-implemented.
+raw/qualified access is unavailable through the protected client. The engine rejects a tenant that
+changes schemas and two tenant identities that resolve to the same schema. A retained base Knex client
+can bypass this adapter-enforced tier. Configure `role: (tenant) => tenant.role` for the optional
+database-enforced per-tenant-role tier; provisioning remains application-owned.
+
+## Database per tenant
+
+Database mode resolves an opaque placement key and lazily creates a tenant-specific Knex client. The
+shared bounded cache enforces a one-to-one tenant/key mapping and disposes idle clients on eviction.
+`validate()` reports configuration as valid with a warning: the open-ended set of tenant factories and
+connections cannot be inspected at startup and is exercised when each tenant is first used.
+
+```ts
+const tenancy = createKnexTenancy({
+  manager,
+  knex: privateLandlordKnex,
+  strategy: "databasePerTenant",
+  connection: (tenant) => ({
+    key: tenant.databaseKey,
+    create: () => knex(connectionFor(tenant)),
+  }),
+  maxConnections: 25,
+  tenantTables: { posts: {} },
+});
+```
+
+The resolver and factory are security-sensitive host code: each key must create the intended separate
+tenant database. Never use a URL or credentials as the key, and call `close()` during shutdown.

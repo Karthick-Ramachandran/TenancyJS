@@ -39,7 +39,9 @@ export interface PrismaDatabaseTenancy<TClient extends object> {
    * Run within the active tenant's own database. Resolves the current tenant,
    * leases its cached client, and passes it to the callback. Fails closed:
    * no tenant context, or central context, throws — the central/landlord
-   * database is accessed directly, not through this router.
+   * database is accessed directly, not through this router. The client lease
+   * ends when the callback settles; retaining, returning, or later using the
+   * client is unsupported because eviction may disconnect it.
    */
   run<TResult>(
     callback: (client: TClient) => MaybePromise<TResult>,

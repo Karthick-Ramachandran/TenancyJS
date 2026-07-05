@@ -20,12 +20,22 @@
       "@tenancyjs/adapter-shared": ["./packages/adapter-shared/src/index.ts"],
       "@tenancyjs/adapter-knex": ["./packages/adapter-knex/src/index.ts"],
       "@tenancyjs/adapter-lucid": ["./packages/adapter-lucid/src/index.ts"],
+      "@tenancyjs/adapter-mongoose": [
+        "./packages/adapter-mongoose/src/index.ts"
+      ],
       "@tenancyjs/adapter-prisma": ["./packages/adapter-prisma/src/index.ts"],
+      "@tenancyjs/adapter-sequelize": [
+        "./packages/adapter-sequelize/src/index.ts"
+      ],
+      "@tenancyjs/adapter-typeorm": ["./packages/adapter-typeorm/src/index.ts"],
       "@tenancyjs/cli": ["./packages/cli/src/index.ts"],
       "@tenancyjs/core": ["./packages/core/src/index.ts"],
       "@tenancyjs/identifiers": ["./packages/identifiers/src/index.ts"],
       "@tenancyjs/integration-express": [
         "./packages/integration-express/src/index.ts"
+      ],
+      "@tenancyjs/integration-nest": [
+        "./packages/integration-nest/src/index.ts"
       ],
       "@tenancyjs/integration-next": [
         "./packages/integration-next/src/index.ts"

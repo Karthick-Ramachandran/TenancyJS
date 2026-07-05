@@ -20,15 +20,22 @@ preferences.
   PostgreSQL RLS validation passes, and the base Knex client is never application-facing.
 - `createLucidTenancy`: canonical Lucid 22 managed-transaction factory; registered models use native
   hooks for normal operations while forced PostgreSQL RLS denies hook-skipping paths.
+- `createTypeOrmTenancy` and `createSequelizeTenancy`: canonical protected plain-value repository/model
+  facades for PostgreSQL; native ORM clients, query builders, instances, and raw APIs stay private.
+- `createMongooseTenancy`: canonical adapter-enforced protected lean-model facade; it requires a
+  replica set for managed transactions and never returns Mongoose documents or queries.
 - `createPostgresStrategyEngine`: canonical shared PostgreSQL schema-placement engine in
   `@tenancyjs/adapter-shared`; Knex/Lucid bind their raw executor shapes to it and never duplicate its
-  RLS/context/`search_path` SQL.
+  RLS/context/`search_path` SQL. It owns the lifetime tenant-to-schema collision guard; adapters do not
+  implement their own placement maps.
 - `createTenantResourceCache`: canonical bounded database-per-tenant resource lifecycle; adapters use
   its single-flight leases and never create an unbounded per-tenant client map.
 - `createExpressTenancyMiddleware`: canonical Express 5 request-lifecycle bridge; it composes an
   application-owned `TenancyManager` and tenant resolver and never creates hidden tenant state.
 - `createNextTenancy`: canonical Next.js App Router Node bridge for Route Handlers and Server Actions;
   its separate Edge helper transports only untrusted identity hints for Node revalidation.
+- `TenancyModule` + `@TenantRoute`: canonical NestJS 11 guard/interceptor composition. Resolution occurs
+  before authorization guards; canonical tenant/adapter context covers only the handler Observable.
 - `defineAdonisTenancyConfig`: canonical typed AdonisJS 7 config factory; it validates and freezes one
   application-owned manager, resolver, and Lucid tenancy service and creates no hidden database client.
 - `TenancyMiddleware`: canonical AdonisJS 7 tenant-route middleware; it resolves once and runs each

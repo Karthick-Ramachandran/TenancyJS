@@ -68,7 +68,13 @@ describePostgres("Knex PostgreSQL database-per-tenant isolation", () => {
     });
     await expect(tenancy.validate()).resolves.toEqual({
       valid: true,
-      issues: [],
+      issues: [
+        {
+          code: "TENANCY_KNEX_TENANT_DATABASE_VALIDATION_DEFERRED",
+          severity: "warning",
+          message: expect.stringContaining("first used"),
+        },
+      ],
     });
   });
 
@@ -101,10 +107,10 @@ describePostgres("Knex PostgreSQL database-per-tenant isolation", () => {
 
   it("routes each tenant to its own database and never crosses", async () => {
     await runInTenant(tenantA, async (client) =>
-      client.table("posts").insert({ id: "post-a", title: "A" }),
+      client.table("posts").insert({ id: "same-id", title: "A" }),
     );
     await runInTenant(tenantB, async (client) =>
-      client.table("posts").insert({ id: "post-b", title: "B" }),
+      client.table("posts").insert({ id: "same-id", title: "B" }),
     );
 
     const [rowsA, rowsB] = await Promise.all([
@@ -115,26 +121,21 @@ describePostgres("Knex PostgreSQL database-per-tenant isolation", () => {
         client.table("posts").orderBy("id").select("id", "title"),
       ),
     ]);
-    expect(rowsA).toEqual([{ id: "post-a", title: "A" }]);
-    expect(rowsB).toEqual([{ id: "post-b", title: "B" }]);
+    expect(rowsA).toEqual([{ id: "same-id", title: "A" }]);
+    expect(rowsB).toEqual([{ id: "same-id", title: "B" }]);
 
-    // Adversarial: tenant A's protected client cannot see or mutate tenant B's
-    // row, because it physically lives in a different database.
+    // Adversarial: the same primary key exists in both databases. Tenant A's
+    // write must mutate only A's copy, never B's.
     expect(
       await runInTenant(tenantA, async (client) =>
-        client.table("posts").where("id", "post-b").select("id"),
+        client.table("posts").where("id", "same-id").update({ title: "A2" }),
       ),
-    ).toEqual([]);
-    expect(
-      await runInTenant(tenantA, async (client) =>
-        client.table("posts").where("id", "post-b").update({ title: "stolen" }),
-      ),
-    ).toBe(0);
+    ).toBe(1);
 
     // Tenant B is untouched by tenant A's attempts.
     await expect(
       withConnection(databaseB, async (client) =>
-        client("posts").where("id", "post-b").first(),
+        client("posts").where("id", "same-id").first(),
       ),
     ).resolves.toMatchObject({ title: "B" });
   });

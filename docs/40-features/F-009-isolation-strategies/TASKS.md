@@ -61,25 +61,38 @@ Evidence:
 
 ## T5: Knex database-per-tenant binding
 
-Status: Todo
+Status: Done
 
 Scope:
-- Host placement/client factory, connected-database identity validation, protected client reuse, and
-  real two-database isolation/cache lifecycle evidence. Flip Knex capability only after evidence.
+- Host placement/client factory, lazy connectivity failure, protected client reuse, and real
+  two-database isolation/cache lifecycle evidence. The host owns key-to-database correctness; flip
+  Knex capability only after adversarial evidence.
+
+Evidence:
+- Thin binding over the shared cache, bounded lifecycle, fail-closed creation, and real PostgreSQL
+  two-database tests with colliding primary keys.
 
 ## T6: Lucid and Prisma database-per-tenant bindings
 
-Status: Todo
+Status: Done
 
 Scope:
 - Thin Lucid and Prisma bindings over the shared cache with separate real-database evidence.
 
+Evidence:
+- Lucid and Prisma real PostgreSQL two-database tests use the same row ID in both tenants and prove a
+  tenant-A update leaves tenant B unchanged. The Prisma public router rejects placement collisions.
+
 ## T7: Database-enforced schema mode (opt-in per-tenant role)
 
-Status: Todo
+Status: Done
 
 Scope:
 - Per-tenant role + `USAGE`-only grants; tenant scope `SET ROLE`s; database blocks cross-schema.
+
+Evidence:
+- Real PostgreSQL role test proves cross-schema raw access is denied and transaction-local role plus
+  `search_path` revert on the same pooled connection before reuse.
 
 ## T8: Provisioning
 
@@ -87,7 +100,18 @@ Status: Todo
 
 Scope:
 - `tenancy provision`/`deprovision`: `CREATE SCHEMA` + per-schema migrate (+ per-tenant role in
-  DB-enforced mode).
+DB-enforced mode).
+
+## T9: Isolation review hardening
+
+Status: Done
+
+Scope:
+- Reject tenant/schema collisions for the shared strategy-engine lifetime.
+- Report lazy tenant-database verification honestly from Knex/Lucid `validate()`.
+- Strengthen separate-database tests with colliding row IDs and exercise collision rejection through
+  the Prisma router.
+- Document the callback-only lifetime of a routed Prisma client.
 
 Do Not:
 - Flip any `schemaPerTenant` capability to `"supported"` before its two-tenant adversarial test passes.
