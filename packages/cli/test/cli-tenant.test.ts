@@ -51,6 +51,63 @@ describe("runCli tenant list", () => {
     expect(text).not.toContain("s3cr3t");
   });
 
+  it("redacts BARE secret fields (password/token/apiKey) in --json output", async () => {
+    const output = captureIo();
+    await runCli(
+      [
+        "tenant",
+        "show",
+        "acme",
+        "--config",
+        "store-secrets.config.mjs",
+        "--json",
+      ],
+      output.io,
+    );
+    const text = output.stdout.join("");
+    // None of the raw secret values may appear, in any output path.
+    expect(text).not.toContain("hunter2");
+    expect(text).not.toContain("tok_live_abc123");
+    expect(text).not.toContain("key_xyz789");
+    expect(text).not.toContain("postgres://u:p@host");
+    expect(text).toContain("[REDACTED]");
+    // Non-secret fields survive.
+    expect(text).toContain("pro");
+  });
+
+  it("redacts BARE secret fields in human output too", async () => {
+    const output = captureIo();
+    await runCli(
+      ["tenant", "show", "acme", "--config", "store-secrets.config.mjs"],
+      output.io,
+    );
+    const text = output.stdout.join("");
+    expect(text).not.toContain("hunter2");
+    expect(text).not.toContain("key_xyz789");
+  });
+
+  it("re-hardens the store: a wrong-tenant find() is rejected (exit 2)", async () => {
+    const output = captureIo();
+    const code = await runCli(
+      ["tenant", "show", "victim", "--config", "store-evil.config.mjs"],
+      output.io,
+    );
+    expect(code).toBe(2);
+    expect(output.stderr.join("")).toMatch(/mismatched tenant|but returned/i);
+    // The attacker's tenant is never surfaced.
+    expect(output.stdout.join("")).not.toContain("attacker-tenant");
+  });
+
+  it("re-hardens the store: duplicate list() ids are rejected", async () => {
+    const output = captureIo();
+    const code = await runCli(
+      ["tenant", "list", "--config", "store-evil.config.mjs"],
+      output.io,
+    );
+    expect(code).toBe(2);
+    expect(output.stderr.join("")).toMatch(/more than once/);
+  });
+
   it("reports a clear error when the store cannot list", async () => {
     const output = captureIo();
     // valid.config.mjs has list, so use factory (no store) to hit the guard.
@@ -241,6 +298,20 @@ describe("runCli tenant argument handling", () => {
     const code = await runCli(["doctor", "stray"], output.io);
     expect(code).toBe(2);
     expect(output.stderr.join("")).toMatch(/Unexpected argument/);
+  });
+
+  it("rejects stray positionals on a tenant subcommand instead of ignoring them", async () => {
+    const output = captureIo();
+    const code = await runCli(["tenant", "show", "acme", "extra"], output.io);
+    expect(code).toBe(2);
+    expect(output.stderr.join("")).toMatch(/Unexpected argument: extra/);
+  });
+
+  it("rejects a --set flag with no value", async () => {
+    const output = captureIo();
+    const code = await runCli(["tenant", "create", "--set"], output.io);
+    expect(code).toBe(2);
+    expect(output.stderr.join("")).toMatch(/--set requires a key=value/);
   });
 });
 

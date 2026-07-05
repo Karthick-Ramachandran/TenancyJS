@@ -30,9 +30,9 @@ import {
   formatLeakTest,
   formatPlan,
   formatProvisionResult,
+  formatRedactedJson,
   formatRunResult,
   formatTenantCheck,
-  formatTenantJson,
   formatTenantList,
   formatTenantMutation,
   formatTenantShow,
@@ -169,14 +169,14 @@ async function runTenant(
   if (parsed.subcommand === "check") {
     const result = await withRuntime(loadOptions, runTenantCheck);
     io.writeStdout(
-      parsed.json ? formatTenantJson(result) : formatTenantCheck(result),
+      parsed.json ? formatRedactedJson(result) : formatTenantCheck(result),
     );
     return result.healthy ? 0 : 2;
   }
   if (parsed.subcommand === "list") {
     const result = await withRuntime(loadOptions, runTenantList);
     io.writeStdout(
-      parsed.json ? formatTenantJson(result) : formatTenantList(result),
+      parsed.json ? formatRedactedJson(result) : formatTenantList(result),
     );
     return 0;
   }
@@ -186,7 +186,7 @@ async function runTenant(
       runTenantShow(runtime, id),
     );
     io.writeStdout(
-      parsed.json ? formatTenantJson(result) : formatTenantShow(result),
+      parsed.json ? formatRedactedJson(result) : formatTenantShow(result),
     );
     return 0;
   }
@@ -200,7 +200,7 @@ async function runTenant(
       }),
     );
     io.writeStdout(
-      parsed.json ? formatTenantJson(result) : formatTenantMutation(result),
+      parsed.json ? formatRedactedJson(result) : formatTenantMutation(result),
     );
     return 0;
   }
@@ -212,7 +212,7 @@ async function runTenant(
       action(runtime, id),
     );
     io.writeStdout(
-      parsed.json ? formatTenantJson(result) : formatTenantMutation(result),
+      parsed.json ? formatRedactedJson(result) : formatTenantMutation(result),
     );
     return 0;
   }
@@ -236,11 +236,9 @@ async function runProvision(
   loadOptions: { root: string; configPath?: string },
   io: CliIo,
 ): Promise<number> {
-  // Only migrate may target every tenant; provision/deprovision demand an
-  // explicit id so a destructive drop can never fan out by accident.
-  if (action !== "migrate" && parsed.all) {
-    throw new CliUsageError(`--all is only valid for tenant migrate.`);
-  }
+  // Only `tenant migrate` may target every tenant (enforced in parseArguments);
+  // provision/deprovision always resolve a single explicit id so a destructive
+  // drop can never fan out by accident.
   const target =
     parsed.all && action === "migrate"
       ? ({ all: true } as const)
@@ -249,7 +247,7 @@ async function runProvision(
     runProvisionAction(runtime, action, target),
   );
   io.writeStdout(
-    parsed.json ? formatJson(result) : formatProvisionResult(result),
+    parsed.json ? formatRedactedJson(result) : formatProvisionResult(result),
   );
   return result.ok ? 0 : 2;
 }
@@ -270,7 +268,9 @@ async function runRun(
   const result = await withRuntime(loadOptions, (runtime) =>
     runScript(runtime, { root, script: parsed.script!, scope }),
   );
-  io.writeStdout(parsed.json ? formatJson(result) : formatRunResult(result));
+  io.writeStdout(
+    parsed.json ? formatRedactedJson(result) : formatRunResult(result),
+  );
   return 0;
 }
 
@@ -474,6 +474,10 @@ function parseArguments(arguments_: readonly string[]): ParsedArguments {
     throw new CliUsageError(`Unexpected argument: ${positionals[0]}`);
   if (commandValue === "run" && positionals.length > 1)
     throw new CliUsageError(`Unexpected argument: ${positionals[1]}`);
+  // tenant takes at most <subcommand> <id>; reject stray extras rather than
+  // silently ignoring them.
+  if (commandValue === "tenant" && positionals.length > 2)
+    throw new CliUsageError(`Unexpected argument: ${positionals[2]}`);
   if (commandValue !== "init" && apply)
     throw new CliUsageError("--apply is valid only for init.");
   if (commandValue !== "init" && (framework !== undefined || yes))
@@ -488,7 +492,7 @@ function parseArguments(arguments_: readonly string[]): ParsedArguments {
     throw new CliUsageError(
       "--central and --tenant are valid only for the run command.",
     );
-  if (commandValue !== "tenant" && all)
+  if (all && !(commandValue === "tenant" && positionals[0] === "migrate"))
     throw new CliUsageError("--all is valid only for tenant migrate.");
   return {
     command: commandValue,

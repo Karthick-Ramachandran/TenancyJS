@@ -94,7 +94,106 @@ export async function loadTenancyRuntime(
   }
   const runtime = await resolveRuntimeExport(loaded, resolved, options.root);
   assertBrandedRuntime(runtime, resolved, options.root);
-  return runtime;
+  // Defense in depth (ADR-0028): the runtime brand is a global-registry symbol
+  // and therefore forgeable, and a config that hand-builds the branded object
+  // never ran through core's hardenTenantStore. So the CLI re-hardens the store
+  // at the enforcement boundary regardless — a wrong-tenant return is rejected
+  // here even if the host skipped defineTenancyRuntime. Idempotent when already
+  // hardened.
+  if (runtime.store === undefined) return runtime;
+  return { ...runtime, store: hardenLoadedStore(runtime.store) };
+}
+
+/**
+ * Wrap a loaded store so its results are validated before any command acts on
+ * them: `find`/`suspend`/`activate` must return the tenant that was asked for,
+ * `list` must return unique well-formed tenants, and `create` must echo an
+ * explicitly requested id. Mirrors `@tenancyjs/core`'s `hardenTenantStore`,
+ * reimplemented here to keep the CLI zero-dependency. Fail-closed: a mismatch
+ * throws rather than letting one tenant's data surface under another's id.
+ */
+function hardenLoadedStore(store: LoadedTenantStore): LoadedTenantStore {
+  const hardened: LoadedTenantStore = {};
+  if (typeof store.list === "function") {
+    const list = store.list.bind(store);
+    hardened.list = async () => {
+      const tenants = await list();
+      const seen = new Set<string>();
+      for (const tenant of tenants) {
+        assertTenantShape(tenant, "list");
+        if (seen.has(tenant.id)) {
+          throw new CliProjectError(
+            `Your tenant store's "list" returned tenant id "${tenant.id}" more than once.`,
+          );
+        }
+        seen.add(tenant.id);
+      }
+      return tenants;
+    };
+  }
+  if (typeof store.find === "function") {
+    const find = store.find.bind(store);
+    hardened.find = async (id) => {
+      const tenant = await find(id);
+      if (tenant === null) return null;
+      assertTenantShape(tenant, "find");
+      assertIdMatches(tenant, id, "find");
+      return tenant;
+    };
+  }
+  if (typeof store.create === "function") {
+    const create = store.create.bind(store);
+    hardened.create = async (input) => {
+      const tenant = await create(input);
+      assertTenantShape(tenant, "create");
+      if (typeof input.id === "string")
+        assertIdMatches(tenant, input.id, "create");
+      return tenant;
+    };
+  }
+  for (const action of ["suspend", "activate"] as const) {
+    const method = store[action];
+    if (typeof method === "function") {
+      const bound = method.bind(store);
+      hardened[action] = async (id: string) => {
+        const tenant = await bound(id);
+        assertTenantShape(tenant, action);
+        assertIdMatches(tenant, id, action);
+        return tenant;
+      };
+    }
+  }
+  if (typeof store.delete === "function")
+    hardened.delete = store.delete.bind(store);
+  return hardened;
+}
+
+function assertTenantShape(
+  value: unknown,
+  method: string,
+): asserts value is { readonly id: string } {
+  if (
+    value === null ||
+    typeof value !== "object" ||
+    typeof (value as { id?: unknown }).id !== "string" ||
+    (value as { id: string }).id.length === 0
+  ) {
+    throw new CliProjectError(
+      `Your tenant store's "${method}" returned a value that is not a tenant (an object with a non-empty string id).`,
+    );
+  }
+}
+
+function assertIdMatches(
+  tenant: { readonly id: string },
+  requestedId: string,
+  method: string,
+): void {
+  if (tenant.id !== requestedId) {
+    throw new CliProjectError(
+      `Your tenant store's "${method}" was asked for tenant "${requestedId}" but returned "${tenant.id}". Refusing to act on a mismatched tenant.`,
+    );
+  }
 }
 
 async function resolveConfigPath(options: LoadRuntimeOptions): Promise<string> {

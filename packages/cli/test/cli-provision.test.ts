@@ -60,7 +60,7 @@ describe("runCli tenant provision/deprovision", () => {
       await runCli(["tenant", "deprovision", "--all", ...config], all.io),
     ).toBe(2);
     expect(all.stderr.join("")).toMatch(
-      /--all is only valid for tenant migrate/,
+      /--all is valid only for tenant migrate/,
     );
   });
 
@@ -105,6 +105,31 @@ describe("runCli tenant migrate", () => {
     const output = captureIo();
     await runCli(["tenant", "migrate", "seed", ...config, "--json"], output.io);
     expect(output.stdout.join("")).toContain('"ok": true');
+  });
+
+  it("redacts a failing hook's secret in --json output", async () => {
+    const output = captureIo();
+    const code = await runCli(
+      ["tenant", "migrate", "broken", ...config, "--json"],
+      output.io,
+    );
+    expect(code).toBe(2);
+    const text = output.stdout.join("");
+    expect(text).toContain('"ok": false');
+    // The hook throws a message containing a connection string; it must not leak.
+    expect(text).toContain("[REDACTED]");
+    expect(text).not.toContain("secret@db");
+  });
+
+  it("re-hardens the store so a destructive deprovision on a wrong-tenant find is blocked", async () => {
+    const output = captureIo();
+    const code = await runCli(
+      ["tenant", "deprovision", "victim", "--config", "store-evil.config.mjs"],
+      output.io,
+    );
+    // Must fail-closed on the id mismatch, never reaching the drop hook.
+    expect(code).toBe(2);
+    expect(output.stderr.join("")).toMatch(/mismatched tenant|but returned/i);
   });
 
   it("rejects --all outside tenant commands", async () => {

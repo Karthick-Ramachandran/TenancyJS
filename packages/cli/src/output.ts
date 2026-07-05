@@ -7,7 +7,7 @@ import type {
   TenantRecordView,
   TenantShowResult,
 } from "./commands/tenant.js";
-import { redactText } from "./redaction.js";
+import { redactData, redactText } from "./redaction.js";
 import type {
   DoctorReport,
   LeakTestResult,
@@ -18,9 +18,15 @@ export function formatJson(value: unknown): string {
   return `${JSON.stringify(value, null, 2)}\n`;
 }
 
-/** Redact tenant records before serialising — placement fields can hold secrets. */
-export function formatTenantJson(value: unknown): string {
-  return redactText(formatJson(value));
+/**
+ * Serialise operational-command output with structural redaction: the object
+ * graph is deep-redacted by key name (and embedded credentials stripped) BEFORE
+ * `JSON.stringify`, so `"password": "…"`-shaped secrets cannot slip through the
+ * way a regex over serialised JSON would let them. Used by every command's
+ * `--json` path.
+ */
+export function formatRedactedJson(value: unknown): string {
+  return formatJson(redactData(value));
 }
 
 export function formatTenantList(result: TenantListResult): string {
@@ -90,8 +96,11 @@ export function formatRunResult(result: RunScriptResult): string {
  * stays a stable one-liner (or a short block in `show`).
  */
 function describeTenant(tenant: TenantRecordView, block = false): string {
+  // Redact by key name first so secret fields never reach the rendered line,
+  // regardless of the outer redactText pass (which only catches value shapes).
+  const redacted = redactData(tenant) as Record<string, unknown>;
   const fields: string[] = [];
-  for (const [key, value] of Object.entries(tenant)) {
+  for (const [key, value] of Object.entries(redacted)) {
     if (key === "id") continue;
     fields.push(`${key}=${describeValue(value)}`);
   }

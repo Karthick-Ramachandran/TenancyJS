@@ -121,6 +121,16 @@ describe("runCli run", () => {
     expect(code).toBe(2);
     expect(output.stderr.join("")).toMatch(/valid only for the run command/);
   });
+
+  it("rejects a stray second positional after the script", async () => {
+    const output = captureIo();
+    const code = await runCli(
+      ["run", "a.mjs", "b.mjs", "--central"],
+      output.io,
+    );
+    expect(code).toBe(2);
+    expect(output.stderr.join("")).toMatch(/Unexpected argument: b.mjs/);
+  });
 });
 
 describe("formatRunResult", () => {
