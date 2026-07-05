@@ -196,13 +196,11 @@ export default function HomePage() {
             <span className="tj-grad">refuses to leak</span>
           </h1>
 
-          <p className="mx-auto mt-6 max-w-2xl text-pretty text-lg text-fd-muted-foreground sm:text-xl">
-            A fail-closed, TypeScript-first tenancy toolkit for Node.js. Tenant
-            identity follows your async scope - and any tenant-aware access
-            without a valid context <strong className="text-fd-foreground">
-              throws
-            </strong>{" "}
-            instead of returning another tenant&rsquo;s data.
+          <p className="mx-auto mt-6 max-w-xl text-pretty text-lg text-fd-muted-foreground sm:text-xl">
+            Fail-closed, TypeScript-first multi-tenancy for Node.js. No valid
+            tenant context, no data - it{" "}
+            <strong className="text-fd-foreground">throws</strong> instead of
+            leaking.
           </p>
 
           <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
