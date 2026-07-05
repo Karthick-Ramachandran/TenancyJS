@@ -1,6 +1,6 @@
 {
   "name": "@tenancyjs/integration-next",
-  "version": "0.0.0",
+  "version": "0.1.0-beta.0",
   "description": "Fail-closed Next.js App Router integration for TenancyJS.",
   "type": "module",
   "license": "MIT",
@@ -44,5 +44,24 @@
   },
   "devDependencies": {
     "next": "16.2.10"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Karthick-Ramachandran/TenancyJS.git",
+    "directory": "packages/integration-next"
+  },
+  "homepage": "https://github.com/Karthick-Ramachandran/TenancyJS#readme",
+  "bugs": "https://github.com/Karthick-Ramachandran/TenancyJS/issues",
+  "author": "Karthick Ramachandran",
+  "keywords": [
+    "multi-tenancy",
+    "multitenancy",
+    "tenancy",
+    "saas",
+    "tenant-isolation",
+    "postgres",
+    "typescript",
+    "nextjs",
+    "app-router"
+  ]
 }

@@ -1,6 +1,6 @@
 {
   "name": "@tenancyjs/adapter-prisma",
-  "version": "0.0.0",
+  "version": "0.1.0-beta.0",
   "description": "Fail-closed row-level tenant isolation for Prisma Client.",
   "type": "module",
   "license": "MIT",
@@ -43,5 +43,24 @@
     "prisma:test:push": "prisma db push --config prisma.config.ts",
     "prisma:test:push:mysql": "prisma db push --config prisma.mysql.config.ts",
     "typecheck": "tsc -b --pretty false"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Karthick-Ramachandran/TenancyJS.git",
+    "directory": "packages/adapter-prisma"
+  },
+  "homepage": "https://github.com/Karthick-Ramachandran/TenancyJS#readme",
+  "bugs": "https://github.com/Karthick-Ramachandran/TenancyJS/issues",
+  "author": "Karthick Ramachandran",
+  "keywords": [
+    "multi-tenancy",
+    "multitenancy",
+    "tenancy",
+    "saas",
+    "tenant-isolation",
+    "postgres",
+    "typescript",
+    "prisma",
+    "mysql"
+  ]
 }

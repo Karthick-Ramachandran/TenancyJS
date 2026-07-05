@@ -1,6 +1,6 @@
 {
   "name": "@tenancyjs/adapter-lucid",
-  "version": "0.0.0",
+  "version": "0.1.0-beta.0",
   "description": "Fail-closed PostgreSQL row-level and schema-per-tenant isolation for AdonisJS Lucid.",
   "type": "module",
   "license": "MIT",
@@ -47,5 +47,25 @@
   "scripts": {
     "build": "tsc -b",
     "typecheck": "tsc -b --pretty false"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Karthick-Ramachandran/TenancyJS.git",
+    "directory": "packages/adapter-lucid"
+  },
+  "homepage": "https://github.com/Karthick-Ramachandran/TenancyJS#readme",
+  "bugs": "https://github.com/Karthick-Ramachandran/TenancyJS/issues",
+  "author": "Karthick Ramachandran",
+  "keywords": [
+    "multi-tenancy",
+    "multitenancy",
+    "tenancy",
+    "saas",
+    "tenant-isolation",
+    "postgres",
+    "typescript",
+    "lucid",
+    "adonisjs",
+    "rls"
+  ]
 }

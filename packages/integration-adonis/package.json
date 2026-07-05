@@ -1,6 +1,6 @@
 {
   "name": "@tenancyjs/integration-adonis",
-  "version": "0.0.0",
+  "version": "0.1.0-beta.0",
   "description": "Fail-closed AdonisJS 7 request lifecycle integration for TenancyJS Lucid tenancy.",
   "type": "module",
   "license": "MIT",
@@ -54,5 +54,24 @@
   "scripts": {
     "build": "tsc -b",
     "typecheck": "tsc -b --pretty false"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Karthick-Ramachandran/TenancyJS.git",
+    "directory": "packages/integration-adonis"
+  },
+  "homepage": "https://github.com/Karthick-Ramachandran/TenancyJS#readme",
+  "bugs": "https://github.com/Karthick-Ramachandran/TenancyJS/issues",
+  "author": "Karthick Ramachandran",
+  "keywords": [
+    "multi-tenancy",
+    "multitenancy",
+    "tenancy",
+    "saas",
+    "tenant-isolation",
+    "postgres",
+    "typescript",
+    "adonisjs",
+    "middleware"
+  ]
 }

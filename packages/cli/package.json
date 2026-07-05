@@ -1,7 +1,7 @@
 {
   "name": "@tenancyjs/cli",
-  "version": "0.0.0",
-  "description": "Safe project initialization and diagnostics for TenancyJS.",
+  "version": "0.1.0-beta.0",
+  "description": "Operational CLI for TenancyJS: scaffold, inspect, and run tenant registry, provisioning, and migration commands against your own tenancy config.",
   "type": "module",
   "license": "MIT",
   "sideEffects": false,
@@ -33,5 +33,26 @@
   "scripts": {
     "build": "tsc -b",
     "typecheck": "tsc -b --pretty false"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Karthick-Ramachandran/TenancyJS.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/Karthick-Ramachandran/TenancyJS#readme",
+  "bugs": "https://github.com/Karthick-Ramachandran/TenancyJS/issues",
+  "author": "Karthick Ramachandran",
+  "keywords": [
+    "multi-tenancy",
+    "multitenancy",
+    "tenancy",
+    "saas",
+    "tenant-isolation",
+    "postgres",
+    "typescript",
+    "cli",
+    "migrations",
+    "provisioning",
+    "tenant-management"
+  ]
 }

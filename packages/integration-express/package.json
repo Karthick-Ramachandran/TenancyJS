@@ -1,6 +1,6 @@
 {
   "name": "@tenancyjs/integration-express",
-  "version": "0.0.0",
+  "version": "0.1.0-beta.0",
   "description": "Fail-closed Express request lifecycle integration for TenancyJS.",
   "type": "module",
   "license": "MIT",
@@ -38,5 +38,24 @@
   "scripts": {
     "build": "tsc -b",
     "typecheck": "tsc -b --pretty false"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Karthick-Ramachandran/TenancyJS.git",
+    "directory": "packages/integration-express"
+  },
+  "homepage": "https://github.com/Karthick-Ramachandran/TenancyJS#readme",
+  "bugs": "https://github.com/Karthick-Ramachandran/TenancyJS/issues",
+  "author": "Karthick Ramachandran",
+  "keywords": [
+    "multi-tenancy",
+    "multitenancy",
+    "tenancy",
+    "saas",
+    "tenant-isolation",
+    "postgres",
+    "typescript",
+    "express",
+    "middleware"
+  ]
 }

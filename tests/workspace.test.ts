@@ -89,11 +89,11 @@ describe("workspace foundation", () => {
     expect(module).toHaveProperty("TenantContextError");
   });
 
-  it("documents both committed tenancy strategies without claiming implementation", async () => {
+  it("documents the tenancy strategies and the current release status", async () => {
     const readme = await readFile("README.md", "utf8");
 
     expect(readme).toContain("Single database");
     expect(readme).toContain("Database per tenant");
-    expect(readme).toContain("Pre-alpha");
+    expect(readme).toContain("Beta");
   });
 });
