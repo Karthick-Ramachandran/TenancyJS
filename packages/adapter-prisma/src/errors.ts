@@ -1,3 +1,5 @@
+import { AdapterTenancyError } from "@tenancyjs/adapter-shared";
+
 export type PrismaTenancyErrorCode =
   | "TENANCY_PRISMA_CONFIGURATION"
   | "TENANCY_PRISMA_UNREGISTERED_MODEL"
@@ -6,19 +8,7 @@ export type PrismaTenancyErrorCode =
 
 export type PrismaUnsupportedOperationReason = "raw" | "relation" | "operation";
 
-export class PrismaTenancyError extends Error {
-  readonly code: PrismaTenancyErrorCode;
-
-  constructor(
-    message: string,
-    code: PrismaTenancyErrorCode,
-    options?: ErrorOptions,
-  ) {
-    super(message, options);
-    this.name = new.target.name;
-    this.code = code;
-  }
-}
+export class PrismaTenancyError extends AdapterTenancyError<PrismaTenancyErrorCode> {}
 
 export class PrismaTenancyConfigurationError extends PrismaTenancyError {
   constructor(message: string) {

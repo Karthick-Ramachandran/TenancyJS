@@ -1,3 +1,4 @@
+export { AdapterTenancyError } from "./errors.js";
 export { assertSqlIdentifier, normalizeQualifiedTable } from "./identifiers.js";
 export type {
   NormalizedQualifiedTable,
