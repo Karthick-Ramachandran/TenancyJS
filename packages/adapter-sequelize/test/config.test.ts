@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import {
   SEQUELIZE_ADAPTER_CAPABILITIES,
   SequelizeTenancyConfigurationError,
+  createSequelizeTenancy,
   defineSequelizeTenancyConfig,
 } from "../src/index.js";
 
@@ -14,6 +15,66 @@ const sequelize = {
 } as unknown as Sequelize;
 
 describe("Sequelize tenancy configuration", () => {
+  it("rejects a tenant Sequelize instance from a different dialect", async () => {
+    const manager = new TenancyManager();
+    const postgres = {
+      transaction: async () => undefined,
+      getDialect: () => "postgres",
+      close: async () => undefined,
+    } as unknown as Sequelize;
+    const mysql = {
+      transaction: async () => undefined,
+      getDialect: () => "mysql",
+      close: async () => undefined,
+    } as unknown as Sequelize;
+    const tenancy = createSequelizeTenancy({
+      manager,
+      sequelize: postgres,
+      strategy: "databasePerTenant",
+      tenantModels: [{ model, table: "posts" }],
+      connection: () => ({ key: "tenant-db", create: () => mysql }),
+    });
+    await tenancy.validate();
+    await expect(
+      manager.runWithTenant({ id: "tenant-a" }, () =>
+        tenancy.run(async () => undefined),
+      ),
+    ).rejects.toBeInstanceOf(SequelizeTenancyConfigurationError);
+    await tenancy.close();
+  });
+
+  it("requires an explicit matching MySQL dialect and rejects MySQL schema mode", () => {
+    const mysql = {
+      transaction: async () => undefined,
+      getDialect: () => "mysql",
+    } as unknown as Sequelize;
+    expect(() =>
+      defineSequelizeTenancyConfig({
+        manager: new TenancyManager(),
+        sequelize: mysql,
+        tenantModels: [{ model, table: "posts" }],
+      }),
+    ).toThrow(SequelizeTenancyConfigurationError);
+    expect(
+      defineSequelizeTenancyConfig({
+        manager: new TenancyManager(),
+        sequelize: mysql,
+        dialect: "mysql",
+        tenantModels: [{ model, table: "posts" }],
+      }).dialect,
+    ).toBe("mysql");
+    expect(() =>
+      defineSequelizeTenancyConfig({
+        manager: new TenancyManager(),
+        sequelize: mysql,
+        dialect: "mysql",
+        strategy: "schemaPerTenant",
+        schema: () => "tenant_a",
+        tenantModels: [{ model, table: "posts" }],
+      }),
+    ).toThrow(SequelizeTenancyConfigurationError);
+  });
+
   it("classifies without exposing a mutable map", () => {
     const config = defineSequelizeTenancyConfig({
       manager: new TenancyManager(),

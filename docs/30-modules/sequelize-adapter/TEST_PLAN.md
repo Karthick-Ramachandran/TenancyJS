@@ -9,6 +9,7 @@
 
 - PostgreSQL 17 row/schema/database suites with colliding IDs, CRUD/count, rollback, concurrency,
   central access, state cleanup, cache collision, and shutdown.
+- MySQL 8 row and database suites with colliding IDs and cross-tenant mutation denial.
 
 ## Security Tests
 

@@ -2,8 +2,9 @@
 
 Safe, deterministic project initialization and diagnostics for TenancyJS.
 
-The initial CLI supports the tested Express 5.2 + Prisma 7.8 and AdonisJS 7.3 + Lucid 22.4 row-level
-reference slices. It detects the stack from `package.json` and scaffolds the matching wiring. It uses
+Init supports Express 5.2 with Prisma 7.8, TypeORM 1, Sequelize 6.37, or Drizzle 0.45; AdonisJS 7.3
+with Lucid 22.4; and Next.js 16 with Prisma 7.8. It detects the stack from `package.json` and scaffolds
+the matching row-level wiring. It uses
 Node built-ins only, makes no network calls, reads no `.env` files, and never invokes a shell or remote
 package runner.
 
@@ -15,6 +16,7 @@ tenancy init
 
 # Create only non-conflicting files after path and symlink validation.
 tenancy init --apply
+tenancy init --framework express --orm drizzle --apply
 
 # Inventory wiring, versions, base clients, raw/nested/relation usage,
 # model classification, leak-test evidence, and migration effort.
@@ -33,7 +35,7 @@ explicit test file exits successfully. Output redacts URL credentials and secret
 
 ## Generated Files
 
-Express + Prisma:
+Express + Prisma, TypeORM, Sequelize, or Drizzle:
 
 - `tenancy.config.ts`
 - `src/tenancy/register.ts`
@@ -60,5 +62,5 @@ not prove runtime tenant isolation.
   array. The CLI never invokes a shell. The trusted test is not sandboxed, receives only allowlisted
   database/test/Tenancy environment variables, and is bounded to 120 seconds and 1,000,000 output
   characters by default.
-- Database connectivity, migrations, seeds, other stacks, and database-per-tenant operations are not
-  implemented by this foundation.
+- Init never connects to a database or runs migrations; operational migration/provisioning commands
+  delegate only to explicit host runtime hooks.

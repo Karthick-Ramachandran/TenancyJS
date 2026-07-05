@@ -7,17 +7,24 @@ TenancyJS only marks a combination **supported** after a real two-tenant adversa
 real database: tenant A and tenant B with colliding ids, and a test that fails if A can ever read B's
 row. This page is the honest source of truth for what has actually been proven.
 
+<Callout type="info">
+  This page covers *which databases and strategies* are supported. For the operations the scoped facade
+  deliberately **rejects** — raw queries, nested reads/writes, native handles, complex criteria — see
+  **[Limitations](/docs/concepts/limitations)**.
+</Callout>
+
 ## By database
 
 Start here - it decides which strategies are even available to you.
 
 | Database | Row-level | Schema-per-tenant | Database-per-tenant | Adapters |
 | --- | :---: | :---: | :---: | --- |
-| **PostgreSQL** | ✅ | ✅ | ✅ | Knex · Lucid · Prisma · TypeORM · Sequelize |
-| **MySQL** | 🧪 | - | ✅ | Prisma |
+| **PostgreSQL** | ✅ | ✅ | ✅ | Knex · Lucid · Prisma · TypeORM · Sequelize · Drizzle |
+| **MySQL** | 🧪 | - | ✅ | Prisma · TypeORM · Sequelize · Drizzle |
 | **MongoDB** | ✅ ¹ | - | ✅ ² | Mongoose |
+| **SQL Server** | 📋 | 📋 | 📋 | _planned — see [roadmap](#roadmap)_ |
 
-✅ tested-supported · 🧪 experimental · - not available
+✅ tested-supported · 🧪 experimental · 📋 planned (not yet available) · - not available
 
 <Callout type="warn">
   **Schema-per-tenant is PostgreSQL-only.** MySQL treats `SCHEMA` and `DATABASE` as the same namespace,
@@ -47,19 +54,46 @@ when each tenant connection uses credentials restricted to that tenant's databas
 | **Prisma** | MySQL | 🧪 | - | ✅ |
 | **TypeORM** | PostgreSQL | ✅ | ✅ | ✅ |
 | **Sequelize** | PostgreSQL | ✅ | ✅ | ✅ |
+| **TypeORM** | MySQL | 🧪 | - | ✅ |
+| **Sequelize** | MySQL | 🧪 | - | ✅ |
+| **Drizzle** | PostgreSQL | ✅ | ✅ | ✅ |
+| **Drizzle** | MySQL | 🧪 | - | ✅ |
 | **Mongoose** | MongoDB | ✅ ¹ | - | ✅ ² |
 
 ✅ tested-supported · - not available yet
 
+## Query freedom by tier
+
+Whether a scope allows raw SQL, joins, and nested reads/writes depends on **how it's isolated**, not just
+which combination you picked ([ADR-0033](/docs/concepts/limitations#two-enforcement-tiers--and-when-the-restrictions-lift)):
+
+| Tier | Isolated by | Raw / joins / nested | Available today |
+| --- | --- | :---: | --- |
+| **Database-enforced** | the connection or database itself | ✅ full freedom | Knex **database-per-tenant** via [`unrestricted()`](/docs/adapters/knex#full-query-freedom-unrestricted) |
+| **Facade-enforced** | the adapter facade only | rejected (fail-closed) ³ | every other scope |
+
+³ **Lucid is the one facade-enforced exception**: its facade supports nested *reads* (joins/relations),
+though raw queries and nested writes are still rejected. See
+[Limitations](/docs/concepts/limitations#nested-reads--not-supported-facade-enforced-scopes-lucid-excepted).
+
+Database-enforced freedom is **fail-closed**: the raw client is handed over only when a per-tenant
+connection was genuinely leased, and throws otherwise. Rollout to more adapters and scopes is on the
+[roadmap](#roadmap).
+
 ## How each is enforced
 
-- **PostgreSQL, row-level** - forced Postgres **RLS** (the database rejects cross-tenant rows even under
-  raw SQL), plus the adapter's facade.
-- **PostgreSQL, schema-per-tenant** - Knex, Lucid, TypeORM, and Sequelize use a transaction-local
-  `search_path`; an optional per-tenant role makes the database reject sibling-schema access. Prisma
+- **PostgreSQL, row-level** - **Knex, Lucid, TypeORM, Sequelize, and Drizzle** use forced Postgres
+  **RLS** (the database rejects cross-tenant rows even under raw SQL) *plus* the adapter's facade.
+  **Prisma is the exception**: it has no RLS layer — its PostgreSQL (and MySQL) row-level isolation is
+  the adapter's query-rewriting facade only, with no database backstop. See
+  [Security](/docs/concepts/security).
+- **PostgreSQL, schema-per-tenant** - Knex, Lucid, TypeORM, Sequelize, and Drizzle use a
+  transaction-local `search_path`; an optional per-tenant role makes the database reject sibling-schema
+  access. Prisma
   uses a cached Prisma 7 client whose PostgreSQL driver adapter is explicitly bound to the tenant
   schema; credential restriction is required for a database-enforced guarantee.
-- **MySQL, row-level (🧪 experimental)** - the Prisma adapter's **query-scoping**. MySQL has **no row-level security**, so
+- **MySQL, row-level (🧪 experimental)** - Prisma, TypeORM, Sequelize, and Drizzle use protected
+  **query-scoping facades**. MySQL has **no row-level security**, so
   - like Mongoose - isolation is enforced *entirely by the adapter facade, with no database-level
   backstop*. It's a weaker guarantee than Postgres row-level (which the database also enforces); keep
   all tenant access going through the adapter.
@@ -76,9 +110,28 @@ when each tenant connection uses credentials restricted to that tenant's databas
 - **MySQL, schema-per-tenant** isn't a thing - in MySQL, "schema" and "database" are synonyms, so
   there's no `search_path` namespace to switch. The Postgres schema-per-tenant concept simply maps to
   database-per-tenant in MySQL terms.
-- **TypeORM and Sequelize on MySQL** are not claimed; their supported and adversarially tested target is
-  PostgreSQL. Prisma is the current MySQL adapter.
+- **Drizzle does not target MongoDB.** It is a SQL ORM; Mongoose remains the MongoDB adapter.
 - **MongoDB schema-per-tenant** is not available because MongoDB has no schema/search-path namespace.
+
+## Roadmap
+
+Planned work, in rough order. None of this is available yet — this section is honest about what's coming
+so you can plan around it.
+
+| Item | What it adds | Status |
+| --- | --- | --- |
+| **Full query freedom → more adapters** | `unrestricted()`-style raw/join/nested access in database-per-tenant on Lucid, Prisma, TypeORM, Sequelize, Drizzle, and Mongoose | 🚧 In progress (Knex shipped) |
+| **Full query freedom → PostgreSQL forced-RLS** | database-enforced freedom in row-level scopes where forced RLS + a non-bypass role isolate every query | 📋 Planned |
+| **Full query freedom → schema + role** | database-enforced freedom in schema-per-tenant scopes with a restricted per-tenant role | 📋 Planned |
+| **Microsoft SQL Server** | a SQL Server adapter (row-level via `SESSION_CONTEXT` + security policies, and database-per-tenant) | 📋 Planned — later in the pipeline |
+
+🚧 in progress · 📋 planned
+
+<Callout type="info">
+  **Microsoft SQL Server** is on the roadmap but **not yet available** — there is no SQL Server adapter
+  today. It sits later in the pipeline behind the PostgreSQL, MySQL, and MongoDB work. Track it on the
+  [repository](https://github.com/Karthick-Ramachandran/TenancyJS).
+</Callout>
 
 ## The CLI tells you too
 

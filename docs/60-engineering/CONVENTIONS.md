@@ -23,8 +23,11 @@ preferences.
 - `createLucidTenancy`: canonical Lucid 22 managed-transaction factory; registered models use native
   hooks for normal operations while forced PostgreSQL RLS denies hook-skipping paths.
 - `createTypeOrmTenancy` and `createSequelizeTenancy`: canonical strategy-discriminated protected
-  plain-value repository/model facades for PostgreSQL; native ORM clients, query builders, instances,
-  and raw APIs stay private.
+  plain-value repository/model facades for PostgreSQL and MySQL; native ORM clients, query builders,
+  instances, and raw APIs stay private.
+- `createDrizzleTenancy` with `createPostgresDrizzleBinding` or `createMySqlDrizzleBinding`: canonical
+  protected Drizzle 0.45 table facade. Native database/transaction/SQL objects stay private; every
+  cache-owned tenant binding supplies deterministic pool cleanup.
 - `createMongooseTenancy`: canonical adapter-enforced protected lean-model facade and database router;
   it requires replica-set resources for managed transactions and never returns Mongoose documents or
   queries.

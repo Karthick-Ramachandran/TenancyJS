@@ -10,3 +10,25 @@ export const KNEX_ADAPTER_CAPABILITIES = Object.freeze({
   nestedWrites: "rejected",
   rawQueries: "rejected",
 } as const satisfies TenancyAdapterCapabilities);
+
+/**
+ * Capabilities depend on the configured strategy's enforcement tier (ADR-0033).
+ * database-per-tenant is database-enforced by construction (the connection is
+ * the tenant's own database), so nested reads/writes and raw queries are safe —
+ * exposed via `client.unrestricted()`. Every other Knex strategy stays
+ * facade-enforced (query-shape restrictions) until its tier earns an adversarial
+ * test.
+ */
+export function knexCapabilities(
+  strategy: "rowLevel" | "schemaPerTenant" | "databasePerTenant",
+): TenancyAdapterCapabilities {
+  if (strategy === "databasePerTenant") {
+    return Object.freeze({
+      ...KNEX_ADAPTER_CAPABILITIES,
+      nestedReads: "supported",
+      nestedWrites: "supported",
+      rawQueries: "supported",
+    });
+  }
+  return KNEX_ADAPTER_CAPABILITIES;
+}

@@ -7,7 +7,8 @@ teams one open-source toolkit for tenant resolution, isolation, framework integr
 and operations while preserving their chosen framework and data-layer workflows.
 
 Target users are SaaS teams building on Express, Next.js, NestJS, or AdonisJS with Prisma,
-Sequelize, Knex, or Lucid, plus platform engineers responsible for tenant isolation and migrations.
+Sequelize, TypeORM, Drizzle, Knex, Lucid, or Mongoose, plus platform engineers responsible for tenant
+isolation and migrations.
 
 Business success means users can adopt a tested vertical slice quickly, maintainers can support it
 without a compatibility explosion, and the project earns trust through verifiable no-leak tests

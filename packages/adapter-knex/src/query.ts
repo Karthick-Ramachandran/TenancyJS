@@ -59,6 +59,7 @@ export function createProtectedKnexClient(
     callback: (transaction: Knex.Transaction) => Promise<TResult>,
   ) => Promise<TResult>,
   strategy: "rowLevel" | "schemaPerTenant" | "databasePerTenant",
+  databaseEnforced: boolean,
 ): ProtectedKnexClient {
   const client: ProtectedKnexClient = {
     table(name) {
@@ -93,9 +94,27 @@ export function createProtectedKnexClient(
             classify,
             createSavepoint,
             strategy,
+            databaseEnforced,
           ),
         ),
       );
+    },
+    unrestricted() {
+      // ADR-0033: full query freedom is safe only where the database/connection
+      // physically enforces isolation. `databaseEnforced` is set true by run()
+      // ONLY on the path that leased a separate per-tenant connection — never
+      // from the strategy string, which is not a proxy for real isolation (a
+      // database-per-tenant config in central mode still runs on the shared
+      // admin connection). Fail closed everywhere the boundary isn't proven.
+      if (!databaseEnforced) {
+        throw new KnexTenancyConfigurationError(
+          "unrestricted() gives full, raw query access and is only available in a database-enforced scope, " +
+            "where the connection is the tenant's own leased database (database-per-tenant, tenant mode). " +
+            `The current scope (strategy=${strategy}, mode=${context.mode}) is facade-enforced, so full ` +
+            "query access is refused (ADR-0033).",
+        );
+      }
+      return transaction;
     },
   };
   return protectSurface(client, "client") as ProtectedKnexClient;

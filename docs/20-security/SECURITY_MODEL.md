@@ -133,11 +133,12 @@ only to locally installed, allowlisted ORM executables using argument arrays rat
   `.pojo()`, quiet, bulk, and direct unqualified hook-bypass paths fail closed. The shared engine also
   rejects tenant/schema mapping collisions for the adapter lifetime.
 
-## Implemented TypeORM And Sequelize Controls
+## Implemented TypeORM Sequelize And Drizzle Controls
 
-- TypeORM 1 and stable Sequelize 6 expose only callback-scoped plain-value CRUD/count facades. Native
-  data sources, managers, repositories/models, instances, query builders, raw SQL, relations/includes,
-  schema sync, and migrations remain outside the boundary.
+- TypeORM 1, stable Sequelize 6, and Drizzle 0.45 expose only callback-scoped plain-value CRUD/count
+  facades. Native databases/data sources, managers, repositories/models/tables, instances, query
+  builders, SQL expressions, raw SQL, relations/includes, schema sync, and migrations remain outside
+  the boundary.
 - Plain scalar equality is the only initial filter form. Tenant filters are composed, creates inject or
   validate the discriminator, and updates cannot move rows. Forced PostgreSQL RLS remains the final
   boundary and startup validation is mandatory.
@@ -145,6 +146,9 @@ only to locally installed, allowlisted ORM executables using argument arrays rat
 - Schema mode rejects ORM metadata with a fixed schema, uses the shared transaction-local search-path
   engine, and blocks central/tenant cross-placement model access. Database mode resolves only registered
   entities/models on a cache-leased tenant ORM resource.
+- On MySQL, row mode skips PostgreSQL context SQL and is explicitly adapter-enforced/experimental;
+  validation warns that no RLS backstop exists. TypeORM, Sequelize, and Drizzle each have real MySQL
+  colliding-ID row and separate-database evidence. MySQL schema mode is rejected.
 
 ## Implemented Mongoose Controls
 

@@ -11,7 +11,7 @@ It's the right default when your tenants are many and lightweight, and you don't
 separation.
 
 <Callout type="info">
-  **Available on all three databases:** PostgreSQL (forced RLS), MySQL (Prisma query-scoping -
+  **Available on all three databases:** PostgreSQL (forced RLS), MySQL (protected query-scoping -
   🧪 experimental), and MongoDB (Mongoose facade). MySQL and MongoDB also support
   database-per-tenant; they do not have a distinct Postgres-style schema strategy. See
   the [capability matrix](/docs/concepts/capability-matrix#by-database) for the per-database posture.
@@ -21,13 +21,16 @@ separation.
 
 There are two enforcement layers, depending on your database:
 
-- **Forced Postgres RLS** (Knex, Lucid, TypeORM, Sequelize) - the adapter sets the tenant on the
+- **Forced Postgres RLS** (Knex, Lucid, TypeORM, Sequelize, Drizzle) - the adapter sets the tenant on the
   session, and a **row-level security policy** on the table makes the *database itself* reject rows from
   other tenants. This holds even under raw SQL.
-- **Query-scoping** (Prisma, Mongoose) - the adapter injects the tenant filter into every query and the
+- **Query-scoping** (Prisma, TypeORM/Sequelize/Drizzle on MySQL, Mongoose) - the adapter injects the tenant filter into every query and the
   tenant field into every write through a whitelist facade.
 
-SQL adapters use **both** layers (facade + forced RLS), so a bug in one is caught by the other.
+The **RLS-backed adapters (Knex, Lucid, TypeORM, Sequelize, Drizzle on PostgreSQL)** use *both* layers
+(facade + forced RLS), so a bug in one is caught by the other. **Prisma is facade-only** — it has no RLS
+layer on either PostgreSQL or MySQL, so on Prisma the adapter facade is the entire guarantee (like MySQL
+and Mongoose above). Keep all tenant access going through it.
 
 ## Setup
 
@@ -40,6 +43,7 @@ call depends on your ORM - see the adapter guide:
   <Card title="Lucid" href="/docs/adapters/lucid" />
   <Card title="TypeORM" href="/docs/adapters/typeorm" />
   <Card title="Sequelize" href="/docs/adapters/sequelize" />
+  <Card title="Drizzle" href="/docs/adapters/drizzle" />
   <Card title="Mongoose" href="/docs/adapters/mongoose" />
 </Cards>
 
@@ -62,7 +66,7 @@ escaped the facade cannot read another tenant's rows - the database refuses.
 
 ## Databases
 
-Row-level runs on **PostgreSQL** (forced RLS), **MySQL** (query-scoping via Prisma, 🧪 experimental), and **MongoDB**
+Row-level runs on **PostgreSQL** (forced RLS), **MySQL** (query-scoping, 🧪 experimental), and **MongoDB**
 (Mongoose facade).
 
 ## When to reach for more

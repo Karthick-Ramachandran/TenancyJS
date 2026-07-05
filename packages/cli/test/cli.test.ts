@@ -681,6 +681,67 @@ async function planFor(root: string) {
 }
 
 describe("CLI v0.1 interactive init", () => {
+  it.each([
+    ["typeorm", "1.0.0", "createTypeOrmTenancy"],
+    ["sequelize", "6.37.8", "createSequelizeTenancy"],
+    ["drizzle-orm", "0.45.2", "createDrizzleTenancy"],
+  ])(
+    "detects and scaffolds Express with %s",
+    async (dependency, version, factory) => {
+      const root = await temporaryDirectory();
+      await writeJson(join(root, "package.json"), {
+        dependencies: { express: "5.2.1", [dependency]: version },
+      });
+      const detection = await detectProject(root);
+      expect(detection.supported).toBe(true);
+      const plan = await createInitPlan({
+        root: detection.root,
+        framework: "express",
+        orm: detection.orm.name as InitOrm,
+      });
+      expect(
+        plan.actions.find((action) => action.path === "src/tenancy/register.ts")
+          ?.content,
+      ).toContain(factory);
+    },
+  );
+
+  it("supports explicit Express Drizzle init in non-interactive CI", async () => {
+    const root = await temporaryDirectory();
+    await writeJson(join(root, "package.json"), {
+      dependencies: { express: "5.2.1" },
+    });
+    const output = captureIo(root);
+    await expect(
+      runCli(
+        ["init", "--framework", "express", "--orm", "drizzle", "--json"],
+        output.io,
+      ),
+    ).resolves.toBe(0);
+    expect(JSON.parse(output.stdout.join(""))).toMatchObject({
+      framework: "express",
+      orm: "drizzle",
+    });
+  });
+
+  it("does not silently choose between multiple installed ORMs", async () => {
+    const root = await temporaryDirectory();
+    await writeJson(join(root, "package.json"), {
+      dependencies: {
+        express: "5.2.1",
+        typeorm: "1.0.0",
+        "drizzle-orm": "0.45.2",
+      },
+    });
+    await expect(detectProject(root)).resolves.toMatchObject({
+      orm: { name: "unknown", supported: false },
+      supported: false,
+    });
+    const output = captureIo(root);
+    await expect(runCli(["init"], output.io)).resolves.toBe(2);
+    expect(output.stderr.join("")).toContain("Pass --orm");
+  });
+
   it("exposes capability metadata and a Node version gate", () => {
     expect(FRAMEWORK_CHOICES.map((choice) => choice.value)).toEqual([
       "express",

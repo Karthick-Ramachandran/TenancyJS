@@ -1,0 +1,63 @@
+{
+  "name": "tenancyjs-adapter-drizzle",
+  "version": "0.1.0-beta.0",
+  "description": "Fail-closed Drizzle tenant isolation for PostgreSQL and MySQL.",
+  "type": "module",
+  "license": "MIT",
+  "sideEffects": false,
+  "files": [
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "dist/**/*.d.ts.map",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "engines": {
+    "node": ">=24"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "tenancyjs-adapter-shared": "workspace:*",
+    "tenancyjs-core": "workspace:*"
+  },
+  "peerDependencies": {
+    "drizzle-orm": ">=0.45.0 <1"
+  },
+  "devDependencies": {
+    "@types/pg": "8.15.5",
+    "drizzle-orm": "0.45.2",
+    "mysql2": "3.22.5",
+    "pg": "8.16.3"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc -b --pretty false"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Karthick-Ramachandran/TenancyJS.git",
+    "directory": "packages/adapter-drizzle"
+  },
+  "homepage": "https://github.com/Karthick-Ramachandran/TenancyJS#readme",
+  "bugs": "https://github.com/Karthick-Ramachandran/TenancyJS/issues",
+  "author": "Karthick Ramachandran",
+  "keywords": [
+    "multi-tenancy",
+    "saas",
+    "tenant-isolation",
+    "drizzle",
+    "postgres",
+    "mysql",
+    "typescript"
+  ]
+}

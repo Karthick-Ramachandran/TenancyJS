@@ -19,6 +19,7 @@ export interface TypeOrmTenancyOptions<
 > {
   readonly manager: TenancyManager<TTenant>;
   readonly dataSource: DataSource;
+  readonly dialect?: "postgresql" | "mysql";
   readonly tenantEntities: readonly TypeOrmTenantEntityConfig[];
   readonly centralEntities?: readonly TypeOrmCentralEntityConfig[];
   readonly strategy?: "rowLevel" | "schemaPerTenant" | "databasePerTenant";
@@ -48,6 +49,7 @@ export interface TypeOrmTenancyConfig<
 > {
   readonly manager: TenancyManager<TTenant>;
   readonly dataSource: DataSource;
+  readonly dialect: "postgresql" | "mysql";
   readonly strategy: "rowLevel" | "schemaPerTenant" | "databasePerTenant";
   readonly schema: ((tenant: TTenant) => string) | undefined;
   readonly centralSchema: string;
@@ -71,6 +73,19 @@ export function defineTypeOrmTenancyConfig<
   if (typeof options.dataSource?.transaction !== "function")
     configuration("requires a DataSource");
   const strategy = options.strategy ?? "rowLevel";
+  const dialect = options.dialect ?? "postgresql";
+  if (dialect !== "postgresql" && dialect !== "mysql")
+    configuration("dialect must be postgresql or mysql");
+  if (strategy === "schemaPerTenant" && dialect !== "postgresql")
+    configuration(
+      "schema-per-tenant is PostgreSQL-only; use database-per-tenant for MySQL",
+    );
+  const configuredType = options.dataSource.options?.type;
+  if (
+    configuredType !== undefined &&
+    !matchesTypeOrmDialect(configuredType, dialect)
+  )
+    configuration("dialect does not match the DataSource type");
   if (
     strategy !== "rowLevel" &&
     strategy !== "schemaPerTenant" &&
@@ -202,6 +217,7 @@ export function defineTypeOrmTenancyConfig<
   return Object.freeze({
     manager: options.manager,
     dataSource: options.dataSource,
+    dialect,
     strategy,
     schema: options.schema,
     centralSchema,
@@ -211,6 +227,13 @@ export function defineTypeOrmTenancyConfig<
     tenantEntities: Object.freeze(tenantEntities),
     classify: (entity: EntityTarget<ObjectLiteral>) => policies.get(entity),
   });
+}
+
+export function matchesTypeOrmDialect(
+  type: DataSource["options"]["type"],
+  dialect: "postgresql" | "mysql",
+): boolean {
+  return dialect === "postgresql" ? type === "postgres" : type === "mysql";
 }
 
 function addPolicy(

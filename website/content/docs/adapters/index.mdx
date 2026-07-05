@@ -10,6 +10,15 @@ tenant scope is filtered to that tenant - and that queries outside a scope fail 
 Install only the adapter for the ORM you use, then check its page for setup and which strategies it
 supports.
 
+<Callout type="warn">
+  To stay fail-closed, the scoped facade rejects what it can't safely scope — **raw queries, nested
+  reads/writes, native handles, and complex criteria** — **wherever the facade is the only guard**
+  (Lucid is the one exception: it supports nested reads). Where the *database* enforces isolation, those
+  restrictions lift: Knex **database-per-tenant** gives you full query freedom via
+  [`unrestricted()`](/docs/adapters/knex#full-query-freedom-unrestricted). Read
+  [Limitations](/docs/concepts/limitations) before you build.
+</Callout>
+
 | Adapter | Package | Row-level | Schema-per-tenant | Database-per-tenant |
 | --- | --- | :---: | :---: | :---: |
 | [Prisma](/docs/adapters/prisma) | `tenancyjs-adapter-prisma` | ✅ | ✅ ¹ | ✅ |
@@ -17,6 +26,7 @@ supports.
 | [Lucid](/docs/adapters/lucid) | `tenancyjs-adapter-lucid` | ✅ | ✅ | ✅ |
 | [TypeORM](/docs/adapters/typeorm) | `tenancyjs-adapter-typeorm` | ✅ | ✅ | ✅ |
 | [Sequelize](/docs/adapters/sequelize) | `tenancyjs-adapter-sequelize` | ✅ | ✅ | ✅ |
+| [Drizzle](/docs/adapters/drizzle) | `tenancyjs-adapter-drizzle` | ✅ | ✅ | ✅ |
 | [Mongoose](/docs/adapters/mongoose) | `tenancyjs-adapter-mongoose` | ✅ ² | - | ✅ ³ |
 
 ¹ PostgreSQL only, using a schema-bound Prisma driver client rather than `search_path`.
@@ -27,7 +37,8 @@ database-restricted credentials. See the [Mongoose page](/docs/adapters/mongoose
 
 ## Defense in depth
 
-PostgreSQL row-level adapters use a whitelist facade plus forced RLS. Schema routing uses
+PostgreSQL row-level adapters use a whitelist facade plus forced RLS. TypeORM, Sequelize, Drizzle,
+and Prisma also support MySQL row-level through an explicitly weaker adapter-only facade. Schema routing uses
 transaction-local `search_path` (or Prisma's driver schema option), and database routing uses separate
 cache-leased resources. Schema/database routing is server-authorized only when tenant roles or
 credentials cannot access sibling placements.

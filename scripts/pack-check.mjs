@@ -7,6 +7,7 @@ import process from "node:process";
 const destination = await mkdtemp(join(tmpdir(), "tenancyjs-pack-"));
 const packages = [
   { name: "tenancyjs-adapter-shared", directory: "adapter-shared" },
+  { name: "tenancyjs-adapter-drizzle", directory: "adapter-drizzle" },
   { name: "tenancyjs-adapter-knex", directory: "adapter-knex" },
   { name: "tenancyjs-adapter-lucid", directory: "adapter-lucid" },
   { name: "tenancyjs-adapter-mongoose", directory: "adapter-mongoose" },
@@ -102,6 +103,7 @@ try {
       [
         'import { TenancyManager, defineConfig } from "tenancyjs-core";',
         'import { assertSqlIdentifier } from "tenancyjs-adapter-shared";',
+        'import { DRIZZLE_ADAPTER_CAPABILITIES, createDrizzleTenancy } from "tenancyjs-adapter-drizzle";',
         'import { KNEX_ADAPTER_CAPABILITIES, createKnexTenancy } from "tenancyjs-adapter-knex";',
         'import { LUCID_ADAPTER_CAPABILITIES, createLucidTenancy } from "tenancyjs-adapter-lucid";',
         'import { PRISMA_ADAPTER_CAPABILITIES, createPrismaAdapter, createPrismaDatabaseTenancy, createPrismaSchemaTenancy } from "tenancyjs-adapter-prisma";',
@@ -130,7 +132,7 @@ try {
         'const chain = new TenantResolutionChain({ resolvers: [new HeaderTenantResolver()], store: { find: async () => [{ tenant: fixture, status: "active" }] } });',
         'const outcome = await chain.resolve({ headers: { "x-tenant-id": "consumer" } });',
         "for (const contractCase of createCoreTenancyContract()) await contractCase.run();",
-        'if (tenantId !== "consumer" || !schemaRouted || !databaseRouted || assertSqlIdentifier("posts", { label: "Table" }) !== "posts" || outcome.status !== "resolved" || defineConfig({ strategy: "rowLevel" }).strategy !== "rowLevel" || prismaAdapter.name !== "prisma" || PRISMA_ADAPTER_CAPABILITIES.rawQueries !== "rejected" || typeof createKnexTenancy !== "function" || KNEX_ADAPTER_CAPABILITIES.rawQueries !== "rejected" || typeof createLucidTenancy !== "function" || LUCID_ADAPTER_CAPABILITIES.rawQueries !== "rejected" || typeof createMongooseTenancy !== "function" || MONGOOSE_ADAPTER_CAPABILITIES.rawQueries !== "rejected" || typeof createSequelizeTenancy !== "function" || SEQUELIZE_ADAPTER_CAPABILITIES.rawQueries !== "rejected" || typeof createTypeOrmTenancy !== "function" || TYPEORM_ADAPTER_CAPABILITIES.rawQueries !== "rejected" || typeof createExpressTenancyMiddleware !== "function" || typeof defineAdonisTenancyConfig !== "function" || typeof TenancyMiddleware !== "function" || typeof TenancyProvider !== "function" || typeof TenancyModule !== "function" || typeof TenantRoute !== "function" || typeof createNextTenancy !== "function" || createNextTenantHint(new Headers({ "x-tenant-id": "consumer" })) === null || redactText("postgresql://user:pass@localhost/db").includes("pass")) process.exit(1);',
+        'if (tenantId !== "consumer" || !schemaRouted || !databaseRouted || assertSqlIdentifier("posts", { label: "Table" }) !== "posts" || outcome.status !== "resolved" || defineConfig({ strategy: "rowLevel" }).strategy !== "rowLevel" || typeof createDrizzleTenancy !== "function" || DRIZZLE_ADAPTER_CAPABILITIES.rawQueries !== "rejected" || prismaAdapter.name !== "prisma" || PRISMA_ADAPTER_CAPABILITIES.rawQueries !== "rejected" || typeof createKnexTenancy !== "function" || KNEX_ADAPTER_CAPABILITIES.rawQueries !== "rejected" || typeof createLucidTenancy !== "function" || LUCID_ADAPTER_CAPABILITIES.rawQueries !== "rejected" || typeof createMongooseTenancy !== "function" || MONGOOSE_ADAPTER_CAPABILITIES.rawQueries !== "rejected" || typeof createSequelizeTenancy !== "function" || SEQUELIZE_ADAPTER_CAPABILITIES.rawQueries !== "rejected" || typeof createTypeOrmTenancy !== "function" || TYPEORM_ADAPTER_CAPABILITIES.rawQueries !== "rejected" || typeof createExpressTenancyMiddleware !== "function" || typeof defineAdonisTenancyConfig !== "function" || typeof TenancyMiddleware !== "function" || typeof TenancyProvider !== "function" || typeof TenancyModule !== "function" || typeof TenantRoute !== "function" || typeof createNextTenancy !== "function" || createNextTenantHint(new Headers({ "x-tenant-id": "consumer" })) === null || redactText("postgresql://user:pass@localhost/db").includes("pass")) process.exit(1);',
       ].join("\n"),
     ],
     consumer,

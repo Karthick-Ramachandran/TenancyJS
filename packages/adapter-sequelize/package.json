@@ -1,7 +1,7 @@
 {
   "name": "tenancyjs-adapter-sequelize",
   "version": "0.1.0-beta.0",
-  "description": "Fail-closed Sequelize 6 tenant isolation for PostgreSQL.",
+  "description": "Fail-closed Sequelize 6 tenant isolation for PostgreSQL and MySQL.",
   "type": "module",
   "license": "MIT",
   "sideEffects": false,
@@ -34,6 +34,7 @@
     "sequelize": ">=6.37.0 <7"
   },
   "devDependencies": {
+    "mysql2": "3.22.5",
     "sequelize": "6.37.8"
   },
   "scripts": {
@@ -55,6 +56,7 @@
     "saas",
     "tenant-isolation",
     "postgres",
+    "mysql",
     "typescript",
     "sequelize",
     "rls"

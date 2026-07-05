@@ -162,6 +162,10 @@ describePostgres("Knex PostgreSQL schema-per-tenant isolation", () => {
       expect(() => Reflect.get(db, "raw")).toThrow(
         KnexUnsupportedOperationError,
       );
+      // ADR-0033: unrestricted() is fail-closed outside a database-enforced
+      // scope. schema-per-tenant without a per-tenant role is facade-enforced,
+      // so full query access must be refused.
+      expect(() => db.unrestricted()).toThrow(KnexTenancyConfigurationError);
       await expect(db.table("tenants").select("id")).rejects.toBeInstanceOf(
         KnexUnsupportedOperationError,
       );

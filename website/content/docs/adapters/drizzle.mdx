@@ -1,0 +1,70 @@
+---
+title: Drizzle
+description: Protected Drizzle isolation for PostgreSQL and MySQL.
+---
+
+`tenancyjs-adapter-drizzle` supports all three PostgreSQL strategies and MySQL row-level plus
+database-per-tenant. It exposes only callback-scoped plain-value CRUD/count methods; native Drizzle
+databases, transactions, SQL expressions, joins, relations, and migrations stay outside the boundary.
+
+## Install
+
+```bash
+npm install tenancyjs-core tenancyjs-adapter-drizzle drizzle-orm
+```
+
+Add `pg` for PostgreSQL or `mysql2` for MySQL.
+
+## PostgreSQL row-level
+
+```ts
+import { drizzle } from "drizzle-orm/node-postgres";
+import {
+  createDrizzleTenancy,
+  createPostgresDrizzleBinding,
+} from "tenancyjs-adapter-drizzle";
+
+const tenancy = createDrizzleTenancy({
+  manager,
+  database: createPostgresDrizzleBinding(drizzle({ client: pool })),
+  tenantTables: [{ table: orders, policyName: "orders_tenant_isolation" }],
+});
+
+await tenancy.validate();
+
+const orders = await tenancy.run((client) =>
+  client.table(orders).findMany({ status: "open" }),
+);
+```
+
+PostgreSQL row mode validates a non-privileged runtime role, enabled and forced RLS, and the reviewed
+policy contract before execution unlocks.
+
+## Schema and database placement
+
+Schema mode uses an unqualified `pgTable` and a transaction-local search path:
+
+```ts
+createDrizzleTenancy({
+  manager,
+  database: createPostgresDrizzleBinding(db),
+  strategy: "schemaPerTenant",
+  schema: (tenant) => tenant.schemaName,
+  tenantTables: [{ table: orders }],
+});
+```
+
+Database mode resolves an opaque key and a cache-owned binding. Supply a `close` callback when the
+binding owns a tenant pool.
+
+## MySQL
+
+Use `createMySqlDrizzleBinding`. Row-level is **adapter-enforced and experimental**: MySQL has no RLS,
+so using the native Drizzle database bypasses TenancyJS. MySQL schemas are databases, therefore
+database-per-tenant is the applicable placement strategy and schema-per-tenant is rejected.
+
+## Protected operations
+
+The initial surface supports `findMany`, `findOne`, `count`, `create`, `createMany`, `update`, and
+`delete` with plain scalar equality. Tenant filters are composed, writes inject/validate ownership,
+and updates cannot move a row to another tenant.

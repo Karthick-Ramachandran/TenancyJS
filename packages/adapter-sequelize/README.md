@@ -1,7 +1,7 @@
 # `tenancyjs-adapter-sequelize`
 
-Fail-closed stable Sequelize 6 row-level, schema-per-tenant, and database-per-tenant isolation for
-PostgreSQL 17 and Node 24.
+Fail-closed stable Sequelize 6 isolation for PostgreSQL 17 and MySQL 8 on Node 24. PostgreSQL supports
+all three strategies; MySQL supports adapter-enforced row-level and database-per-tenant.
 
 The adapter exposes callback-scoped protected plain-value model facades, not native Sequelize models,
 instances, transactions, QueryInterface, or raw queries. Every supported operation receives the
@@ -13,6 +13,10 @@ or unavailable. Every tenant table requires reviewed forced RLS and startup vali
 mode. Schema mode requires unqualified model table names and uses the shared transaction-local
 `search_path` engine. Database mode leases host-created Sequelize instances from the bounded cache and
 resolves only the registered model name on that tenant-bound instance.
+
+MySQL users pass `dialect: "mysql"`. Row mode is **adapter-enforced and experimental** because MySQL
+has no RLS; the native Sequelize instance bypasses it and must remain private. MySQL has no separate
+schema-per-tenant mode—use `databasePerTenant`.
 
 ## Row-level usage
 

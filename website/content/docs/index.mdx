@@ -43,6 +43,10 @@ the safe path the default: **no valid tenant context, no data.**
   <Card title="Security model" href="/docs/concepts/security">
     What TenancyJS guarantees, what it doesn't, and where the boundaries are.
   </Card>
+  <Card title="Limitations" href="/docs/concepts/limitations">
+    What the scoped facade rejects — no raw queries, no nested reads/writes —
+    and why.
+  </Card>
 </Cards>
 
 ## Choose an isolation strategy
@@ -70,7 +74,7 @@ Three strategies, one contract. Pick per app; the same tenant scope drives all t
 <Cards>
   <Card title="Adapters" href="/docs/adapters">
     Enforce isolation inside your ORM - Prisma, Knex, Lucid, TypeORM,
-    Sequelize, Mongoose.
+    Sequelize, Drizzle, Mongoose.
   </Card>
   <Card title="Integrations" href="/docs/integrations">
     Scope every request automatically - Express, Next.js, NestJS, AdonisJS.

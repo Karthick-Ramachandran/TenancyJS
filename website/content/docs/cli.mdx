@@ -23,6 +23,7 @@ Every operational command:
 
 ```bash
 npx tenancy init          # scaffold config + wiring for your framework and ORM
+npx tenancy init --framework express --orm drizzle # explicit non-interactive stack
 npx tenancy tenant check  # verify the runtime loads and the store works
 ```
 
@@ -39,6 +40,9 @@ OK   store.list: read 12 tenant(s)
 ```
 
 It exits `0` when healthy and `2` when a probe fails.
+
+Init recognizes Express with Prisma, TypeORM, Sequelize, or Drizzle; AdonisJS with Lucid; and Next.js
+with Prisma. It previews by default and never overwrites an existing file.
 
 ## Manage tenants
 
@@ -100,5 +104,6 @@ npx tenancy tenant deprovision acme   # drop it - explicit id only
 | `tenancy tenant migrate (<id> \| --all)` | Migrate one or all tenants |
 | `tenancy run <script> (--tenant <id> \| --central)` | Run a script in a scope |
 | `tenancy doctor` | Inspect a project's static setup |
+| `tenancy test:leak --test-file <path>` | Run a cross-tenant isolation leak test |
 
 Add `--json` to any of them for machine-readable, still-redacted output.

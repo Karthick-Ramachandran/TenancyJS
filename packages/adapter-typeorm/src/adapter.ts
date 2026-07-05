@@ -7,6 +7,7 @@ import type {
 } from "tenancyjs-core";
 import { TenantContextError } from "tenancyjs-core";
 import {
+  adapterEnforcedRowValidationResult,
   applyPostgresRowContext,
   createPostgresStrategyEngine,
   createTenantResourceCache,
@@ -30,6 +31,7 @@ import type {
 import { TYPEORM_ADAPTER_CAPABILITIES } from "./capabilities.js";
 import {
   defineTypeOrmTenancyConfig,
+  matchesTypeOrmDialect,
   type NormalizedTypeOrmTenantEntityConfig,
   type TypeOrmEntityPolicy,
   type TypeOrmTenancyConfig,
@@ -82,6 +84,14 @@ export function createTypeOrmTenancy<
       validated = true;
       return deferredDatabaseValidationResult("TENANCY_TYPEORM", "TypeORM");
     }
+    if (config.strategy === "rowLevel" && config.dialect === "mysql") {
+      validated = true;
+      return adapterEnforcedRowValidationResult(
+        "TENANCY_TYPEORM",
+        "TypeORM",
+        "MySQL",
+      );
+    }
     try {
       const result =
         config.strategy === "rowLevel"
@@ -128,9 +138,13 @@ export function createTypeOrmTenancy<
     }
     const context = config.manager.getContext();
     if (context === undefined) throw new TenantContextError("missing");
-    const runScope = (dataSource: DataSource) =>
-      dataSource.transaction(async (manager) => {
-        if (config.strategy === "rowLevel") {
+    const runScope = (dataSource: DataSource) => {
+      if (!matchesTypeOrmDialect(dataSource.options.type, config.dialect))
+        throw new TypeOrmTenancyConfigurationError(
+          "TypeORM tenant DataSource dialect does not match the base configuration.",
+        );
+      return dataSource.transaction(async (manager) => {
+        if (config.strategy === "rowLevel" && config.dialect === "postgresql") {
           await applyPostgresRowContext(typeOrmExecutor(manager), context);
         } else if (config.strategy === "schemaPerTenant") {
           await schemaEngine!.applyContext(typeOrmExecutor(manager), context);
@@ -139,6 +153,7 @@ export function createTypeOrmTenancy<
           createProtectedClient(config, manager, context, config.strategy),
         );
       });
+    };
     if (config.strategy === "databasePerTenant" && context.mode === "tenant") {
       const placement = config.connection!(context.tenant);
       return connectionCache!.lease(

@@ -41,6 +41,94 @@ export function createTenancyMiddleware<TTenant extends TenantRecord>(
   }),
 ]);
 
+const EXPRESS_MIDDLEWARE_TEMPLATE = Object.freeze({
+  path: "src/middleware/tenancy.ts",
+  content: `import type { TenancyManager, TenantRecord } from "tenancyjs-core";
+import type { TenantResolutionChain } from "tenancyjs-identifiers";
+import { createExpressTenancyMiddleware } from "tenancyjs-integration-express";
+
+export function createTenancyMiddleware<TTenant extends TenantRecord>(
+  manager: TenancyManager<TTenant>,
+  resolver: TenantResolutionChain<TTenant>,
+) {
+  return createExpressTenancyMiddleware({ manager, resolver });
+}
+`,
+});
+
+function expressOrmTemplates(
+  orm: "typeorm" | "sequelize" | "drizzle",
+  register: string,
+) {
+  return Object.freeze([
+    Object.freeze({
+      path: "tenancy.config.ts",
+      content: `import { defineConfig } from "tenancyjs-core";
+
+export default defineConfig({
+  strategy: "rowLevel",
+  framework: "express",
+  orm: "${orm}",
+});
+`,
+    }),
+    Object.freeze({ path: "src/tenancy/register.ts", content: register }),
+    EXPRESS_MIDDLEWARE_TEMPLATE,
+  ]);
+}
+
+export const EXPRESS_TYPEORM_TEMPLATES = expressOrmTemplates(
+  "typeorm",
+  `import { createTypeOrmTenancy, type TypeOrmTenantEntityConfig } from "tenancyjs-adapter-typeorm";
+import type { TenancyManager, TenantRecord } from "tenancyjs-core";
+import type { DataSource } from "typeorm";
+
+export function createTenancy<TTenant extends TenantRecord>(
+  manager: TenancyManager<TTenant>,
+  dataSource: DataSource,
+  tenantEntities: readonly TypeOrmTenantEntityConfig[],
+) {
+  return createTypeOrmTenancy({ manager, dataSource, tenantEntities });
+}
+`,
+);
+
+export const EXPRESS_SEQUELIZE_TEMPLATES = expressOrmTemplates(
+  "sequelize",
+  `import { createSequelizeTenancy, type SequelizeTenantModelConfig } from "tenancyjs-adapter-sequelize";
+import type { TenancyManager, TenantRecord } from "tenancyjs-core";
+import type { Sequelize } from "sequelize";
+
+export function createTenancy<TTenant extends TenantRecord>(
+  manager: TenancyManager<TTenant>,
+  sequelize: Sequelize,
+  tenantModels: readonly SequelizeTenantModelConfig[],
+) {
+  return createSequelizeTenancy({ manager, sequelize, tenantModels });
+}
+`,
+);
+
+export const EXPRESS_DRIZZLE_TEMPLATES = expressOrmTemplates(
+  "drizzle",
+  `import {
+  createDrizzleTenancy,
+  type DrizzleDatabaseBinding,
+  type DrizzleTenantTableConfig,
+} from "tenancyjs-adapter-drizzle";
+import type { TenancyManager, TenantRecord } from "tenancyjs-core";
+
+export function createTenancy<TTenant extends TenantRecord>(
+  manager: TenancyManager<TTenant>,
+  database: DrizzleDatabaseBinding,
+  tenantTables: readonly DrizzleTenantTableConfig[],
+) {
+  // Build database with createPostgresDrizzleBinding or createMySqlDrizzleBinding.
+  return createDrizzleTenancy({ manager, database, tenantTables });
+}
+`,
+);
+
 export const ADONIS_LUCID_TEMPLATES = Object.freeze([
   Object.freeze({
     path: "config/tenancy.ts",

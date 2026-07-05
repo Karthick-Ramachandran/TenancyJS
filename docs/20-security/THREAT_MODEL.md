@@ -85,6 +85,10 @@ requirements.
 - Mongoose row-level filtering and shared-credential database routing are adapter-enforced; native
   MongoDB handles bypass the facade. Database-restricted credentials are required for server-side
   sibling-database denial.
+- MySQL row-level TypeORM, Sequelize, Drizzle, and Prisma paths are adapter-enforced; MySQL has no RLS
+  backstop, so native ORM/database handles bypass the guarantee. Cache-owned Drizzle tenant bindings
+  must provide deterministic pool cleanup, and per-tenant credentials are required for server-side
+  sibling-database denial.
 - Future framework/ORM major versions remain unsupported until their own compatibility evidence;
   Node 24 is the common baseline and the documented peer ranges are the only current commitments.
 - Shallow tenant snapshots do not freeze custom nested metadata: host applications must treat nested

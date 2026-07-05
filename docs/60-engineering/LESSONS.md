@@ -7,6 +7,10 @@ model preferences.
 
 ## Lessons
 
+- Drizzle's SQL template expands a JavaScript array interpolation as a SQL tuple, not one PostgreSQL
+  array parameter. Shared executor bindings such as `text[]` must use `sql.param(value)` explicitly or
+  RLS/schema introspection fails before validation can report the real policy state.
+
 - Lucid bulk/quiet/`.pojo()` paths skip model hooks and therefore do not inherit schema-mode
   `search_path`; keep tenant table names absent from the central schema so those paths fail closed.
 - Standalone Lucid 22 database fixtures need an emitter with both `emit` and `hasListeners`; an
@@ -105,3 +109,11 @@ model preferences.
   (for example TypeORM with `pg@8.16` and `pg@8.22`), making nominal class types incompatible in a
   cross-package consumer even though runtime behavior works. Align the package test peer graph and keep
   a cross-package typecheck/E2E to catch it.
+- ADR-0033 tier-aware query freedom: the enforcement tier must be derived from the *actual connection
+  that was leased*, never from the strategy string. The Knex `unrestricted()` accessor first gated on
+  `strategy === "databasePerTenant"` — but a database-per-tenant config in **central mode** falls through
+  to the shared admin connection (`config.knex`) and never leases a per-tenant database, so the raw handle
+  would have run on the shared connection. Fix: thread an explicit `databaseEnforced` boolean that `run()`
+  sets `true` ONLY on the leased-connection path (`databasePerTenant && mode === "tenant"`); the gate keys
+  off that, not the strategy. Every capability/freedom flip is per-scope, not per-config. An adversarial
+  review caught this before ship; the central-mode gate test now locks it.

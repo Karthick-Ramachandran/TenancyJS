@@ -5,7 +5,8 @@ import {
   FRAMEWORK_CHOICES,
   capabilityBanner,
   checkNodeVersion,
-  ormForFramework,
+  isSupportedStack,
+  ormChoicesForFramework,
 } from "./capabilities.js";
 import { runTenantCheck } from "./commands/check.js";
 import {
@@ -42,6 +43,7 @@ import { redactText } from "./redaction.js";
 import { withRuntime } from "./runtime-command.js";
 import type {
   InitFramework,
+  InitOrm,
   ProjectChangePlan,
   ProjectDetection,
 } from "./types.js";
@@ -142,10 +144,11 @@ async function runInit(
 
   const detection = await detectProject(root);
   const framework = await resolveFramework(detection, parsed, io);
+  const orm = await resolveOrm(detection, framework, parsed, io);
   const plan = await createInitPlan({
     root: detection.root,
     framework,
-    orm: ormForFramework(framework),
+    orm,
   });
 
   if (parsed.apply) await applyChangePlan(plan);
@@ -155,6 +158,54 @@ async function runInit(
       : formatPlan(plan, parsed.apply),
   );
   return plan.actions.some(({ status }) => status === "conflict") ? 2 : 0;
+}
+
+async function resolveOrm(
+  detection: ProjectDetection,
+  framework: InitFramework,
+  parsed: ParsedArguments,
+  io: CliIo,
+): Promise<InitOrm> {
+  if (parsed.orm !== undefined) {
+    if (!isSupportedStack(framework, parsed.orm))
+      throw new CliUsageError(
+        `Unsupported init stack: ${framework} + ${parsed.orm}.`,
+      );
+    return parsed.orm;
+  }
+  if (
+    detection.orm.supported &&
+    detection.orm.name !== "unknown" &&
+    isSupportedStack(framework, detection.orm.name)
+  )
+    return detection.orm.name;
+
+  const choices = ormChoicesForFramework(framework);
+  if (choices.length === 1) return choices[0]!.value;
+  const interactive =
+    io.isInteractive === true &&
+    typeof io.select === "function" &&
+    !parsed.json &&
+    !parsed.yes;
+  if (interactive) {
+    const value = await io.select!("Which ORM are you setting up?", choices);
+    if (!isInitOrm(value) || !isSupportedStack(framework, value))
+      throw new CliUsageError(`Unknown ORM "${value}" for ${framework}.`);
+    return value;
+  }
+  throw new CliUsageError(
+    `Could not detect a supported ORM for ${framework}. Pass --orm=${choices.map((choice) => choice.value).join("|")}.`,
+  );
+}
+
+function isInitOrm(value: string): value is InitOrm {
+  return (
+    value === "prisma" ||
+    value === "lucid" ||
+    value === "typeorm" ||
+    value === "sequelize" ||
+    value === "drizzle"
+  );
 }
 
 async function runTenant(
@@ -379,6 +430,7 @@ interface ParsedArguments {
   readonly config?: string;
   readonly set?: readonly string[];
   readonly framework?: InitFramework;
+  readonly orm?: InitOrm;
   readonly apply: boolean;
   readonly all: boolean;
   readonly json: boolean;
@@ -389,6 +441,7 @@ const VALUE_FLAGS = new Set([
   "--root",
   "--test-file",
   "--framework",
+  "--orm",
   "--config",
   "--tenant",
 ]);
@@ -427,6 +480,7 @@ function parseArguments(arguments_: readonly string[]): ParsedArguments {
   let config: string | undefined;
   let tenant: string | undefined;
   let framework: InitFramework | undefined;
+  let orm: InitOrm | undefined;
   let apply = false;
   let central = false;
   let all = false;
@@ -455,13 +509,19 @@ function parseArguments(arguments_: readonly string[]): ParsedArguments {
       else if (argument === "--test-file") testFile = value;
       else if (argument === "--config") config = value;
       else if (argument === "--tenant") tenant = value;
-      else {
+      else if (argument === "--framework") {
         if (value !== "express" && value !== "adonis" && value !== "next") {
           throw new CliUsageError(
             `Unknown framework "${value}". Choose express, adonis, or next.`,
           );
         }
         framework = value;
+      } else {
+        if (!isInitOrm(value))
+          throw new CliUsageError(
+            `Unknown ORM "${value}". Choose prisma, lucid, typeorm, sequelize, or drizzle.`,
+          );
+        orm = value;
       }
       index += 1;
     } else if (argument.startsWith("--")) {
@@ -480,8 +540,13 @@ function parseArguments(arguments_: readonly string[]): ParsedArguments {
     throw new CliUsageError(`Unexpected argument: ${positionals[2]}`);
   if (commandValue !== "init" && apply)
     throw new CliUsageError("--apply is valid only for init.");
-  if (commandValue !== "init" && (framework !== undefined || yes))
-    throw new CliUsageError("--framework and --yes are valid only for init.");
+  if (
+    commandValue !== "init" &&
+    (framework !== undefined || orm !== undefined || yes)
+  )
+    throw new CliUsageError(
+      "--framework, --orm, and --yes are valid only for init.",
+    );
   if (!OPERATIONAL_COMMANDS.has(commandValue) && config !== undefined)
     throw new CliUsageError(
       "--config is valid only for tenant and run commands.",
@@ -511,6 +576,7 @@ function parseArguments(arguments_: readonly string[]): ParsedArguments {
     ...(config === undefined ? {} : { config }),
     ...(set.length === 0 ? {} : { set }),
     ...(framework === undefined ? {} : { framework }),
+    ...(orm === undefined ? {} : { orm }),
     central,
     apply,
     all,
@@ -535,7 +601,7 @@ function helpText(): string {
   return `TenancyJS CLI
 
 Usage:
-  tenancy init [--framework <express|adonis|next>] [--root <path>] [--apply] [--yes] [--json]
+  tenancy init [--framework <express|adonis|next>] [--orm <prisma|lucid|typeorm|sequelize|drizzle>] [--root <path>] [--apply] [--yes] [--json]
   tenancy doctor [--root <path>] [--test-file <path>] [--json]
   tenancy test:leak --test-file <path> [--root <path>] [--json]
   tenancy tenant check [--config <path>] [--root <path>] [--json]
@@ -550,9 +616,9 @@ Usage:
   tenancy run <script> (--tenant <id> | --central) [--config <path>] [--json]
 
 init previews changes (dry run) unless --apply is present. It detects your stack and, when it cannot,
-asks you to choose one interactively; pass --framework to skip the prompt in CI. Supported stacks:
-Express 5.2 + Prisma 7.8, AdonisJS 7.3 + Lucid 22.4, or Next.js 16 + Prisma 7.8. Isolation is
-single-database row-level (forced RLS); Node.js >= 24 is required.
+asks you to choose one interactively; pass --framework and --orm to skip prompts in CI. Express 5.2
+supports Prisma 7.8, TypeORM 1, Sequelize 6.37, and Drizzle 0.45 scaffolds; AdonisJS 7.3 uses Lucid
+22.4 and Next.js 16 uses Prisma 7.8. Init scaffolds row-level and Node.js >= 24 is required.
 
 tenant and run commands load your tenancy.config.ts at runtime (Node 24 strips types natively) to reach
 the TenantStore, manager, and provisioner you passed to defineTenancyRuntime. Pass --config to point at
