@@ -117,7 +117,7 @@ describe("Prisma tenancy configuration", () => {
     expect(PRISMA_ADAPTER_CAPABILITIES).toEqual({
       rowLevel: "supported",
       schemaPerTenant: "unsupported",
-      databasePerTenant: "unsupported",
+      databasePerTenant: "supported",
       centralModels: "supported",
       transactions: "supported",
       nestedReads: "rejected",
