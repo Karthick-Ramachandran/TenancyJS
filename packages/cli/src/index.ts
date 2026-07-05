@@ -29,6 +29,15 @@ export {
 export type { CliErrorCode } from "./errors.js";
 export { runLeakTest } from "./leak-test.js";
 export type { LeakTestOptions } from "./leak-test.js";
+export { loadTenancyRuntime } from "./runtime-loader.js";
+export type {
+  LoadRuntimeOptions,
+  LoadedAdapter,
+  LoadedProvisioner,
+  LoadedTenancyManager,
+  LoadedTenancyRuntime,
+  LoadedTenantStore,
+} from "./runtime-loader.js";
 export { createInitPlan } from "./plan.js";
 export type { ResolvedInitStack } from "./plan.js";
 export { redactText } from "./redaction.js";

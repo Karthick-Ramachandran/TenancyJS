@@ -10,12 +10,27 @@ export type {
 export {
   DuplicateBootstrapperError,
   InvalidBootstrapperError,
+  InvalidTenancyRuntimeError,
   InvalidTenantError,
   TenancyError,
   TenancyLifecycleError,
   TenantContextError,
+  TenantStoreContractError,
 } from "./errors.js";
 export { TenancyManager } from "./tenancy-manager.js";
+export {
+  defineTenancyRuntime,
+  assertTenancyRuntime,
+  type TenancyProvisioner,
+  type TenancyRuntime,
+  type TenancyRuntimeInput,
+} from "./runtime.js";
+export {
+  hardenTenantStore,
+  requireStoreMethod,
+  type TenantStore,
+  type TenantStoreCreateInput,
+} from "./tenant-store.js";
 export type {
   CentralContext,
   MaybePromise,
