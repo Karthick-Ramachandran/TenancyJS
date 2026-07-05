@@ -22,6 +22,7 @@ export type {
   ProtectedSequelizeModel,
   SequelizeCentralModelConfig,
   SequelizeCriteria,
+  SequelizeDatabasePlacement,
   SequelizeScalar,
   SequelizeTenantModelConfig,
   SequelizeValues,

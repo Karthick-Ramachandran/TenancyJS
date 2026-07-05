@@ -8,14 +8,20 @@ import type {
 import { TenantContextError } from "tenancyjs-core";
 import {
   applyPostgresRowContext,
+  createPostgresStrategyEngine,
+  createTenantResourceCache,
+  deferredDatabaseValidationResult,
   decideTenantDiscriminator,
   validatePostgresRlsPolicies,
   type PostgresExecutor,
+  type PostgresSchemaStrategyEngine,
+  type TenantResourceCache,
 } from "tenancyjs-adapter-shared";
 import {
   QueryTypes,
   type Model,
   type ModelStatic,
+  type Sequelize,
   type Transaction,
 } from "sequelize";
 
@@ -45,7 +51,7 @@ export interface SequelizeTenancyAdapter<
   TTenant extends TenantRecord = TenantRecord,
 > extends TenancyAdapter {
   readonly name: "sequelize";
-  readonly strategy: "rowLevel";
+  readonly strategy: "rowLevel" | "schemaPerTenant" | "databasePerTenant";
   readonly config: SequelizeTenancyConfig<TTenant>;
   run<TResult>(
     callback: (client: ProtectedSequelizeClient) => MaybePromise<TResult>,
@@ -57,21 +63,36 @@ export function createSequelizeTenancy<
   TTenant extends TenantRecord = TenantRecord,
 >(options: SequelizeTenancyOptions<TTenant>): SequelizeTenancyAdapter<TTenant> {
   const config = defineSequelizeTenancyConfig(options);
+  const schemaEngine = createSchemaEngine(config);
+  const connectionCache: TenantResourceCache<Sequelize> | undefined =
+    config.strategy === "databasePerTenant"
+      ? createTenantResourceCache<Sequelize>({
+          capacity: config.maxConnections,
+          destroy: (sequelize) => sequelize.close(),
+        })
+      : undefined;
   let validated = false;
 
   async function validate(): Promise<TenancyAdapterValidationResult> {
+    if (config.strategy === "databasePerTenant") {
+      validated = true;
+      return deferredDatabaseValidationResult("TENANCY_SEQUELIZE", "Sequelize");
+    }
     try {
-      const result = await validatePostgresRlsPolicies({
-        codePrefix: "TENANCY_SEQUELIZE",
-        adapterName: "Sequelize",
-        execute: sequelizeExecutor(config),
-        tables: config.tenantModels.map((entry) => ({
-          schema: entry.schema,
-          table: entry.table,
-          qualifiedName: entry.qualifiedName,
-          policyName: entry.policyName,
-        })),
-      });
+      const result =
+        config.strategy === "rowLevel"
+          ? await validatePostgresRlsPolicies({
+              codePrefix: "TENANCY_SEQUELIZE",
+              adapterName: "Sequelize",
+              execute: sequelizeExecutor(config.sequelize),
+              tables: config.tenantModels.map((entry) => ({
+                schema: entry.schema!,
+                table: entry.table,
+                qualifiedName: entry.qualifiedName,
+                policyName: entry.policyName,
+              })),
+            })
+          : await schemaEngine!.validate(sequelizeExecutor(config.sequelize));
       validated = result.valid;
       return result;
     } catch {
@@ -101,36 +122,84 @@ export function createSequelizeTenancy<
     }
     const context = config.manager.getContext();
     if (context === undefined) throw new TenantContextError("missing");
-    return config.sequelize.transaction(async (transaction) => {
-      await applyPostgresRowContext(
-        sequelizeExecutor(config, transaction),
-        context,
+    const runScope = (sequelize: Sequelize) =>
+      sequelize.transaction(async (transaction) => {
+        if (config.strategy === "rowLevel") {
+          await applyPostgresRowContext(
+            sequelizeExecutor(sequelize, transaction),
+            context,
+          );
+        } else if (config.strategy === "schemaPerTenant") {
+          await schemaEngine!.applyContext(
+            sequelizeExecutor(sequelize, transaction),
+            context,
+          );
+        }
+        return callback(
+          createProtectedClient(
+            config,
+            sequelize,
+            transaction,
+            context,
+            config.strategy,
+          ),
+        );
+      });
+    if (config.strategy === "databasePerTenant" && context.mode === "tenant") {
+      const placement = config.connection!(context.tenant);
+      return connectionCache!.lease(
+        context.tenant.id,
+        placement.key,
+        placement.create,
+        runScope,
       );
-      return callback(createProtectedClient(config, transaction, context));
-    });
+    }
+    return runScope(config.sequelize);
   }
 
   return Object.freeze({
     name: "sequelize" as const,
-    strategy: "rowLevel" as const,
+    strategy: config.strategy,
     capabilities: SEQUELIZE_ADAPTER_CAPABILITIES,
     config,
     validate,
     run,
-    async close() {},
+    async close() {
+      await connectionCache?.close();
+    },
   });
 }
 
 function createProtectedClient<TTenant extends TenantRecord>(
   config: SequelizeTenancyConfig<TTenant>,
+  sequelize: Sequelize,
   transaction: Transaction,
   context: TenantContext<TTenant>,
+  strategy: "rowLevel" | "schemaPerTenant" | "databasePerTenant",
 ): ProtectedSequelizeClient {
   return Object.freeze({
     model(model: ModelStatic<Model>) {
       const policy = config.classify(model);
       if (policy === undefined) throw new SequelizeModelUnregisteredError();
-      return createProtectedModel(model, policy, transaction, context);
+      if (
+        strategy !== "rowLevel" &&
+        ((context.mode === "tenant" && policy.kind === "central") ||
+          (context.mode === "central" && policy.kind === "tenant"))
+      ) {
+        throw new SequelizeUnsafeCriteriaError();
+      }
+      const boundModel =
+        strategy === "databasePerTenant"
+          ? (sequelize.models[model.name] as ModelStatic<Model> | undefined)
+          : model;
+      if (boundModel === undefined) throw new SequelizeModelUnregisteredError();
+      return createProtectedModel(
+        boundModel,
+        policy,
+        transaction,
+        context,
+        strategy,
+      );
     },
   });
 }
@@ -140,8 +209,12 @@ function createProtectedModel(
   policy: SequelizeModelPolicy,
   transaction: Transaction,
   context: TenantContext,
+  strategy: "rowLevel" | "schemaPerTenant" | "databasePerTenant",
 ): ProtectedSequelizeModel {
-  const tenant = policy.kind === "tenant" ? policy.config : undefined;
+  const tenant =
+    strategy === "rowLevel" && policy.kind === "tenant"
+      ? policy.config
+      : undefined;
   return Object.freeze({
     async findAll(where: SequelizeCriteria = {}) {
       const rows = await model.findAll({
@@ -275,17 +348,32 @@ function assertPlainRecord(
 }
 
 function sequelizeExecutor(
-  config: Pick<SequelizeTenancyConfig, "sequelize">,
+  sequelize: Sequelize,
   transaction?: Transaction,
 ): PostgresExecutor {
   return async (sql, bindings) => {
     let index = 0;
     const query = sql.replaceAll("?", () => `$${++index}`);
-    const rows = await config.sequelize.query(query, {
+    const rows = await sequelize.query(query, {
       bind: bindings === undefined ? [] : [...bindings],
       type: QueryTypes.SELECT,
       ...(transaction === undefined ? {} : { transaction }),
     });
     return { rows };
   };
+}
+
+function createSchemaEngine<TTenant extends TenantRecord>(
+  config: SequelizeTenancyConfig<TTenant>,
+): PostgresSchemaStrategyEngine<TTenant> | undefined {
+  if (config.strategy !== "schemaPerTenant") return undefined;
+  return createPostgresStrategyEngine({
+    codePrefix: "TENANCY_SEQUELIZE",
+    adapterName: "Sequelize",
+    resolveSchema: config.schema!,
+    centralSchema: config.centralSchema,
+    ...(config.role === undefined ? {} : { resolveRole: config.role }),
+    tenantTables: config.tenantModels.map((entry) => entry.table),
+    centralTables: [],
+  });
 }

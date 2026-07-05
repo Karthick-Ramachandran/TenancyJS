@@ -11,8 +11,8 @@ lifecycle/error contract, tenant-resolution/testing contracts, and Prisma row-le
 are accepted in ADR-0001 through ADR-0007. The Express request lifecycle/error contract is accepted in
 ADR-0008 and implemented by `tenancyjs-integration-express`.
 
-The safe Express + Prisma CLI foundation implements ADR-0003 through `tenancyjs-cli`; operational ORM
-delegation remains deferred.
+The safe CLI foundation implements ADR-0003 through `tenancyjs-cli`; F-012/ADR-0029 adds operational
+registry, script, provisioning, and migration delegation through the host runtime contract.
 
 The Next.js Node/Edge integration boundary is accepted in ADR-0009 and implemented by
 `tenancyjs-integration-next` with a separate Edge-safe hint export.
@@ -33,9 +33,11 @@ evidence and advertise the strategy. The optional per-tenant PostgreSQL role fro
 implemented for database-enforced schema isolation. Core remains database-neutral.
 
 F-010/ADR-0023–0025 add a NestJS 11 guard/interceptor lifecycle and protected TypeORM 1/Sequelize 6
-PostgreSQL row-level facades. F-011/ADR-0026 adds an explicitly adapter-enforced Mongoose 9 row-level
-facade with replica-set transaction validation. These new adapters return plain values and never expose
-native managers, models, queries, documents, or raw clients. Their broader strategy tasks remain open.
+PostgreSQL facades for all three strategies. F-011/ADR-0026 adds an explicitly adapter-enforced
+Mongoose 9 row-level facade plus bounded database routing with replica-set transaction validation.
+ADR-0030 adds Prisma/PostgreSQL schema routing through schema-bound driver clients rather than the
+disproven `search_path` approach. These adapters return plain values and never expose native managers,
+models, queries, documents, or raw clients.
 
 ## Architecture
 

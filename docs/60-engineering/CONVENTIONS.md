@@ -16,16 +16,20 @@ preferences.
 - `TenancyAdapter`: implemented ORM-neutral capability and validation contract owned by core.
 - `createPrismaTenancyExtension`: canonical Prisma row-level extension factory; never expose a base
   Prisma client as the protected application client.
+- `createPrismaSchemaTenancy` and `createPrismaDatabaseTenancy`: canonical callback-scoped Prisma
+  placement routers; both reuse the shared bounded cache and never expose a client beyond its lease.
 - `createKnexTenancy`: canonical Knex protected-callback factory; execution stays locked until forced
   PostgreSQL RLS validation passes, and the base Knex client is never application-facing.
 - `createLucidTenancy`: canonical Lucid 22 managed-transaction factory; registered models use native
   hooks for normal operations while forced PostgreSQL RLS denies hook-skipping paths.
-- `createTypeOrmTenancy` and `createSequelizeTenancy`: canonical protected plain-value repository/model
-  facades for PostgreSQL; native ORM clients, query builders, instances, and raw APIs stay private.
-- `createMongooseTenancy`: canonical adapter-enforced protected lean-model facade; it requires a
-  replica set for managed transactions and never returns Mongoose documents or queries.
+- `createTypeOrmTenancy` and `createSequelizeTenancy`: canonical strategy-discriminated protected
+  plain-value repository/model facades for PostgreSQL; native ORM clients, query builders, instances,
+  and raw APIs stay private.
+- `createMongooseTenancy`: canonical adapter-enforced protected lean-model facade and database router;
+  it requires replica-set resources for managed transactions and never returns Mongoose documents or
+  queries.
 - `createPostgresStrategyEngine`: canonical shared PostgreSQL schema-placement engine in
-  `tenancyjs-adapter-shared`; Knex/Lucid bind their raw executor shapes to it and never duplicate its
+  `tenancyjs-adapter-shared`; Knex/Lucid/TypeORM/Sequelize bind their executor shapes to it and never duplicate its
   RLS/context/`search_path` SQL. It owns the lifetime tenant-to-schema collision guard; adapters do not
   implement their own placement maps.
 - `createTenantResourceCache`: canonical bounded database-per-tenant resource lifecycle; adapters use

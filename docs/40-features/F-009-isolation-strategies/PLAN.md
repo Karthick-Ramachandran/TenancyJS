@@ -26,15 +26,17 @@ Deliver in increments; each independently tested and gate-green.
    transaction-local `search_path`, unqualified addressing, schema-per-tenant validation +
    real-Postgres two-tenant adversarial test. Flip Knex capability only then. Provisioning remains T5.
 3. **Done — thin Lucid binding** reusing the same Postgres dialect + adversarial test.
-4. **Database-per-tenant — in progress**: bounded shared resource cache complete under ADR-0021;
-   per-tenant connection/client routing across adapters + provisioning + adversarial tests follow.
-5. **Database-enforced schema-per-tenant** (opt-in per-tenant role, ADR-0018) and **Prisma per-schema
-   client cache** (deferred).
+4. **Done — database-per-tenant**: bounded shared resource cache under ADR-0021 plus per-tenant
+   connection/client routing and adversarial tests across the supported adapters.
+5. **Done — database-enforced schema-per-tenant** (opt-in per-tenant role, ADR-0018) and **Prisma
+   per-schema client cache** using the Prisma 7 driver schema option (ADR-0030).
+6. **Done — provisioning orchestration** through host-owned provisioner hooks under F-012/ADR-0029;
+   native ORM/DDL tooling remains outside TenancyJS.
 
 ## Boundaries
 
-- Prisma still supports only `rowLevel`; Knex/Lucid support row-level and adapter-enforced
-  `schemaPerTenant`.
+- Every supported PostgreSQL adapter has strategy-specific real-database evidence; MySQL has no distinct
+  schema strategy and MongoDB rejects it.
 - Fail closed: an adapter must reject any strategy it does not declare `"supported"`.
 - Reuse the existing forced-RLS/query-scoping row-level machinery; do not regress it.
 - Each new strategy needs real two-tenant adversarial evidence before its capability flips to

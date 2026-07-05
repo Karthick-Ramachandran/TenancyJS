@@ -1,6 +1,6 @@
 ---
 title: Testing isolation
-description: Prove — don't assume — that tenants can't see each other's data.
+description: Prove - don't assume - that tenants can't see each other's data.
 ---
 
 Isolation you haven't tested is isolation you don't have. TenancyJS is built around a single test shape,
@@ -8,7 +8,7 @@ and it's the one you should write for your own models too: the **two-tenant adve
 
 ## The two-tenant adversarial test
 
-Create two tenants with a **colliding id** on a row, then assert that each tenant sees only its own —
+Create two tenants with a **colliding id** on a row, then assert that each tenant sees only its own -
 and that the test would _fail_ if isolation leaked.
 
 ```ts
@@ -32,7 +32,7 @@ This is exactly the bar TenancyJS holds itself to: a capability is only marked *
 
 ## Also test that it fails closed
 
-Assert that using an adapter with **no** active scope throws — so a missing context can never silently
+Assert that using an adapter with **no** active scope throws - so a missing context can never silently
 return unscoped data:
 
 ```ts
@@ -45,6 +45,6 @@ await expect(db.order.findMany()).rejects.toThrow(TenantContextError);
 own setup, so you're testing the same invariants the toolkit tests internally.
 
 <Callout type="warn">
-  For **Mongoose**, remember isolation is facade-only — a test that reaches for the native model or
+  For **Mongoose**, remember isolation is facade-only - a test that reaches for the native model or
   collection is testing the wrong thing. See the [Mongoose adapter](/docs/adapters/mongoose).
 </Callout>

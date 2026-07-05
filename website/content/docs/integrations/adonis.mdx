@@ -1,10 +1,10 @@
 ---
 title: AdonisJS
-description: Wire Lucid tenancy into the AdonisJS request lifecycle — all three isolation strategies.
+description: Wire Lucid tenancy into the AdonisJS request lifecycle - all three isolation strategies.
 ---
 
 `tenancyjs-integration-adonis` connects tenancy to the AdonisJS 7 request lifecycle. AdonisJS uses its
-own ORM, so this pairs with the [Lucid adapter](/docs/adapters/lucid) — and because Lucid supports
+own ORM, so this pairs with the [Lucid adapter](/docs/adapters/lucid) - and because Lucid supports
 **all three isolation strategies**, AdonisJS gets the full range out of the box.
 
 > **ORM:** [Lucid](/docs/adapters/lucid) (AdonisJS's ORM). Row-level, schema-per-tenant, and
@@ -35,11 +35,11 @@ export default defineAdonisTenancyConfig({
 ```
 
 Register the provider, then add the tenancy middleware to your router (the `init` scaffold does both).
-Each request resolves its tenant and runs scoped, so your Lucid models are automatically isolated — no
+Each request resolves its tenant and runs scoped, so your Lucid models are automatically isolated - no
 per-query tenant filters:
 
 ```ts
-// inside a controller — already tenant-scoped
+// inside a controller - already tenant-scoped
 const orders = await Order.all();
 ```
 

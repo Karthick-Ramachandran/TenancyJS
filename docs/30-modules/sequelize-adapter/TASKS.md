@@ -2,10 +2,10 @@
 
 ## Active Work
 
-- F-010 T4 Sequelize row-level vertical slice.
+- F-010 T4/T5 Sequelize strategy delivery.
 
 ## Tasks
 
 - Complete locally: protected CRUD, explicit transaction binding, and real PostgreSQL RLS evidence.
-- Todo: schema and database strategy bindings.
-- Todo: package consumer, docs, reviews, and release evidence.
+- Complete locally: shared-engine schema and shared-cache database strategy bindings with real PostgreSQL evidence.
+- Complete locally: package consumer, practical strategy docs, review, and release gate.

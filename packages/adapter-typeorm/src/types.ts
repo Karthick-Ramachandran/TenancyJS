@@ -1,5 +1,5 @@
 import type { MaybePromise, TenantRecord } from "tenancyjs-core";
-import type { EntityTarget, ObjectLiteral } from "typeorm";
+import type { DataSource, EntityTarget, ObjectLiteral } from "typeorm";
 
 export type TypeOrmScalar = string | number | boolean | Date | null;
 export type TypeOrmCriteria = Readonly<Record<string, TypeOrmScalar>>;
@@ -51,5 +51,7 @@ export interface TypeOrmTenantPlacement<TResource extends object> {
   readonly key: string;
   readonly create: () => MaybePromise<TResource>;
 }
+
+export type TypeOrmDatabasePlacement = TypeOrmTenantPlacement<DataSource>;
 
 export type TypeOrmTenantRecord = TenantRecord;

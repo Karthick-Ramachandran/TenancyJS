@@ -1,17 +1,17 @@
 ---
 title: Database per tenant
-description: A separate database per tenant, routed through a bounded connection cache — the hardest isolation.
+description: A separate database per tenant, routed through a bounded connection cache - the hardest isolation.
 ---
 
-Database-per-tenant gives each tenant its **own database**. It's the strongest isolation — physically
-separate data, per-tenant backups and restores, no noisy neighbours — and the natural fit when tenants
+Database-per-tenant gives each tenant its **own database**. It's the strongest isolation - physically
+separate data, per-tenant backups and restores, no noisy neighbours - and the natural fit when tenants
 are few and heavy, or when compliance demands separation.
 
-Supported on **Knex**, **Lucid**, and **Prisma**.
+Supported on **Knex**, **Lucid**, **Prisma**, **TypeORM**, **Sequelize**, and **Mongoose**.
 
 <Callout type="warn">
-  **PostgreSQL** today. The routing pattern is database-agnostic, but it's adversarially proven on
-  Postgres. On MySQL or MongoDB, use [row-level](/docs/strategies/row-level).
+  Adversarially proven on PostgreSQL, on MySQL through Prisma, and on MongoDB through Mongoose. MySQL's
+  `SCHEMA` and `DATABASE` are the same namespace, so this is its schema-isolation equivalent.
 </Callout>
 
 ## How it works
@@ -19,10 +19,10 @@ Supported on **Knex**, **Lucid**, and **Prisma**.
 You tell the adapter how to build a connection (or client) for a given tenant. TenancyJS routes each
 tenant scope to its own connection through a **bounded, single-flight resource cache**:
 
-- **Bounded + LRU** — connections are pooled and evicted, so you don't exhaust the database.
-- **Single-flight** — concurrent requests for the same tenant share one in-flight connection creation.
-- **Collision-guarded** — a 1:1 key↔resource guard prevents two tenants ever sharing a connection.
-- **Fail-closed** — cross-placement access is rejected; the central scope uses the base connection.
+- **Bounded + LRU** - connections are pooled and evicted, so you don't exhaust the database.
+- **Single-flight** - concurrent requests for the same tenant share one in-flight connection creation.
+- **Collision-guarded** - a 1:1 key↔resource guard prevents two tenants ever sharing a connection.
+- **Fail-closed** - cross-placement access is rejected; the central scope uses the base connection.
 
 ```ts
 const tenancy = createKnexTenancy({
@@ -36,28 +36,37 @@ const tenancy = createKnexTenancy({
 });
 ```
 
-Prisma uses `createPrismaDatabaseTenancy` (a client per tenant URL); Lucid leases a
-`{ transaction, destroy }` connection and runs model queries through it. See each adapter guide:
+Prisma uses `createPrismaDatabaseTenancy`; TypeORM/Sequelize lease tenant ORM instances; Mongoose
+leases tenant-bound replica-set connections. See each adapter guide:
 
 <Cards>
   <Card title="Prisma" href="/docs/adapters/prisma" />
   <Card title="Knex" href="/docs/adapters/knex" />
   <Card title="Lucid" href="/docs/adapters/lucid" />
+  <Card title="TypeORM" href="/docs/adapters/typeorm" />
+  <Card title="Sequelize" href="/docs/adapters/sequelize" />
+  <Card title="Mongoose" href="/docs/adapters/mongoose" />
 </Cards>
+
+<Callout type="warn">
+  Separate storage does not automatically mean server-side authorization. If one credential can reach
+  sibling databases, TenancyJS supplies a protected routing boundary; use per-tenant credentials when
+  the database must independently reject cross-database access.
+</Callout>
 
 ## Provisioning
 
-Each tenant's database must be created and migrated before use, and dropped on offboarding — through the
+Each tenant's database must be created and migrated before use, and dropped on offboarding - through the
 CLI's [provisioning hooks](/docs/cli#provision--migrate):
 
 ```bash
 npx tenancy tenant provision acme     # create + migrate the database
 npx tenancy tenant migrate --all      # migrate every tenant's database
-npx tenancy tenant deprovision acme   # drop it (explicit id only — never --all)
+npx tenancy tenant deprovision acme   # drop it (explicit id only - never --all)
 ```
 
 ## Tradeoffs
 
-Hardest isolation, but the most operational overhead — more databases to provision, migrate, monitor,
+Hardest isolation, but the most operational overhead - more databases to provision, migrate, monitor,
 and back up. Every leased connection is disposed on teardown, and the cache keeps the connection count
 bounded, but plan your database's connection limits accordingly.

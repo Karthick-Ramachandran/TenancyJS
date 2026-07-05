@@ -4,13 +4,13 @@ import type { ReactNode } from "react";
 /* ── robust line-based code highlighter (preserves whitespace exactly) ──── */
 const CODE = `// Tenant identity rides AsyncLocalStorage.
 await manager.runWithTenant({ id: "acme" }, async () => {
-  // scoped to acme — automatically
+  // scoped to acme - automatically
   const orders = await db.order.findMany();
 });
 
 // Outside a tenant scope? It fails closed.
 await db.order.findMany();
-// ✗ throws TenantContextError — never an unscoped read`;
+// ✗ throws TenantContextError - never an unscoped read`;
 
 const KEYWORDS = new Set(["await", "async", "const", "return", "new", "let"]);
 
@@ -91,21 +91,21 @@ const strategies = [
     name: "Schema per tenant",
     tag: "search_path",
     body: "One Postgres schema per tenant via transaction-local search_path, with an optional per-tenant role for database-enforced isolation.",
-    who: "Knex · Lucid",
+    who: "Knex · Lucid · Prisma · TypeORM · Sequelize",
   },
   {
     n: "03",
     name: "Database per tenant",
     tag: "cache-routed",
     body: "A separate database per tenant, routed through a bounded, single-flight connection cache. Hard isolation, no noisy neighbours.",
-    who: "Knex · Lucid · Prisma",
+    who: "Knex · Lucid · Prisma · TypeORM · Sequelize · Mongoose",
   },
 ];
 
 const guarantees = [
   {
     title: "Fail-closed, always",
-    body: "No valid tenant context means an error at the boundary — never a silent read of unscoped data.",
+    body: "No valid tenant context means an error at the boundary - never a silent read of unscoped data.",
   },
   {
     title: "Proven, not claimed",
@@ -113,7 +113,7 @@ const guarantees = [
   },
   {
     title: "Bring your own store",
-    body: "Your registry, hardened at the boundary — a buggy store can't hand back the wrong tenant.",
+    body: "Your registry, hardened at the boundary - a buggy store can't hand back the wrong tenant.",
   },
   {
     title: "Cleanup always runs",
@@ -166,7 +166,7 @@ export default function HomePage() {
           >
             <span className="size-1.5 rounded-full bg-gradient-to-r from-[#6d64ff] to-[#ec4899]" />
             <span className="font-medium text-fd-foreground">0.1.0-beta</span>{" "}
-            is out — read the docs
+            is out - read the docs
             <span aria-hidden>→</span>
           </Link>
 
@@ -177,7 +177,7 @@ export default function HomePage() {
 
           <p className="mx-auto mt-6 max-w-2xl text-pretty text-lg text-fd-muted-foreground sm:text-xl">
             A fail-closed, TypeScript-first tenancy toolkit for Node.js. Tenant
-            identity follows your async scope — and any tenant-aware access
+            identity follows your async scope - and any tenant-aware access
             without a valid context <strong className="text-fd-foreground">
               throws
             </strong>{" "}
@@ -241,8 +241,8 @@ export default function HomePage() {
             </h2>
             <p className="mt-5 text-lg text-fd-muted-foreground">
               The dangerous bug in multi-tenancy is the one that
-              doesn&rsquo;t throw. A missing tenant filter returns data —
-              silently — and you find out from a support ticket. TenancyJS makes
+              doesn&rsquo;t throw. A missing tenant filter returns data -
+              silently - and you find out from a support ticket. TenancyJS makes
               the safe path the default: no valid context, no data.
             </p>
             <Link
@@ -347,7 +347,7 @@ export default function HomePage() {
             Own one thing, <span className="tj-grad">completely</span>.
           </h2>
           <p className="mt-5 text-lg text-fd-muted-foreground">
-            Tenant identity is not authorization — your app still owns auth.
+            Tenant identity is not authorization - your app still owns auth.
             TenancyJS makes sure one tenant&rsquo;s data never becomes
             another&rsquo;s.
           </p>
@@ -364,6 +364,63 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      <SiteFooter />
     </main>
+  );
+}
+
+function SiteFooter() {
+  return (
+    <footer className="border-t border-fd-border px-6 py-12">
+      <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-6 sm:flex-row">
+        <div className="text-center sm:text-left">
+          <div className="flex items-center justify-center gap-2 sm:justify-start">
+            <span className="size-4 rounded bg-gradient-to-br from-[#6d64ff] to-[#ec4899]" />
+            <span className="font-semibold">TenancyJS</span>
+          </div>
+          <p className="mt-2 text-sm text-fd-muted-foreground">
+            MIT-licensed · built by{" "}
+            <a
+              href="https://x.com/imkarthicck"
+              className="font-medium text-fd-foreground hover:text-fd-primary"
+            >
+              @imkarthicck
+            </a>
+          </p>
+        </div>
+
+        <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-fd-muted-foreground">
+          <a
+            href="https://github.com/Karthick-Ramachandran/TenancyJS"
+            className="hover:text-fd-primary"
+          >
+            GitHub repo
+          </a>
+          <a
+            href="https://www.npmjs.com/package/tenancyjs-core"
+            className="hover:text-fd-primary"
+          >
+            npm
+          </a>
+          <a
+            href="https://github.com/karthick-Ramachandran"
+            className="hover:text-fd-primary"
+          >
+            GitHub
+          </a>
+          <a href="https://x.com/imkarthicck" className="hover:text-fd-primary">
+            X / Twitter
+          </a>
+          <a
+            href="https://fumadocs.dev"
+            className="hover:text-fd-primary"
+            rel="noreferrer"
+          >
+            Built with Fumadocs
+          </a>
+        </nav>
+      </div>
+    </footer>
   );
 }

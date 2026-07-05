@@ -5,7 +5,7 @@ description: Wire tenant context into an Express + Prisma app and run your first
 
 This walks through the smallest useful setup: a `TenancyManager`, a Prisma adapter, and Express
 middleware that resolves the tenant per request. Using a different stack? Swap the adapter and
-integration imports — the shape is identical (see [Adapters](/docs/adapters) and
+integration imports - the shape is identical (see [Adapters](/docs/adapters) and
 [Integrations](/docs/integrations)).
 
 <Callout type="info">
@@ -20,7 +20,7 @@ integration imports — the shape is identical (see [Adapters](/docs/adapters) a
 ### Create a manager
 
 The `TenancyManager` owns tenant context. It uses `AsyncLocalStorage`, so context flows through your
-async calls automatically — no `tenantId` threading.
+async calls automatically - no `tenantId` threading.
 
 ```ts title="tenancy.ts"
 import { TenancyManager } from "tenancyjs-core";
@@ -39,7 +39,7 @@ export const manager = new TenancyManager<Tenant>();
 ### Attach an adapter
 
 An adapter enforces isolation inside your ORM. For Prisma, register the tenant-scoped models and apply
-the adapter's **extension** to your client — the extended `db` is what you query with. (Using a
+the adapter's **extension** to your client - the extended `db` is what you query with. (Using a
 different ORM? See its [adapter guide](/docs/adapters); the shape is the same.)
 
 ```ts title="tenancy.ts"
@@ -62,7 +62,7 @@ export const db = new PrismaClient().$extends(adapter.extension);
 ### Run inside a tenant scope
 
 Everything you do through `db` inside `runWithTenant` is scoped to that tenant. Outside a scope, it
-**fails closed** — a loud error, never unscoped data.
+**fails closed** - a loud error, never unscoped data.
 
 ```ts
 await manager.runWithTenant({ id: "acme" }, async () => {
@@ -71,7 +71,7 @@ await manager.runWithTenant({ id: "acme" }, async () => {
 
 // Outside a scope:
 await db.order.findMany();
-// ✗ TenantContextError — refuses to run unscoped
+// ✗ TenantContextError - refuses to run unscoped
 ```
 
 </Step>
@@ -103,7 +103,7 @@ app.get("/orders", async (_req, res) => {
 ```
 
 If the resolver can't produce a valid tenant, the middleware responds 400/404 and your handler never
-runs — no unscoped request reaches your code.
+runs - no unscoped request reaches your code.
 
 </Step>
 
@@ -113,7 +113,7 @@ runs — no unscoped request reaches your code.
 
 <Cards>
   <Card title="Choose a strategy" href="/docs/concepts/capability-matrix">
-    Row-level, schema-per-tenant, or database-per-tenant — and what's tested.
+    Row-level, schema-per-tenant, or database-per-tenant - and what's tested.
   </Card>
   <Card title="Configuration" href="/docs/getting-started/configuration">
     Add a `tenancy.config.ts` so the CLI can manage your tenants.

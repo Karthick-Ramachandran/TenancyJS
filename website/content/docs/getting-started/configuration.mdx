@@ -4,7 +4,7 @@ description: Define a tenancy.config.ts runtime so the CLI and your app share on
 ---
 
 The operational [CLI](/docs/cli) reaches your live tenants by loading a `tenancy.config.ts` at runtime.
-Node 24 strips the TypeScript types natively, so there is **no transpiler dependency** — the CLI stays
+Node 24 strips the TypeScript types natively, so there is **no transpiler dependency** - the CLI stays
 zero-dependency, and your config is just TypeScript.
 
 The CLI looks for `tenancy.config.ts` (then `.mts`/`.mjs`/`.js`) in your project root, or wherever you
@@ -12,7 +12,7 @@ point it with `--config <path>`.
 
 ## `defineTenancyRuntime`
 
-Export a runtime from your config. It's the single contract the CLI reads — it never reaches into
+Export a runtime from your config. It's the single contract the CLI reads - it never reaches into
 framework internals.
 
 ```ts title="tenancy.config.ts"
@@ -21,11 +21,11 @@ import { manager, tenancy } from "./tenancy";
 import { store } from "./tenant-store";
 
 export default defineTenancyRuntime({
-  manager, // required — your TenancyManager
-  store, // optional — powers the registry commands (list/create/…)
-  adapters: [tenancy], // optional — powers `tenant check` capability reporting
+  manager, // required - your TenancyManager
+  store, // optional - powers the registry commands (list/create/…)
+  adapters: [tenancy], // optional - powers `tenant check` capability reporting
   provisioner: {
-    // optional — powers provision/deprovision/migrate
+    // optional - powers provision/deprovision/migrate
     provision: async (tenant) => {
       /* create the tenant's schema/database */
     },
@@ -37,7 +37,7 @@ export default defineTenancyRuntime({
     },
   },
   dispose: async () => {
-    /* optional — close connections so the CLI exits cleanly */
+    /* optional - close connections so the CLI exits cleanly */
   },
 });
 ```
@@ -47,7 +47,7 @@ message (e.g. "your runtime has no provisioner") instead of doing something surp
 
 ## Bring-your-own tenant store
 
-TenancyJS does not own where tenants live — your table, your API, your Prisma model. A `TenantStore`
+TenancyJS does not own where tenants live - your table, your API, your Prisma model. A `TenantStore`
 implements only the methods you support; commands that need a missing one degrade with a clear "not
 supported by your store" error.
 
@@ -66,7 +66,7 @@ export const store: TenantStore<Tenant> = {
 
 <Callout type="warn">
   The store is **hardened at the boundary**. A `find(id)` that returns a tenant whose id doesn't match,
-  a `list()` with duplicate ids, or a `create` that doesn't echo the requested id is **rejected** —
+  a `list()` with duplicate ids, or a `create` that doesn't echo the requested id is **rejected** -
   a buggy store can't leak one tenant's data under another's identity. This holds even for a hand-built
   config, because the CLI re-hardens the store on load.
 </Callout>
@@ -79,7 +79,7 @@ there's one source of truth for where a tenant's data lives.
 
 ## Secrets are redacted
 
-Every operational command redacts secrets — connection strings, passwords, tokens — from both human and
+Every operational command redacts secrets - connection strings, passwords, tokens - from both human and
 `--json` output. You don't have to scrub anything yourself.
 
 Once the config exists, the CLI can act:

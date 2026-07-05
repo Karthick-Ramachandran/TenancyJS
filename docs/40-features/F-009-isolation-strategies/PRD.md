@@ -15,12 +15,11 @@ capability declarations and adversarial isolation evidence for each.
 - Thin Knex/Lucid schema bindings with transaction-local `search_path`, unqualified addressing,
   central-schema collision checks, and real PostgreSQL adversarial evidence.
 - Shared bounded resource-cache foundation for database-per-tenant ORM bindings (ADR-0021).
-- Later increments: database-per-tenant bindings on Knex/Lucid/Prisma; database-enforced per-tenant roles;
-  provisioning (`CREATE SCHEMA`/`CREATE DATABASE` + migrate).
+- Database-per-tenant bindings across supported adapters; database-enforced per-tenant roles; Prisma
+  schema-bound driver routing; provisioning (`CREATE SCHEMA`/`CREATE DATABASE` + migrate).
 
 ## Non-Goals
 
-- Prisma **schema-per-tenant** in the first pass — deferred to a per-schema client cache (ADR-0017).
-- MongoDB. Cross-database strategies for non-PostgreSQL engines beyond what each adapter can enforce
-  fail-closed.
+- SQL schema-per-tenant on MySQL/MongoDB, where no distinct schema/search-path namespace exists.
+- Automatic credential, role, database, or schema provisioning.
 - Domain routing / tenant registry CRUD (separate CLI work).

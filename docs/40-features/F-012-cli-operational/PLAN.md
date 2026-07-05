@@ -23,5 +23,5 @@ Six phases, each landed gate-green on its own PR:
 - Setup/diagnostic commands (`init`, `doctor` static parts, `test:leak`) stay runtime-free and safe on
   a project that cannot connect.
 - The CLI reads only the `defineTenancyRuntime` contract — never framework internals.
-- No new runtime dependency (Node 24 native TS import); native migration tools are delegated, not
-  reimplemented; Prisma schema-per-tenant provisioning is out.
+- No new runtime dependency (Node 24 native TS import); native migration and provisioning tools are
+  delegated, not reimplemented, including Prisma schema placements.

@@ -1,6 +1,6 @@
 ---
 title: Mongoose
-description: Facade-enforced tenant isolation for MongoDB with Mongoose — wired end to end into any framework.
+description: Facade-enforced tenant isolation for MongoDB with Mongoose - wired end to end into any framework.
 ---
 
 `tenancyjs-adapter-mongoose` scopes MongoDB access per tenant. This page shows it wired **end to end
@@ -9,7 +9,7 @@ with Express**; using a different framework? Swap only the integration (see
 
 <Callout type="warn">
   **MongoDB has no row-level security.** Mongoose isolation is enforced entirely by the adapter's query
-  facade — using the native model, collection, or connection bypasses it completely. Treat it as a
+  facade - using the native model, collection, or connection bypasses it completely. Treat it as a
   strong convention, not a database-level guarantee, and never expose the native handles outside the
   adapter.
 </Callout>
@@ -69,12 +69,7 @@ import { OrderModel } from "./models";
 
 const app = express();
 
-app.use(
-  createExpressTenancyMiddleware({
-    manager,
-    resolver: (req) => ({ id: req.subdomains.at(-1) ?? "" }),
-  }),
-);
+app.use(createExpressTenancyMiddleware({ manager, resolver }));
 
 app.get("/orders", async (_req, res) => {
   const orders = await tenancy.run((client) =>
@@ -93,7 +88,7 @@ tenant scope, it fails closed.
 
 ## Use a different framework
 
-The adapter half stays identical — only swap the **integration** import for your framework:
+The adapter half stays identical - only swap the **integration** import for your framework:
 
 <Cards>
   <Card title="Express" href="/docs/integrations/express" />
@@ -104,5 +99,22 @@ The adapter half stays identical — only swap the **integration** import for yo
 
 ## Strategy support
 
-Mongoose supports **row-level** (facade) isolation on MongoDB. Schema- and database-per-tenant are SQL
-concepts and don't apply. See the [capability matrix](/docs/concepts/capability-matrix).
+Mongoose supports adapter-enforced **row-level** isolation and **database-per-tenant** routing. MongoDB
+has no SQL schema-per-tenant equivalent.
+
+```ts
+const tenancy = createMongooseTenancy({
+  manager,
+  connection: landlordConnection,
+  strategy: "databasePerTenant",
+  tenantModels: [{ model: OrderModel }],
+  database: (tenant) => ({
+    key: tenant.databaseKey,
+    create: () => createTenantConnection(tenant.databaseSecretRef),
+  }),
+});
+```
+
+Every tenant connection must register the configured model name and reach a replica set. Shared
+credentials provide routing separation; use credentials restricted to one MongoDB database for
+server-side authorization. Call `close()` during shutdown.

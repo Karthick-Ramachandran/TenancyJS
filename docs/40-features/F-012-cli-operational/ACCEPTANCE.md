@@ -21,5 +21,5 @@
 
 ## Out Of Scope
 
-- Provisioning Prisma schema-per-tenant (deferred).
+- Built-in ORM/DDL provisioning implementations; every strategy delegates to the host provisioner.
 - Any command outside the In-Scope list in the PRD.

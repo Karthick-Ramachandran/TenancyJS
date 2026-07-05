@@ -13,11 +13,11 @@ data across tenants. TenancyJS makes the secure path the documented and tested d
 
 ## Current Status
 
-Pre-alpha implementation. Repository foundations, core lifecycle, tenant identification, shared
-testing contracts, the Prisma 7.8 row-level adapter, and the Express 5 integration/reference example
-are implemented under F-004 with hosted Node 24 evidence. Other integrations
-and adapters have not started. The reference safe CLI foundation is implemented under F-005; migration,
-seed, tenant-operation, and database-per-tenant commands remain deferred. The source research is in
+Beta implementation. Repository foundations, core lifecycle, tenant identification, shared testing
+contracts, and the Express, Next.js, AdonisJS 7, and NestJS 11 integrations are implemented. Prisma,
+Knex, Lucid, TypeORM, Sequelize, and Mongoose adapters have real-database adversarial evidence. The
+reference safe CLI foundation is implemented under F-005, and F-012 adds registry, run, migration, and
+provisioning commands through the host runtime contract. The source research is in
 `docs/BRD-PRD.md` and
 `docs/CLI-RESEARCH.md`; delivery status is in
 `docs/40-features/F-001-tenancyjs-platform/`.
@@ -27,13 +27,15 @@ Node 24 PostgreSQL compatibility evidence passes on PR #7. The Knex/Lucid/Adonis
 in progress under F-007 and follows accepted ADR-0010/ADR-0013. ADR-0013 sets Node 24 as the common
 repository baseline and carries forward the AdonisJS 7 contract. F-009 now implements
 adapter-enforced PostgreSQL schema-per-tenant isolation for Knex and Lucid through the shared strategy
-engine accepted in ADR-0019; database-per-tenant and provisioning remain pending.
+engine accepted in ADR-0019. Database-per-tenant is implemented across the supported SQL adapters and
+Mongoose; provisioning/migration delegate to host hooks under ADR-0029.
 
 ## Initial Supported Surface
 
 - Frameworks: Express, Next.js App Router, NestJS, and AdonisJS.
-- Data layers: Prisma, Sequelize, Knex, and Lucid.
-- Isolation: row-level and PostgreSQL schema-per-tenant for Knex/Lucid; database-per-tenant follows.
+- Data layers: Prisma, Sequelize, TypeORM, Knex, Lucid, and Mongoose.
+- Isolation: row-level; PostgreSQL schema-per-tenant across SQL adapters; database-per-tenant across
+  supported SQL databases and MongoDB.
 - Runtime: Node.js 24 or newer; no Edge-runtime tenant database access guarantee.
 - Distribution: separate npm packages in one monorepo, with a `tenancy` CLI.
 
@@ -60,5 +62,5 @@ lifecycle and migration conventions.
 
 - Billing, subscription UI, hosted control planes, DNS/SSL automation, or admin dashboards.
 - Cache/storage isolation, impersonation, or resource syncing.
-- Mongoose, Drizzle, TypeORM, Fastify, or non-Node runtimes in the initial support commitment.
+- Drizzle, Sequelize 7 alpha, or non-Node runtimes in the initial support commitment.
 - Transparent protection for arbitrary raw SQL; unsafe escape hatches must be explicit and documented.

@@ -18,6 +18,7 @@ export {
 export type { MongooseTenancyErrorCode } from "./errors.js";
 export type {
   MongooseCentralModelConfig,
+  MongooseDatabasePlacement,
   MongooseFilter,
   MongooseScalar,
   MongooseTenantModelConfig,

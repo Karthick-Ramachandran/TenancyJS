@@ -81,6 +81,7 @@ field receive the active tenant ID automatically.
 | nested relations and relation traversal       | rejected                                                                 |
 | unknown models or operations                  | rejected                                                                 |
 | database-per-tenant                           | separate callback-scoped router with bounded client cache                |
+| schema-per-tenant (PostgreSQL)                | schema-bound Prisma 7 driver clients in the same bounded cache           |
 
 Host schemas should use a non-null tenant discriminator and indexes appropriate for their access
 patterns. TenancyJS does not generate or migrate the Prisma schema.
@@ -111,6 +112,32 @@ The client is valid only while the `run` callback is active. Do not return it, s
 the callback settles: the cache lease has ended and eviction may disconnect the client. Call `close()`
 during shutdown. The host resolver/factory remains responsible for mapping each key to the correct
 database.
+
+## PostgreSQL schema per tenant
+
+`createPrismaSchemaTenancy` has the same callback-only lifecycle, but its host factory creates a
+Prisma 7 client with an explicitly schema-bound PostgreSQL driver adapter:
+
+```ts
+const schemas = createPrismaSchemaTenancy({
+  manager,
+  schema: (tenant) => ({
+    key: tenant.schemaKey,
+    create: () =>
+      new PrismaClient({
+        adapter: new PrismaPg(
+          { connectionString },
+          { schema: tenant.schemaName },
+        ),
+      }),
+  }),
+  disconnect: (client) => client.$disconnect(),
+});
+```
+
+This does not use `search_path`; that mechanism does not reliably route Prisma model queries. A shared
+database credential makes this adapter-routed isolation. Use schema-restricted credentials/roles when
+the database itself must reject sibling-schema access.
 
 See [MIGRATION.md](MIGRATION.md) for greenfield/existing-application adoption and
 [BENCHMARK.md](BENCHMARK.md) for the repeatable policy-overhead baseline.

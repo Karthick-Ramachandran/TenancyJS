@@ -1,11 +1,11 @@
 ---
 title: Installation
-description: Start with the CLI — it scaffolds your tenancy for your stack. Or wire it up by hand.
+description: Start with the CLI - it scaffolds your tenancy for your stack. Or wire it up by hand.
 ---
 
 ## Requirements
 
-- **Node.js 24+** — the toolkit and CLI use modern Node features, and the CLI loads your TypeScript
+- **Node.js 24+** - the toolkit and CLI use modern Node features, and the CLI loads your TypeScript
   config via Node's native type-stripping (no transpiler needed).
 - TypeScript is recommended but not required.
 
@@ -13,23 +13,24 @@ description: Start with the CLI — it scaffolds your tenancy for your stack. Or
 
 TenancyJS composes from two axes that **don't need to know about each other**:
 
-1. An **integration** for your framework — Express, Next.js, NestJS, or AdonisJS.
-2. An **adapter** for your ORM — Prisma, Knex, Lucid, TypeORM, Sequelize, or Mongoose.
+1. An **integration** for your framework - Express, Next.js, NestJS, or AdonisJS.
+2. An **adapter** for your ORM - Prisma, Knex, Lucid, TypeORM, Sequelize, or Mongoose.
 
-Any integration works with any adapter. **Express + Sequelize**, **Next.js + Knex**,
-**NestJS + Mongoose** — all valid; both pieces just talk to the same core `TenancyManager`. So there's
-no fixed "stack": you pick your framework's integration and your ORM's adapter, plus `tenancyjs-core`.
+Integrations and adapters compose through the same `TenancyManager`; they do not import each other.
+That makes combinations such as **Express + Sequelize**, **Next.js + Knex**, and **NestJS + Mongoose**
+architecturally valid. Not every Cartesian pairing has its own dedicated E2E yet, so use the documented
+adapter capability plus the integration lifecycle evidence and add an application-level isolation test
+for your exact pairing.
 
 <Callout type="info">
-  Wondering if your combination is supported? The framework and ORM are orthogonal — every integration ×
-  every adapter works. What *does* vary is which **isolation strategy** each adapter supports (row-level
-  vs schema/database-per-tenant) — that's the [capability matrix](/docs/concepts/capability-matrix).
+  Framework and ORM support are orthogonal contracts. The [capability matrix](/docs/concepts/capability-matrix)
+  records database/strategy proof; the testing guide shows how to prove your exact application pairing.
 </Callout>
 
 ## Fastest path: scaffold with the CLI
 
 `tenancy init` writes a working `tenancy.config.ts`, tenant registration, and request middleware for
-you — no boilerplate.
+you - no boilerplate.
 
 ```bash
 npx tenancy init
@@ -52,7 +53,7 @@ npm install tenancyjs-core tenancyjs-adapter-prisma tenancyjs-integration-expres
 Then jump to the [Quickstart](/docs/getting-started/quickstart).
 
 <Callout type="info">
-  Any other combination — **Express + Sequelize**, **Next.js + Knex**, **NestJS + anything** — isn't
+  Any other combination - **Express + Sequelize**, **Next.js + Knex**, **NestJS + anything** - isn't
   scaffolded *yet*, but it's a few lines of manual wiring. Follow [manual setup](#manual-setup) below.
 </Callout>
 
@@ -64,7 +65,7 @@ your live tenants. See the full **[CLI reference →](/docs/cli)**.
 ## Set up your framework
 
 Pick your framework for the complete, copy-paste wiring. Each guide works with **any** of the ORMs
-listed below it — just install that adapter and use the same steps.
+listed below it - just install that adapter and use the same steps.
 
 <Cards>
   <Card title="Express" href="/docs/integrations/express">
@@ -95,7 +96,7 @@ your ORM's **adapter**. For example, Express with Sequelize:
   <Tab value="bun">```bash bun add tenancyjs-core tenancyjs-integration-express tenancyjs-adapter-sequelize ```</Tab>
 </Tabs>
 
-Then follow the two guides for your choices — the [integration guide](/docs/integrations) for the
+Then follow the two guides for your choices - the [integration guide](/docs/integrations) for the
 framework half and the [adapter guide](/docs/adapters) for the ORM half. That's the whole wiring.
 
 | Package | Role |

@@ -1,12 +1,18 @@
 import type { TenancyManager, TenantRecord } from "tenancyjs-core";
-import { normalizeQualifiedTable } from "tenancyjs-adapter-shared";
+import {
+  assertSqlIdentifier,
+  normalizeQualifiedTable,
+} from "tenancyjs-adapter-shared";
 import type { DataSource, EntityTarget, ObjectLiteral } from "typeorm";
 
 import { TypeOrmTenancyConfigurationError } from "./errors.js";
 import type {
   TypeOrmCentralEntityConfig,
+  TypeOrmDatabasePlacement,
   TypeOrmTenantEntityConfig,
 } from "./types.js";
+
+const DEFAULT_MAX_CONNECTIONS = 25;
 
 export interface TypeOrmTenancyOptions<
   TTenant extends TenantRecord = TenantRecord,
@@ -15,11 +21,17 @@ export interface TypeOrmTenancyOptions<
   readonly dataSource: DataSource;
   readonly tenantEntities: readonly TypeOrmTenantEntityConfig[];
   readonly centralEntities?: readonly TypeOrmCentralEntityConfig[];
+  readonly strategy?: "rowLevel" | "schemaPerTenant" | "databasePerTenant";
+  readonly schema?: (tenant: TTenant) => string;
+  readonly centralSchema?: string;
+  readonly role?: (tenant: TTenant) => string;
+  readonly connection?: (tenant: TTenant) => TypeOrmDatabasePlacement;
+  readonly maxConnections?: number;
 }
 
 export interface NormalizedTypeOrmTenantEntityConfig {
   readonly entity: EntityTarget<ObjectLiteral>;
-  readonly schema: string;
+  readonly schema: string | undefined;
   readonly table: string;
   readonly qualifiedName: string;
   readonly tenantProperty: string;
@@ -36,6 +48,13 @@ export interface TypeOrmTenancyConfig<
 > {
   readonly manager: TenancyManager<TTenant>;
   readonly dataSource: DataSource;
+  readonly strategy: "rowLevel" | "schemaPerTenant" | "databasePerTenant";
+  readonly schema: ((tenant: TTenant) => string) | undefined;
+  readonly centralSchema: string;
+  readonly role: ((tenant: TTenant) => string) | undefined;
+  readonly connection:
+    ((tenant: TTenant) => TypeOrmDatabasePlacement) | undefined;
+  readonly maxConnections: number;
   readonly tenantEntities: readonly Readonly<NormalizedTypeOrmTenantEntityConfig>[];
   classify(
     entity: EntityTarget<ObjectLiteral>,
@@ -51,6 +70,46 @@ export function defineTypeOrmTenancyConfig<
     configuration("requires a TenancyManager");
   if (typeof options.dataSource?.transaction !== "function")
     configuration("requires a DataSource");
+  const strategy = options.strategy ?? "rowLevel";
+  if (
+    strategy !== "rowLevel" &&
+    strategy !== "schemaPerTenant" &&
+    strategy !== "databasePerTenant"
+  ) {
+    configuration(
+      "strategy must be rowLevel, schemaPerTenant, or databasePerTenant",
+    );
+  }
+  if (strategy === "schemaPerTenant" && typeof options.schema !== "function")
+    configuration("schema-per-tenant requires a schema resolver");
+  if (strategy !== "schemaPerTenant" && options.schema !== undefined)
+    configuration("only schema-per-tenant accepts a schema resolver");
+  if (strategy !== "schemaPerTenant" && options.centralSchema !== undefined)
+    configuration("only schema-per-tenant accepts a central schema");
+  if (strategy !== "schemaPerTenant" && options.role !== undefined)
+    configuration("only schema-per-tenant accepts a role resolver");
+  if (
+    strategy === "databasePerTenant" &&
+    typeof options.connection !== "function"
+  )
+    configuration("database-per-tenant requires a connection resolver");
+  if (strategy !== "databasePerTenant" && options.connection !== undefined)
+    configuration("only database-per-tenant accepts a connection resolver");
+  if (strategy !== "databasePerTenant" && options.maxConnections !== undefined)
+    configuration("only database-per-tenant accepts maxConnections");
+  const maxConnections = options.maxConnections ?? DEFAULT_MAX_CONNECTIONS;
+  if (
+    strategy === "databasePerTenant" &&
+    (!Number.isSafeInteger(maxConnections) || maxConnections <= 0)
+  )
+    configuration("database-per-tenant requires a positive maxConnections");
+  const centralSchema = assertSqlIdentifier(options.centralSchema ?? "public", {
+    label: "TypeORM central schema",
+    createError: () =>
+      new TypeOrmTenancyConfigurationError(
+        "TypeORM tenancy central schema must be a SQL identifier.",
+      ),
+  });
   if (
     !Array.isArray(options.tenantEntities) ||
     options.tenantEntities.length === 0
@@ -76,8 +135,8 @@ export function defineTypeOrmTenancyConfig<
     let table;
     try {
       table = normalizeQualifiedTable(entry.table, {
-        defaultSchema: "public",
-        allowQualified: true,
+        ...(strategy === "rowLevel" ? { defaultSchema: "public" } : {}),
+        allowQualified: strategy === "rowLevel",
         label: "TypeORM tenant table",
       });
     } catch {
@@ -97,13 +156,28 @@ export function defineTypeOrmTenancyConfig<
     );
     const normalized = Object.freeze({
       entity: entry.entity,
-      schema: table.schema!,
+      schema: table.schema,
       table: table.table,
       qualifiedName: table.qualifiedName,
       tenantProperty,
       tenantColumn,
       policyName,
     });
+    if (strategy === "schemaPerTenant") {
+      if (typeof options.dataSource.getMetadata !== "function")
+        configuration("schema-per-tenant requires initialized entity metadata");
+      let metadata;
+      try {
+        metadata = options.dataSource.getMetadata(entry.entity);
+      } catch {
+        configuration("schema-per-tenant requires registered entity metadata");
+      }
+      if (metadata.schema !== undefined || metadata.tablePath.includes(".")) {
+        configuration(
+          "schema-per-tenant entities must not declare a fixed schema",
+        );
+      }
+    }
     addPolicy(
       policies,
       entry.entity,
@@ -128,6 +202,12 @@ export function defineTypeOrmTenancyConfig<
   return Object.freeze({
     manager: options.manager,
     dataSource: options.dataSource,
+    strategy,
+    schema: options.schema,
+    centralSchema,
+    role: options.role,
+    connection: options.connection,
+    maxConnections,
     tenantEntities: Object.freeze(tenantEntities),
     classify: (entity: EntityTarget<ObjectLiteral>) => policies.get(entity),
   });

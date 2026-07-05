@@ -4,7 +4,7 @@ export const MONGOOSE_ADAPTER_CAPABILITIES: Readonly<TenancyAdapterCapabilities>
   Object.freeze({
     rowLevel: "supported",
     schemaPerTenant: "rejected",
-    databasePerTenant: "unsupported",
+    databasePerTenant: "supported",
     centralModels: "supported",
     transactions: "supported",
     nestedReads: "rejected",

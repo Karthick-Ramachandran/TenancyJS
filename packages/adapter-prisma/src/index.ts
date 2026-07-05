@@ -6,6 +6,12 @@ export type {
   PrismaDatabaseTenancy,
   PrismaDatabaseTenancyOptions,
 } from "./database-router.js";
+export { createPrismaSchemaTenancy } from "./schema-router.js";
+export type {
+  PrismaSchemaPlacement,
+  PrismaSchemaTenancy,
+  PrismaSchemaTenancyOptions,
+} from "./schema-router.js";
 export { classifyPrismaModel, definePrismaTenancyConfig } from "./config.js";
 export {
   PrismaTenancyConfigurationError,

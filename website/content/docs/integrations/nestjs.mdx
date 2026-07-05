@@ -1,6 +1,6 @@
 ---
 title: NestJS
-description: Scope every NestJS request with a module and interceptor — Express or Fastify, any ORM.
+description: Scope every NestJS request with a module and interceptor - Express or Fastify, any ORM.
 ---
 
 `tenancyjs-integration-nest` brings tenant scoping to NestJS 11. Register the tenancy module and an
@@ -12,7 +12,7 @@ inside it. It works on both the **Express** and **Fastify** platforms.
 > [Mongoose](/docs/adapters/mongoose).
 
 <Callout type="info">
-  NestJS is fully supported, but `tenancy init` doesn't scaffold it yet — this is the manual setup (a
+  NestJS is fully supported, but `tenancy init` doesn't scaffold it yet - this is the manual setup (a
   few lines). See [Installation](/docs/getting-started/installation).
 </Callout>
 
@@ -24,32 +24,58 @@ npm install tenancyjs-core tenancyjs-integration-nest tenancyjs-adapter-prisma @
 
 ## Wire it up
 
-Provide your `manager` and a resolver to the tenancy module, register the interceptor globally, and pair
-it with your ORM's [adapter](/docs/adapters).
+Provide your application-owned `manager` and resolution service. `TenancyModule` registers its global
+guard and interceptor; do not register a second copy.
 
 ```ts title="app.module.ts"
 import { Module } from "@nestjs/common";
-import { createNestResolverInput } from "tenancyjs-integration-nest";
-import { manager } from "./tenancy";
+import { TenantResolutionChain, HeaderTenantResolver } from "tenancyjs-identifiers";
+import { TenancyModule } from "tenancyjs-integration-nest";
+import { manager, tenantStore } from "./tenancy";
 
-// Register the tenancy module with the manager + a resolver that turns the
-// incoming request into a tenant. The interceptor then opens a scope per
-// request, so controllers and providers run tenant-scoped.
-const resolver = createNestResolverInput({
-  manager,
-  resolve: (req) => ({ id: req.headers["x-tenant"] ?? "" }),
+const resolver = new TenantResolutionChain({
+  resolvers: [new HeaderTenantResolver()],
+  store: tenantStore,
 });
 
 @Module({
-  // ...register the tenancy module + interceptor with `resolver`
+  imports: [TenancyModule.forRoot({ manager, resolver })],
 })
 export class AppModule {}
+```
+
+Mark tenant routes explicitly and use your adapter's protected API inside the handler:
+
+```ts title="posts.controller.ts"
+import { Controller, Get } from "@nestjs/common";
+import { TenantRoute } from "tenancyjs-integration-nest";
+import { typeormTenancy } from "./tenancy";
+import { Post } from "./entities/post";
+
+@Controller("posts")
+export class PostsController {
+  @Get()
+  @TenantRoute()
+  list() {
+    return typeormTenancy.run((client) =>
+      client.repository(Post).findBy({ status: "open" }),
+    );
+  }
+}
 ```
 
 ## How it behaves
 
 - Each request resolves its tenant and runs inside the scope; ORM queries through the adapter are scoped.
 - A resolution failure fails closed with the correct HTTP status **before** your controller runs.
+- Authorization guards may inject `NestTenantResolutionStore` to read the resolved tenant. The canonical
+  `TenancyManager` context begins later in the interceptor and covers the handler Observable.
+- Unmarked routes are neither tenant nor central routes.
+
+The optional `executor` setting is for transaction executors whose scoped resource is already available
+to application operations (for example an ALS-backed integration). Callback-only facades such as
+TypeORM and Sequelize should normally be called directly in the handler as shown above; passing them as
+an executor does not inject their callback client into Nest providers.
 
 ## Use a different ORM
 
@@ -61,5 +87,5 @@ export class AppModule {}
   <Card title="Mongoose" href="/docs/adapters/mongoose" />
 </Cards>
 
-For the exact provider/interceptor registration for your Nest version, see the
+For the exact lifecycle and security boundary, see the
 [package README](https://github.com/Karthick-Ramachandran/TenancyJS/tree/main/packages/integration-nest).

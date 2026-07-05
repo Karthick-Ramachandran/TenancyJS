@@ -1,6 +1,6 @@
 ---
 title: Resolving tenants
-description: Turn an incoming request into a tenant — from subdomains, headers, paths, or your store.
+description: Turn an incoming request into a tenant - from subdomains, headers, paths, or your store.
 ---
 
 Every [integration](/docs/integrations) takes a **resolver**: a function that turns a request into a
@@ -51,13 +51,13 @@ resolver: async (req) => {
 
 ## Looking up and validating
 
-For anything beyond reading a string, resolve against your store — and let unknown or suspended tenants
+For anything beyond reading a string, resolve against your store - and let unknown or suspended tenants
 fail closed:
 
 ```ts
 resolver: async (req) => {
   const slug = req.subdomains.at(-1);
-  if (!slug) return null; // 400 — no identifier
+  if (!slug) return null; // 400 - no identifier
   const tenant = await store.find(slug);
   if (!tenant || tenant.status === "suspended") return null; // 404
   return tenant;
@@ -67,10 +67,10 @@ resolver: async (req) => {
 ## Consistent failure semantics
 
 `tenancyjs-identifiers` gives you composable resolvers and a single, consistent mapping from resolution
-outcome to HTTP status — **400** for a missing/invalid identifier, **404** for not-found/suspended — so
+outcome to HTTP status - **400** for a missing/invalid identifier, **404** for not-found/suspended - so
 every framework behaves the same way. Reach for it instead of hand-rolling status codes.
 
 <Callout type="info">
   A resolver should never "guess" a tenant or fall back to a default on failure. Returning `null` (or
-  throwing) is the safe outcome — it keeps the request from ever running unscoped.
+  throwing) is the safe outcome - it keeps the request from ever running unscoped.
 </Callout>

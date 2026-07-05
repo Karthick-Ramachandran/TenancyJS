@@ -15,6 +15,7 @@ jobs:
     env:
       TEST_DATABASE_URL: postgresql://postgres@127.0.0.1:5432/tenancyjs_test
       MYSQL_TEST_DATABASE_URL: mysql://root:root@127.0.0.1:3306/tenancyjs_test
+      TEST_MONGODB_URL: mongodb://127.0.0.1:27017/?replicaSet=rs0&directConnection=true
     services:
       postgres:
         image: postgres:17-alpine
@@ -60,6 +61,23 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      # MongoDB needs a replica set for Mongoose managed transactions. Service
+      # containers can't set --replSet, so start + initiate it here.
+      - name: Start MongoDB replica set
+        run: |
+          docker run -d --name mongo -p 27017:27017 mongo:7 --replSet rs0
+          echo "Waiting for mongod..."
+          for i in $(seq 1 30); do
+            docker exec mongo mongosh --quiet --eval 'db.runCommand({ ping: 1 })' >/dev/null 2>&1 && break
+            sleep 2
+          done
+          docker exec mongo mongosh --quiet --eval 'rs.initiate({ _id: "rs0", members: [{ _id: 0, host: "127.0.0.1:27017" }] })'
+          echo "Waiting for primary..."
+          for i in $(seq 1 30); do
+            [ "$(docker exec mongo mongosh --quiet --eval 'rs.status().myState' 2>/dev/null)" = "1" ] && break
+            sleep 2
+          done
 
       - name: Run quality gates
         run: pnpm check

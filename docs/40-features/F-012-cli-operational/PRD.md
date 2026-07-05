@@ -28,5 +28,6 @@ secrets redacted. This feature makes the CLI operational without TenancyJS ownin
 - Owning a tenant registry table/schema (bring-your-own store instead).
 - Reimplementing ORM migrations (delegate to native tooling only).
 - `tinker`/REPL, `impersonate`, `storage-link`, `maintenance up/down` — overkill for 1.0; deferred.
-- Prisma schema-per-tenant provisioning (deferred per LESSONS — search_path does not route Prisma).
+- Built-in ORM/DDL implementations; Prisma schema placement is supported through ADR-0030, but the host
+  provisioner still owns schema creation and native migration invocation.
 - Remote/hosted control plane, multi-node orchestration, web UI.

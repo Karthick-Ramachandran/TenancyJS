@@ -1,5 +1,5 @@
 import type { MaybePromise } from "tenancyjs-core";
-import type { Model, Types } from "mongoose";
+import type { Connection, Model, Types } from "mongoose";
 
 export type MongooseScalar =
   string | number | boolean | Date | Types.ObjectId | null;
@@ -37,4 +37,9 @@ export interface MongooseTenancyRunner {
   run<TResult>(
     callback: (client: ProtectedMongooseClient) => MaybePromise<TResult>,
   ): Promise<TResult>;
+}
+
+export interface MongooseDatabasePlacement {
+  readonly key: string;
+  readonly create: () => MaybePromise<Connection>;
 }

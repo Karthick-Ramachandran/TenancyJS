@@ -55,6 +55,16 @@ export function createPrismaDatabaseTenancy<
 >(
   options: PrismaDatabaseTenancyOptions<TTenant, TClient>,
 ): PrismaDatabaseTenancy<TClient> {
+  return createPrismaResourceTenancy(options, "database");
+}
+
+export function createPrismaResourceTenancy<
+  TTenant extends TenantRecord,
+  TClient extends object,
+>(
+  options: PrismaDatabaseTenancyOptions<TTenant, TClient>,
+  placementKind: "database" | "schema",
+): PrismaDatabaseTenancy<TClient> {
   if (
     options === null ||
     typeof options !== "object" ||
@@ -63,13 +73,13 @@ export function createPrismaDatabaseTenancy<
     typeof options.disconnect !== "function"
   ) {
     throw new PrismaTenancyConfigurationError(
-      "Prisma database-per-tenant requires a manager, a connection resolver, and a disconnect callback.",
+      `Prisma ${placementKind}-per-tenant requires a manager, a connection resolver, and a disconnect callback.`,
     );
   }
   const maxConnections = options.maxConnections ?? DEFAULT_MAX_CONNECTIONS;
   if (!Number.isSafeInteger(maxConnections) || maxConnections <= 0) {
     throw new PrismaTenancyConfigurationError(
-      "Prisma database-per-tenant requires a positive maxConnections.",
+      `Prisma ${placementKind}-per-tenant requires a positive maxConnections.`,
     );
   }
   const cache: TenantResourceCache<TClient> =
@@ -84,14 +94,14 @@ export function createPrismaDatabaseTenancy<
     ): Promise<TResult> {
       if (typeof callback !== "function") {
         throw new PrismaTenancyConfigurationError(
-          "Prisma database-per-tenant run requires a callback.",
+          `Prisma ${placementKind}-per-tenant run requires a callback.`,
         );
       }
       const context = options.manager.getContext();
       if (context === undefined) throw new TenantContextError("missing");
       if (context.mode !== "tenant") {
         throw new PrismaTenancyConfigurationError(
-          "Prisma database-per-tenant requires a tenant context; access the central database directly.",
+          `Prisma ${placementKind}-per-tenant requires a tenant context; access the central placement directly.`,
         );
       }
       const placement = options.connection(context.tenant);

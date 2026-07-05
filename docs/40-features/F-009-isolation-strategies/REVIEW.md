@@ -2,8 +2,8 @@
 
 ## Status
 
-Architecture, conventions, and security reviews passed locally. T1–T7 and the isolation-review
-hardening are implemented; provisioning remains deferred.
+Architecture, conventions, and security reviews passed locally. Runtime strategies and host-delegated
+provisioning orchestration are implemented.
 
 ## Findings
 
@@ -20,10 +20,11 @@ hardening are implemented; provisioning remains deferred.
   coverage floors.
 - Follow-up consolidations landed: shared adapter errors, integration HTTP mapping, CLI capability
   derivation, all three database-per-tenant bindings, and the optional database-enforced schema role.
-  Provisioning and typed enforcement-tier metadata remain deferred.
-- Final local gate: PostgreSQL 17 `pnpm check` passes 343 tests with 14 MySQL-only skips, all coverage
-  floors, 11 packed-package consumer checks, and Persist Doctor. Dependency audit reports no known
-  vulnerabilities.
+  Typed enforcement-tier metadata remains deferred; provisioning was later completed through the
+  F-012 host-hook design.
+- Current local gate: PostgreSQL/MySQL/MongoDB `pnpm check` passes 587 tests, all coverage floors, 15
+  packed-package consumer checks, and Persist Doctor. The high-severity audit gate passes with one
+  moderate advisory reported below threshold.
 - Database-per-tenant cache review: ADR-0021/0022 produce one bounded, single-flight,
   collision-aware, lease-safe lifecycle with sanitized failures. Knex, Lucid, and Prisma capabilities
   are supported after real separate-database evidence.
@@ -31,3 +32,12 @@ hardening are implemented; provisioning remains deferred.
   Remaining findings were closed with same-connection role/search-path reversion evidence, a lifetime
   tenant/schema collision guard, colliding-ID write assertions for all database routers, a public
   Prisma-router collision test, honest lazy-validation warnings, and callback-lifetime documentation.
+- Expansion review: ADR-0030 preserves the rejected Prisma `search_path` lesson and uses the official
+  Prisma 7 driver schema binding. TypeORM/Sequelize remain thin shared-engine/cache bindings; Mongoose
+  database routing reuses the same cache. Fixed-schema ORM metadata is rejected before execution.
+- New evidence: Prisma schema/PostgreSQL, Prisma database/MySQL, TypeORM and Sequelize schema/database
+  PostgreSQL, and Mongoose database/MongoDB all pass real colliding-ID adversarial tests plus public
+  placement-collision checks.
+- Final drift/security pass found no blocker: dependency direction is unchanged; no runtime network,
+  telemetry, secret handling, MCP, or file-write surface was added; credential-scope limitations remain
+  explicitly documented.

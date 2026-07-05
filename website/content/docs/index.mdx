@@ -1,15 +1,15 @@
 ---
 title: Introduction
-description: Fail-closed, TypeScript-first multi-tenancy for Node.js — one tenant-isolation contract for the framework and ORM you already use.
+description: Fail-closed, TypeScript-first multi-tenancy for Node.js - one tenant-isolation contract for the framework and ORM you already use.
 ---
 
-**TenancyJS** gives every framework and ORM the same tenant-context and isolation contract — without
+**TenancyJS** gives every framework and ORM the same tenant-context and isolation contract - without
 replacing the framework or ORM you already use. Tenant identity follows the async execution scope, so
 your queries stay scoped without threading a `tenantId` through every call.
 
 And the guarantee that matters:
 
-> Any tenant-aware data access without a valid tenant context **throws** — it never returns another
+> Any tenant-aware data access without a valid tenant context **throws** - it never returns another
 > tenant's data.
 
 ## New here? Start with these
@@ -32,12 +32,12 @@ And the guarantee that matters:
 ## The core idea
 
 The dangerous bug in multi-tenancy is the one that _doesn't_ throw. Forget a `WHERE tenant_id = ?` and
-nothing breaks in the demo — you just quietly returned one customer's data to another. TenancyJS makes
+nothing breaks in the demo - you just quietly returned one customer's data to another. TenancyJS makes
 the safe path the default: **no valid tenant context, no data.**
 
 <Cards>
   <Card title="Tenant context" href="/docs/concepts/tenant-context">
-    How identity flows through your app on AsyncLocalStorage — and why it fails
+    How identity flows through your app on AsyncLocalStorage - and why it fails
     closed.
   </Card>
   <Card title="Security model" href="/docs/concepts/security">
@@ -49,8 +49,9 @@ the safe path the default: **no valid tenant context, no data.**
 
 Three strategies, one contract. Pick per app; the same tenant scope drives all three.
 
-> **On MySQL or MongoDB?** Row-level is your path — schema- and database-per-tenant are PostgreSQL-only.
-> The [capability matrix](/docs/concepts/capability-matrix#by-database) breaks it down by database.
+> **On MySQL or MongoDB?** Schema-per-tenant is not a distinct strategy there, but row-level and
+> database-per-tenant are available. The [capability matrix](/docs/concepts/capability-matrix#by-database)
+> breaks down the enforcement strength.
 
 <Cards>
   <Card title="Single database (row-level)" href="/docs/strategies/row-level">
@@ -68,11 +69,11 @@ Three strategies, one contract. Pick per app; the same tenant scope drives all t
 
 <Cards>
   <Card title="Adapters" href="/docs/adapters">
-    Enforce isolation inside your ORM — Prisma, Knex, Lucid, TypeORM,
+    Enforce isolation inside your ORM - Prisma, Knex, Lucid, TypeORM,
     Sequelize, Mongoose.
   </Card>
   <Card title="Integrations" href="/docs/integrations">
-    Scope every request automatically — Express, Next.js, NestJS, AdonisJS.
+    Scope every request automatically - Express, Next.js, NestJS, AdonisJS.
   </Card>
   <Card title="Operational CLI" href="/docs/cli">
     Inspect, create, migrate, and run against your live tenants.
