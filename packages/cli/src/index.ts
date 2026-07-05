@@ -27,8 +27,50 @@ export {
   TenancyCliError,
 } from "./errors.js";
 export type { CliErrorCode } from "./errors.js";
+export { runTenantCheck } from "./commands/check.js";
+export type {
+  CheckStatus,
+  TenantCheckItem,
+  TenantCheckResult,
+} from "./commands/check.js";
+export { runProvisionAction } from "./commands/provision.js";
+export type {
+  ProvisionAction,
+  ProvisionOutcome,
+  ProvisionResult,
+} from "./commands/provision.js";
+export { runScript } from "./commands/run.js";
+export type {
+  RunScope,
+  RunScriptOptions,
+  RunScriptResult,
+} from "./commands/run.js";
+export {
+  runTenantActivate,
+  runTenantCreate,
+  runTenantList,
+  runTenantShow,
+  runTenantSuspend,
+} from "./commands/tenant.js";
+export type {
+  TenantCreateInput,
+  TenantListResult,
+  TenantMutationResult,
+  TenantRecordView,
+  TenantShowResult,
+} from "./commands/tenant.js";
 export { runLeakTest } from "./leak-test.js";
 export type { LeakTestOptions } from "./leak-test.js";
+export { withRuntime } from "./runtime-command.js";
+export { loadTenancyRuntime } from "./runtime-loader.js";
+export type {
+  LoadRuntimeOptions,
+  LoadedAdapter,
+  LoadedProvisioner,
+  LoadedTenancyManager,
+  LoadedTenancyRuntime,
+  LoadedTenantStore,
+} from "./runtime-loader.js";
 export { createInitPlan } from "./plan.js";
 export type { ResolvedInitStack } from "./plan.js";
 export { redactText } from "./redaction.js";

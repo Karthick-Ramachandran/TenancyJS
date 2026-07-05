@@ -3,7 +3,12 @@ export type TenancyErrorCode =
   | "TENANCY_INVALID_TENANT"
   | "TENANCY_INVALID_BOOTSTRAPPER"
   | "TENANCY_DUPLICATE_BOOTSTRAPPER"
-  | "TENANCY_LIFECYCLE_FAILED";
+  | "TENANCY_LIFECYCLE_FAILED"
+  | "TENANCY_STORE_METHOD_UNSUPPORTED"
+  | "TENANCY_STORE_INVALID_TENANT"
+  | "TENANCY_STORE_ID_MISMATCH"
+  | "TENANCY_STORE_DUPLICATE_ID"
+  | "TENANCY_RUNTIME_INVALID";
 
 export class TenancyError extends Error {
   readonly code: TenancyErrorCode;
@@ -54,6 +59,38 @@ export class DuplicateBootstrapperError extends TenancyError {
       "TENANCY_DUPLICATE_BOOTSTRAPPER",
     );
     this.bootstrapperId = bootstrapperId;
+  }
+}
+
+/**
+ * Raised when a host-provided {@link TenantStore} violates its contract — the
+ * boundary that keeps bring-your-own stores from silently handing back the
+ * wrong tenant (ADR-0028). Every failure here is fail-closed: the CLI refuses
+ * to act on the returned data.
+ */
+export class TenantStoreContractError extends TenancyError {
+  readonly method: string;
+
+  constructor(
+    message: string,
+    code: Extract<
+      TenancyErrorCode,
+      | "TENANCY_STORE_METHOD_UNSUPPORTED"
+      | "TENANCY_STORE_INVALID_TENANT"
+      | "TENANCY_STORE_ID_MISMATCH"
+      | "TENANCY_STORE_DUPLICATE_ID"
+    >,
+    method: string,
+  ) {
+    super(message, code);
+    this.method = method;
+  }
+}
+
+/** Raised when a loaded tenancy runtime does not satisfy the runtime contract. */
+export class InvalidTenancyRuntimeError extends TenancyError {
+  constructor(message: string) {
+    super(message, "TENANCY_RUNTIME_INVALID");
   }
 }
 

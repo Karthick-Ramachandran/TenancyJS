@@ -1,0 +1,14 @@
+const RUNTIME_BRAND = Symbol.for("tenancyjs.runtime");
+
+// The config default-exports a factory returning the runtime, which the loader
+// must invoke and await.
+export default async () => ({
+  [RUNTIME_BRAND]: true,
+  manager: {
+    runWithTenant: (_tenant, callback) => callback(),
+    runInCentralContext: (callback) => callback(),
+    getContext: () => undefined,
+  },
+  adapters: [],
+  async dispose() {},
+});
