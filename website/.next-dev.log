@@ -392,3 +392,8 @@ https://react.dev/link/hydration-mismatch
  GET /docs/adapters/sequelize 200 in 206ms (next.js: 2ms, generate-params: 21µs, application-code: 204ms)
  GET /docs/adapters/sequelize 200 in 142ms (next.js: 2ms, generate-params: 17µs, application-code: 139ms)
  GET /docs/adapters/sequelize 200 in 484ms (next.js: 26ms, generate-params: 9ms, application-code: 458ms)
+ GET /docs/getting-started/installation 200 in 135ms (next.js: 8ms, generate-params: 5ms, application-code: 127ms)
+ GET /docs 200 in 180ms (next.js: 3ms, generate-params: 1453µs, application-code: 177ms)
+ GET /docs/concepts/capability-matrix 200 in 666ms (next.js: 6ms, generate-params: 1668µs, application-code: 661ms)
+ GET /docs/concepts/capability-matrix 200 in 45ms (next.js: 11ms, generate-params: 1469µs, application-code: 34ms)
+ GET /docs/concepts/capability-matrix 200 in 36ms (next.js: 5ms, generate-params: 1471µs, application-code: 30ms)
