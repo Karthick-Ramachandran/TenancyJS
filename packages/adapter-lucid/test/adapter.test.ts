@@ -41,7 +41,7 @@ describe("createLucidTenancy", () => {
     expect(LUCID_ADAPTER_CAPABILITIES).toEqual({
       rowLevel: "supported",
       schemaPerTenant: "supported",
-      databasePerTenant: "unsupported",
+      databasePerTenant: "supported",
       centralModels: "supported",
       transactions: "supported",
       nestedReads: "supported",
@@ -189,6 +189,31 @@ describe("createLucidTenancy", () => {
       },
     ],
     ["unknown strategy", { strategy: "unknown" }],
+    [
+      "database-per-tenant without connection",
+      { strategy: "databasePerTenant" },
+    ],
+    [
+      "connection on row-level",
+      { connection: () => ({ key: "k", create: () => ({}) }) },
+    ],
+    ["maxConnections on row-level", { maxConnections: 5 }],
+    [
+      "non-positive maxConnections",
+      {
+        strategy: "databasePerTenant",
+        connection: () => ({ key: "k", create: () => ({}) }),
+        maxConnections: 0,
+      },
+    ],
+    [
+      "database-per-tenant row policy",
+      {
+        strategy: "databasePerTenant",
+        connection: () => ({ key: "k", create: () => ({}) }),
+        tenantColumn: "tenant_id",
+      },
+    ],
   ])("rejects schema strategy configuration with %s", (_name, input) => {
     const model = createFakeModel("Post", "posts").model;
     expect(() =>

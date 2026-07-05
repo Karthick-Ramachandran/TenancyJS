@@ -12,6 +12,7 @@ import {
   PostgresStrategyValidationError,
   applyPostgresRowContext,
   createPostgresStrategyEngine,
+  createTenantResourceCache,
   decideTenantDiscriminator,
   type PostgresExecutor,
   type PostgresSchemaStrategyEngine,
@@ -27,6 +28,8 @@ import { LUCID_ADAPTER_CAPABILITIES } from "./capabilities.js";
 import {
   type LucidTenancyConfig,
   type LucidTenancyOptions,
+  type LucidTenantConnection,
+  type LucidTransactionProvider,
   type NormalizedLucidTenantModelConfig,
   defineLucidTenancyConfig,
 } from "./config.js";
@@ -42,9 +45,10 @@ export interface LucidTenancyAdapter<
   TTenant extends TenantRecord = TenantRecord,
 > extends TenancyAdapter {
   readonly name: "lucid";
-  readonly strategy: "rowLevel" | "schemaPerTenant";
+  readonly strategy: "rowLevel" | "schemaPerTenant" | "databasePerTenant";
   readonly config: LucidTenancyConfig<TTenant>;
   run<TResult>(callback: () => MaybePromise<TResult>): Promise<TResult>;
+  close(): Promise<void>;
 }
 
 export function createLucidTenancy<TTenant extends TenantRecord = TenantRecord>(
@@ -53,7 +57,28 @@ export function createLucidTenancy<TTenant extends TenantRecord = TenantRecord>(
   const config = defineLucidTenancyConfig(options);
   const schemaEngine = createSchemaEngine(config);
   const transactions = new AsyncLocalStorage<TransactionClientContract>();
+  const connectionCache =
+    config.strategy === "databasePerTenant"
+      ? createTenantResourceCache<LucidTenantConnection>({
+          capacity: config.maxConnections,
+          destroy: (connection) => connection.destroy(),
+        })
+      : undefined;
   let validated = false;
+
+  async function runWithTransaction<TResult>(
+    provider: LucidTransactionProvider,
+    context: TenantContext<TTenant>,
+    callback: () => MaybePromise<TResult>,
+  ): Promise<TResult> {
+    const execute = async (transaction: TransactionClientContract) => {
+      if (config.strategy !== "databasePerTenant") {
+        await setTransactionContext(transaction, context, schemaEngine);
+      }
+      return transactions.run(transaction, async () => await callback());
+    };
+    return provider.transaction(execute);
+  }
 
   const adapter: LucidTenancyAdapter<TTenant> = Object.freeze({
     name: "lucid" as const,
@@ -61,6 +86,12 @@ export function createLucidTenancy<TTenant extends TenantRecord = TenantRecord>(
     capabilities: LUCID_ADAPTER_CAPABILITIES,
     config,
     async validate() {
+      // Database-per-tenant isolation is structural (separate databases); the
+      // strategy is valid once configured and fails closed at first lease.
+      if (config.strategy === "databasePerTenant") {
+        validated = true;
+        return Object.freeze({ valid: true, issues: Object.freeze([]) });
+      }
       try {
         const result =
           config.strategy === "rowLevel"
@@ -85,13 +116,25 @@ export function createLucidTenancy<TTenant extends TenantRecord = TenantRecord>(
       const context = config.manager.getContext();
       if (context === undefined) throw new TenantContextError("missing");
       const parent = transactions.getStore();
-      const execute = async (transaction: TransactionClientContract) => {
-        await setTransactionContext(transaction, context, schemaEngine);
-        return transactions.run(transaction, async () => await callback());
-      };
-      return parent === undefined
-        ? config.database.transaction(execute)
-        : parent.transaction(execute);
+      if (parent !== undefined) {
+        return runWithTransaction(parent, context, callback);
+      }
+      if (
+        config.strategy === "databasePerTenant" &&
+        context.mode === "tenant"
+      ) {
+        const placement = config.connection!(context.tenant);
+        return connectionCache!.lease(
+          context.tenant.id,
+          placement.key,
+          placement.create,
+          (connection) => runWithTransaction(connection, context, callback),
+        );
+      }
+      return runWithTransaction(config.database, context, callback);
+    },
+    async close() {
+      if (connectionCache !== undefined) await connectionCache.close();
     },
   });
 
@@ -102,7 +145,7 @@ export function createLucidTenancy<TTenant extends TenantRecord = TenantRecord>(
 }
 
 function validationFailure(
-  strategy: "rowLevel" | "schemaPerTenant",
+  strategy: "rowLevel" | "schemaPerTenant" | "databasePerTenant",
 ): TenancyAdapterValidationResult {
   return Object.freeze({
     valid: false,
@@ -123,7 +166,7 @@ function registerModelHooks<TTenant extends TenantRecord>(
   config: Readonly<NormalizedLucidTenantModelConfig>,
   manager: LucidTenancyConfig<TTenant>["manager"],
   transactions: AsyncLocalStorage<TransactionClientContract>,
-  strategy: "rowLevel" | "schemaPerTenant",
+  strategy: "rowLevel" | "schemaPerTenant" | "databasePerTenant",
 ): void {
   const model = config.model;
   model.boot();
@@ -181,7 +224,7 @@ function scopeQuery(
   context: TenantContext | undefined,
   transaction: TransactionClientContract | undefined,
   operation: string,
-  strategy: "rowLevel" | "schemaPerTenant",
+  strategy: "rowLevel" | "schemaPerTenant" | "databasePerTenant",
 ): void {
   const active = requireScope(config, context, transaction, operation);
   rejectCrossPlacement(active.context, strategy, config.modelName, operation);
@@ -196,7 +239,7 @@ function scopePersistence(
   config: Readonly<NormalizedLucidTenantModelConfig>,
   context: TenantContext | undefined,
   transaction: TransactionClientContract | undefined,
-  strategy: "rowLevel" | "schemaPerTenant",
+  strategy: "rowLevel" | "schemaPerTenant" | "databasePerTenant",
 ): void {
   const operation = row.$isNew ? "create" : "update";
   const active = attachPersistence(
@@ -207,7 +250,7 @@ function scopePersistence(
     operation,
   );
   rejectCrossPlacement(active.context, strategy, config.modelName, operation);
-  if (strategy === "schemaPerTenant") return;
+  if (strategy !== "rowLevel") return;
   if (active.context.mode !== "tenant") return;
   const supplied = row.$getAttribute(config.tenantAttribute);
   const decision = decideTenantDiscriminator(
@@ -297,7 +340,7 @@ function lucidExecutor(client: LucidRawClient): PostgresExecutor {
 function createSchemaEngine<TTenant extends TenantRecord>(
   config: LucidTenancyConfig<TTenant>,
 ): PostgresSchemaStrategyEngine<TTenant> | undefined {
-  if (config.strategy === "rowLevel") return undefined;
+  if (config.strategy !== "schemaPerTenant") return undefined;
   return createPostgresStrategyEngine({
     codePrefix: "TENANCY_LUCID",
     adapterName: "Lucid",
@@ -309,13 +352,13 @@ function createSchemaEngine<TTenant extends TenantRecord>(
 
 function rejectCrossPlacement(
   context: TenantContext,
-  strategy: "rowLevel" | "schemaPerTenant",
+  strategy: "rowLevel" | "schemaPerTenant" | "databasePerTenant",
   model: string,
   operation: string,
 ): void {
-  if (strategy === "schemaPerTenant" && context.mode === "central") {
+  if (strategy !== "rowLevel" && context.mode === "central") {
     throw new LucidTenancyConfigurationError(
-      `Lucid ${model}.${operation} cannot access a tenant model from central schema-per-tenant context.`,
+      `Lucid ${model}.${operation} cannot access a tenant model from a central ${strategy} context.`,
     );
   }
 }

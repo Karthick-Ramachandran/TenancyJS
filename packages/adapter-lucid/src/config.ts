@@ -1,4 +1,8 @@
-import type { TenancyManager, TenantRecord } from "@tenancyjs/core";
+import type {
+  MaybePromise,
+  TenancyManager,
+  TenantRecord,
+} from "@tenancyjs/core";
 import {
   POSTGRES_CENTRAL_SETTING,
   POSTGRES_TENANT_SETTING,
@@ -6,12 +10,31 @@ import {
   normalizeQualifiedTable,
 } from "@tenancyjs/adapter-shared";
 import type { Database } from "@adonisjs/lucid/database";
+import type { TransactionClientContract } from "@adonisjs/lucid/types/database";
 import type { LucidModel } from "@adonisjs/lucid/types/model";
 
 import { LucidTenancyConfigurationError } from "./errors.js";
 
 const DEFAULT_TENANT_ATTRIBUTE = "tenantId";
 const DEFAULT_TENANT_COLUMN = "tenant_id";
+const DEFAULT_MAX_CONNECTIONS = 25;
+
+/** Minimal transaction provider satisfied by Database, a transaction, or a leased tenant connection. */
+export interface LucidTransactionProvider {
+  transaction<TResult>(
+    callback: (transaction: TransactionClientContract) => Promise<TResult>,
+  ): Promise<TResult>;
+}
+
+/** A per-tenant connection the host supplies for database-per-tenant, plus its disposal. */
+export interface LucidTenantConnection extends LucidTransactionProvider {
+  destroy(): MaybePromise<void>;
+}
+
+export interface LucidDatabasePlacement {
+  readonly key: string;
+  readonly create: () => MaybePromise<LucidTenantConnection>;
+}
 
 export const LUCID_TENANT_SETTING = POSTGRES_TENANT_SETTING;
 export const LUCID_CENTRAL_SETTING = POSTGRES_CENTRAL_SETTING;
@@ -30,9 +53,11 @@ export interface LucidTenancyOptions<
   readonly manager: TenancyManager<TTenant>;
   readonly database: Database;
   readonly tenantModels: readonly LucidTenantModelConfig[];
-  readonly strategy?: "rowLevel" | "schemaPerTenant";
+  readonly strategy?: "rowLevel" | "schemaPerTenant" | "databasePerTenant";
   readonly schema?: (tenant: TTenant) => string;
   readonly centralSchema?: string;
+  readonly connection?: (tenant: TTenant) => LucidDatabasePlacement;
+  readonly maxConnections?: number;
 }
 
 export interface NormalizedLucidTenantModelConfig {
@@ -51,9 +76,12 @@ export interface LucidTenancyConfig<
 > {
   readonly manager: TenancyManager<TTenant>;
   readonly database: Database;
-  readonly strategy: "rowLevel" | "schemaPerTenant";
+  readonly strategy: "rowLevel" | "schemaPerTenant" | "databasePerTenant";
   readonly schema: ((tenant: TTenant) => string) | undefined;
   readonly centralSchema: string;
+  readonly connection:
+    ((tenant: TTenant) => LucidDatabasePlacement) | undefined;
+  readonly maxConnections: number;
   readonly tenantModels: readonly Readonly<NormalizedLucidTenantModelConfig>[];
 }
 
@@ -94,9 +122,13 @@ export function defineLucidTenancyConfig<
   }
 
   const strategy = options.strategy ?? "rowLevel";
-  if (strategy !== "rowLevel" && strategy !== "schemaPerTenant") {
+  if (
+    strategy !== "rowLevel" &&
+    strategy !== "schemaPerTenant" &&
+    strategy !== "databasePerTenant"
+  ) {
     throw new LucidTenancyConfigurationError(
-      "Lucid tenancy strategy must be rowLevel or schemaPerTenant.",
+      "Lucid tenancy strategy must be rowLevel, schemaPerTenant, or databasePerTenant.",
     );
   }
   if (strategy === "schemaPerTenant" && typeof options.schema !== "function") {
@@ -104,14 +136,44 @@ export function defineLucidTenancyConfig<
       "Lucid schema-per-tenant requires a schema resolver.",
     );
   }
-  if (strategy === "rowLevel" && options.schema !== undefined) {
+  if (strategy !== "schemaPerTenant" && options.schema !== undefined) {
     throw new LucidTenancyConfigurationError(
-      "Lucid row-level tenancy does not accept a schema resolver.",
+      "Only Lucid schema-per-tenant accepts a schema resolver.",
     );
   }
-  if (strategy === "rowLevel" && options.centralSchema !== undefined) {
+  if (strategy !== "schemaPerTenant" && options.centralSchema !== undefined) {
     throw new LucidTenancyConfigurationError(
-      "Lucid row-level tenancy does not accept a central schema placement.",
+      "Only Lucid schema-per-tenant accepts a central schema placement.",
+    );
+  }
+  if (
+    strategy === "databasePerTenant" &&
+    typeof options.connection !== "function"
+  ) {
+    throw new LucidTenancyConfigurationError(
+      "Lucid database-per-tenant requires a connection resolver.",
+    );
+  }
+  if (strategy !== "databasePerTenant" && options.connection !== undefined) {
+    throw new LucidTenancyConfigurationError(
+      "Only Lucid database-per-tenant accepts a connection resolver.",
+    );
+  }
+  if (
+    strategy !== "databasePerTenant" &&
+    options.maxConnections !== undefined
+  ) {
+    throw new LucidTenancyConfigurationError(
+      "Only Lucid database-per-tenant accepts maxConnections.",
+    );
+  }
+  const maxConnections = options.maxConnections ?? DEFAULT_MAX_CONNECTIONS;
+  if (
+    strategy === "databasePerTenant" &&
+    (!Number.isSafeInteger(maxConnections) || maxConnections <= 0)
+  ) {
+    throw new LucidTenancyConfigurationError(
+      "Lucid database-per-tenant requires a positive maxConnections.",
     );
   }
   const centralSchema = assertIdentifier(
@@ -144,6 +206,8 @@ export function defineLucidTenancyConfig<
     strategy,
     schema: options.schema,
     centralSchema,
+    connection: options.connection,
+    maxConnections,
     tenantModels: Object.freeze(tenantModels),
   });
 }
@@ -151,17 +215,17 @@ export function defineLucidTenancyConfig<
 function normalizeModel(
   entry: LucidTenantModelConfig,
   index: number,
-  strategy: "rowLevel" | "schemaPerTenant",
+  strategy: "rowLevel" | "schemaPerTenant" | "databasePerTenant",
 ): NormalizedLucidTenantModelConfig {
   if (entry === null || typeof entry !== "object") invalidModel(index);
   if (
-    strategy === "schemaPerTenant" &&
+    strategy !== "rowLevel" &&
     (entry.tenantAttribute !== undefined ||
       entry.tenantColumn !== undefined ||
       entry.policyName !== undefined)
   ) {
     throw new LucidTenancyConfigurationError(
-      `Lucid schema-per-tenant model at index ${index} cannot configure row-level tenant attributes, columns, or RLS policies.`,
+      `Lucid ${strategy} model at index ${index} cannot configure row-level tenant attributes, columns, or RLS policies.`,
     );
   }
   const model = entry.model;
@@ -208,7 +272,7 @@ function normalizeModel(
 function normalizeTableName(
   name: unknown,
   modelName: string,
-  strategy: "rowLevel" | "schemaPerTenant",
+  strategy: "rowLevel" | "schemaPerTenant" | "databasePerTenant",
 ): Readonly<{
   schema: string | undefined;
   table: string;
@@ -216,13 +280,13 @@ function normalizeTableName(
 }> {
   const normalized = normalizeQualifiedTable(name, {
     label: `Table for Lucid model "${modelName}"`,
-    allowQualified: strategy === "rowLevel",
-    ...(strategy === "rowLevel" ? { defaultSchema: "public" } : {}),
+    allowQualified: strategy !== "schemaPerTenant",
+    ...(strategy !== "schemaPerTenant" ? { defaultSchema: "public" } : {}),
     createError: () =>
       new LucidTenancyConfigurationError(
-        strategy === "rowLevel"
-          ? `Table for Lucid model "${modelName}" must be an unaliased PostgreSQL identifier or schema-qualified identifier.`
-          : `Table for Lucid model "${modelName}" must be an unqualified PostgreSQL identifier in schema-per-tenant mode.`,
+        strategy === "schemaPerTenant"
+          ? `Table for Lucid model "${modelName}" must be an unqualified PostgreSQL identifier in schema-per-tenant mode.`
+          : `Table for Lucid model "${modelName}" must be an unaliased PostgreSQL identifier or schema-qualified identifier.`,
       ),
   });
   return Object.freeze({
