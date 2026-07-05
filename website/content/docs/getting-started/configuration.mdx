@@ -5,39 +5,51 @@ description: Define a tenancy.config.ts runtime so the CLI and your app share on
 
 The operational [CLI](/docs/cli) reaches your live tenants by loading a `tenancy.config.ts` at runtime.
 Node 24 strips the TypeScript types natively, so there is **no transpiler dependency** — the CLI stays
-zero-dependency.
+zero-dependency, and your config is just TypeScript.
+
+The CLI looks for `tenancy.config.ts` (then `.mts`/`.mjs`/`.js`) in your project root, or wherever you
+point it with `--config <path>`.
 
 ## `defineTenancyRuntime`
 
-Export a runtime from your config. It is the single contract the CLI reads — it never reaches into
+Export a runtime from your config. It's the single contract the CLI reads — it never reaches into
 framework internals.
 
 ```ts title="tenancy.config.ts"
 import { defineTenancyRuntime } from "tenancyjs-core";
-import { manager } from "./tenancy";
+import { manager, tenancy } from "./tenancy";
 import { store } from "./tenant-store";
 
 export default defineTenancyRuntime({
-  manager,
-  store,
-  adapters: [tenancy],
-  // optional per-tenant lifecycle hooks for schema/database-per-tenant:
+  manager, // required — your TenancyManager
+  store, // optional — powers the registry commands (list/create/…)
+  adapters: [tenancy], // optional — powers `tenant check` capability reporting
   provisioner: {
+    // optional — powers provision/deprovision/migrate
     provision: async (tenant) => {
       /* create the tenant's schema/database */
     },
     migrate: async (tenant) => {
       /* run your migrator against the tenant's placement */
     },
+    deprovision: async (tenant) => {
+      /* drop the tenant's schema/database */
+    },
+  },
+  dispose: async () => {
+    /* optional — close connections so the CLI exits cleanly */
   },
 });
 ```
 
+Everything except `manager` is optional; a command that needs an absent piece fails with a clear
+message (e.g. "your runtime has no provisioner") instead of doing something surprising.
+
 ## Bring-your-own tenant store
 
 TenancyJS does not own where tenants live — your table, your API, your Prisma model. A `TenantStore`
-implements only the methods you support; the rest degrade with a clear "not supported by your store"
-error.
+implements only the methods you support; commands that need a missing one degrade with a clear "not
+supported by your store" error.
 
 ```ts title="tenant-store.ts"
 import type { TenantStore } from "tenancyjs-core";
@@ -48,14 +60,27 @@ export const store: TenantStore<Tenant> = {
   create: (input) => db.tenant.create({ data: input }),
   suspend: (id) => db.tenant.update({ where: { id }, data: { status: "suspended" } }),
   activate: (id) => db.tenant.update({ where: { id }, data: { status: "active" } }),
+  delete: (id) => db.tenant.delete({ where: { id } }),
 };
 ```
 
 <Callout type="warn">
-  The store is **hardened at the boundary**: a `find(id)` that returns a tenant whose id doesn't match,
-  or a `list()` with duplicate ids, is rejected — a buggy store can't leak one tenant's data under
-  another's identity.
+  The store is **hardened at the boundary**. A `find(id)` that returns a tenant whose id doesn't match,
+  a `list()` with duplicate ids, or a `create` that doesn't echo the requested id is **rejected** —
+  a buggy store can't leak one tenant's data under another's identity. This holds even for a hand-built
+  config, because the CLI re-hardens the store on load.
 </Callout>
+
+## Placement lives on the record
+
+For schema- and database-per-tenant, put each tenant's placement (its schema name or connection
+reference) on the tenant record your store returns. Provisioning and migration read it from there, so
+there's one source of truth for where a tenant's data lives.
+
+## Secrets are redacted
+
+Every operational command redacts secrets — connection strings, passwords, tokens — from both human and
+`--json` output. You don't have to scrub anything yourself.
 
 Once the config exists, the CLI can act:
 

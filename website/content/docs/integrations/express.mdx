@@ -3,9 +3,9 @@ title: Express
 description: Scope every Express request to its tenant with one middleware.
 ---
 
-`tenancyjs-integration-express` resolves the tenant per request and runs the rest of the request inside
-that tenant's scope. Everything downstream of the middleware — routes, services, ORM queries — is
-automatically scoped.
+`tenancyjs-integration-express` resolves the tenant for each request and runs the rest of that request
+inside the tenant's scope. Everything downstream of the middleware — routes, services, ORM queries — is
+automatically scoped. You never open a scope by hand in a controller.
 
 ## Install
 
@@ -13,9 +13,12 @@ automatically scoped.
 npm install tenancyjs-integration-express
 ```
 
-## Usage
+## Add the middleware
 
-```ts
+Register it early, before your routes. Give it your `manager` and a **resolver** that turns a request
+into a tenant.
+
+```ts title="server.ts"
 import express from "express";
 import { createExpressTenancyMiddleware } from "tenancyjs-integration-express";
 import { manager } from "./tenancy";
@@ -35,5 +38,40 @@ app.get("/orders", async (_req, res) => {
 });
 ```
 
-If the resolver can't produce a valid tenant, the middleware responds with the right status (400/404)
-and your handler never runs — no unscoped request reaches your code.
+## How it behaves
+
+- **On success:** the tenant scope is open for the whole request; adapters are scoped, and the scope is
+  torn down when the response finishes.
+- **On a resolution failure:** if the resolver can't produce a valid tenant — missing/invalid
+  identifier, or an unknown/suspended tenant — the middleware responds with the right status
+  (**400** or **404**) and your handler never runs. No unscoped request reaches your code.
+
+## Resolving the tenant
+
+The resolver is yours. Common sources:
+
+```ts
+// Subdomain: acme.example.com → "acme"
+resolver: (req) => ({ id: req.subdomains.at(-1) ?? "" });
+
+// Header
+resolver: (req) => ({ id: req.header("x-tenant") ?? "" });
+
+// Path segment: /t/acme/...
+resolver: (req) => ({ id: req.path.split("/")[2] ?? "" });
+```
+
+For non-trivial resolution — looking a tenant up in your store, handling suspended tenants, mapping a
+domain to a tenant — use [`tenancyjs-identifiers`](/docs/integrations#resolving-a-tenant), which gives
+you composable resolvers and consistent 400/404 semantics.
+
+## Next steps
+
+<Cards>
+  <Card title="Choose a strategy" href="/docs/concepts/capability-matrix">
+    Row-level, schema-, or database-per-tenant.
+  </Card>
+  <Card title="Prisma adapter" href="/docs/adapters/prisma">
+    The common pairing with Express.
+  </Card>
+</Cards>

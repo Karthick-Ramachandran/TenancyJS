@@ -1,0 +1,86 @@
+---
+title: How it works
+description: The four pieces of TenancyJS and how tenant context flows from a request to a scoped query.
+---
+
+TenancyJS is a small set of composable pieces, each with one job. Understanding how they fit makes
+everything else in these docs click.
+
+## The four pieces
+
+<Cards>
+  <Card title="Core" href="/docs/concepts/tenant-context">
+    The `TenancyManager` owns tenant context on AsyncLocalStorage, and defines the runtime + store
+    contracts. Framework- and ORM-neutral.
+  </Card>
+  <Card title="Adapters" href="/docs/adapters">
+    Enforce isolation *inside* your ORM — filter reads, stamp writes, and (on SQL) lean on forced RLS.
+  </Card>
+  <Card title="Integrations" href="/docs/integrations">
+    Bind tenant context to your framework's request lifecycle, so every request runs scoped.
+  </Card>
+  <Card title="CLI" href="/docs/cli">
+    Operate the tenancy — inspect, create, migrate, provision, and run scripts against live tenants.
+  </Card>
+</Cards>
+
+## The flow of a request
+
+Here's what happens on a normal request, end to end:
+
+<Steps>
+
+<Step>
+### A request arrives
+
+Your **integration** middleware runs first. It calls your **resolver** to turn the request into a tenant
+(from a subdomain, header, path, or claim).
+</Step>
+
+<Step>
+### Identity is validated
+
+If the tenant is unknown, suspended, or ambiguous, the request **fails closed** with the right status
+(400/404) — before any handler runs. No unscoped request reaches your code.
+</Step>
+
+<Step>
+### A tenant scope opens
+
+The integration calls `manager.runWithTenant(tenant, …)`, which stores the tenant in
+`AsyncLocalStorage` for the lifetime of the request.
+</Step>
+
+<Step>
+### Queries are scoped automatically
+
+Inside that scope, every query through a registered **adapter** is filtered to the tenant. On SQL, the
+database's forced **RLS** is a second backstop. Outside a scope, adapters throw.
+</Step>
+
+<Step>
+### The scope tears down
+
+When the request ends — success or error — the scope is disposed. Nothing leaks to the next request.
+</Step>
+
+</Steps>
+
+## Where isolation is actually enforced
+
+TenancyJS deliberately enforces at more than one layer, so a single mistake can't cause a leak:
+
+| Layer | What it does |
+| --- | --- |
+| **Context** | No valid tenant scope → the adapter throws (fail-closed) |
+| **Adapter facade** | Injects the tenant filter on reads, the tenant field on writes; rejects unsafe criteria |
+| **Database (SQL)** | Forced Postgres **RLS** rejects cross-tenant rows even under raw SQL |
+| **Store boundary** | A bring-your-own store that returns the wrong tenant is rejected before anything acts on it |
+
+## What TenancyJS does *not* own
+
+- **Auth.** Tenant identity is not authorization — your app decides what a user may do within a tenant.
+- **Your database.** It orchestrates and delegates (to your store and migrator); it doesn't host tenants.
+
+Read on: [Tenant context](/docs/concepts/tenant-context) goes deep on the fail-closed model, and the
+[Capability matrix](/docs/concepts/capability-matrix) shows exactly what's proven per adapter.

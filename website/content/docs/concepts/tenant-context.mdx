@@ -1,6 +1,6 @@
 ---
 title: Tenant context
-description: How tenant identity flows through your app — and why it fails closed.
+description: How tenant identity flows through your app on AsyncLocalStorage — and why it fails closed.
 ---
 
 Tenant context is the heart of TenancyJS. It answers one question at every layer of your app: _which
@@ -19,6 +19,9 @@ await manager.runWithTenant({ id: "acme" }, async () => {
 });
 ```
 
+You rarely call `runWithTenant` yourself in app code — your [integration](/docs/integrations) opens the
+scope per request. You reach for it directly in scripts, jobs, and tests.
+
 ## Fail-closed
 
 This is the core guarantee. A tenant-aware adapter used **without** a valid context does not return
@@ -35,8 +38,9 @@ the boundary, not a silent leak three hops later.
 
 ## Central context
 
-Some work is legitimately cross-tenant — a superadmin dashboard, a billing rollup. For that, open an
-**explicit** central scope. It is deliberate and visible in the code, never an accidental fallback.
+Some work is legitimately cross-tenant — a superadmin dashboard, a billing rollup, a nightly job across
+all tenants. For that, open an **explicit** central scope. It's deliberate and visible in the code,
+never an accidental fallback.
 
 ```ts
 await manager.runInCentralContext(async () => {
@@ -44,10 +48,31 @@ await manager.runInCentralContext(async () => {
 });
 ```
 
-An unknown, suspended, or ambiguous tenant is **never** silently promoted to central context.
+An unknown, suspended, or ambiguous tenant is **never** silently promoted to central context. If you
+want cross-tenant behaviour you have to ask for it by name.
+
+## Reading the current tenant
+
+```ts
+manager.getTenant(); // the tenant, or null in central scope
+manager.getContext(); // { mode: "tenant", tenant } | { mode: "central" } | undefined
+```
+
+`getContext()` returns `undefined` when there's no active scope at all — useful for guarding code that
+may run both inside and outside a request.
 
 ## Lifecycle & cleanup
 
 Adapters run inside a transaction scoped to the tenant, and that scope is torn down on **every** path —
-success or error. There is no context left dangling between requests. Bootstrappers and lifecycle
-listeners let you run setup/teardown around each tenant scope.
+success or error. There's no context left dangling between requests.
+
+For setup and teardown around each tenant scope — priming a cache, opening a per-tenant resource — the
+manager supports **bootstrappers** and lifecycle listeners (`tenancy.initializing` → `initialized` →
+`ending` → `ended`). A bootstrapper's `revert` always runs if its `bootstrap` ran, even when the scope
+fails, so you never leak a half-open resource.
+
+<Callout type="info">
+  Nesting a scope for a **different** tenant inside an active tenant scope is rejected — it's almost
+  always a bug, and allowing it would be a subtle way to cross tenants. Open central scope explicitly if
+  you need to step outside the current tenant.
+</Callout>

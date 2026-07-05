@@ -1,11 +1,11 @@
 ---
 title: Next.js
-description: Tenant context across the Edge/Node boundary in the App Router.
+description: Tenant context across the Edge/Node boundary in the Next.js App Router.
 ---
 
 `tenancyjs-integration-next` supports the Next.js **App Router**. Next runs middleware on the Edge and
-handlers on Node, so the integration handles the identity hand-off across that boundary — your Server
-Components and Route Handlers see the resolved tenant.
+your handlers on Node, so identity has to cross that boundary. The integration handles the hand-off —
+your Server Components and Route Handlers see the resolved tenant.
 
 ## Install
 
@@ -13,11 +13,13 @@ Components and Route Handlers see the resolved tenant.
 npm install tenancyjs-integration-next
 ```
 
-## Usage
+## Set up the runtime
 
-```ts
+Create the tenancy with your `manager` and a resolver:
+
+```ts title="lib/tenancy.ts"
 import { createNextTenancy } from "tenancyjs-integration-next";
-import { manager } from "./tenancy";
+import { manager } from "./manager";
 
 export const tenancy = createNextTenancy({
   manager,
@@ -25,10 +27,37 @@ export const tenancy = createNextTenancy({
 });
 ```
 
-Wire the middleware in `middleware.ts` to resolve identity at the edge, then read the tenant inside your
-Server Components / Route Handlers — the context is carried across for you.
+## Resolve identity at the edge
+
+Wire the edge middleware in `middleware.ts` so identity is resolved once, at the boundary, and carried
+forward:
+
+```ts title="middleware.ts"
+export { middleware } from "@/lib/tenancy";
+
+export const config = {
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+};
+```
+
+Then, inside a Server Component or Route Handler, run scoped work — the tenant is already in context:
+
+```ts title="app/orders/route.ts"
+import { tenancy } from "@/lib/tenancy";
+
+export async function GET() {
+  const orders = await tenancy.run(() => db.order.findMany());
+  return Response.json(orders);
+}
+```
 
 <Callout type="info">
   See [ADR-0009](https://github.com/Karthick-Ramachandran/TenancyJS/blob/main/docs/adrs/ADR-0009-nextjs-node-execution-and-edge-identity-handoff.md)
-  for how the Edge→Node identity hand-off works.
+  for how the Edge → Node identity hand-off is implemented and why it's safe.
 </Callout>
+
+## Notes
+
+- Prisma is the common ORM pairing with Next.js — see the [Prisma adapter](/docs/adapters/prisma).
+- Static routes with no tenant should not call scoped adapters; guard them, or open a
+  [central scope](/docs/concepts/tenant-context#central-context) explicitly.

@@ -1,11 +1,16 @@
 ---
 title: AdonisJS
-description: Wire Lucid tenancy into the Adonis request lifecycle.
+description: Wire Lucid tenancy into the AdonisJS request lifecycle via a provider and middleware.
 ---
 
-`tenancyjs-integration-adonis` connects [Lucid tenancy](/docs/adapters/lucid) to the AdonisJS request
-lifecycle through a provider and middleware — a natural fit with Lucid's full strategy support (all
-three isolation models).
+`tenancyjs-integration-adonis` connects [Lucid tenancy](/docs/adapters/lucid) to the AdonisJS 7 request
+lifecycle. Because Lucid supports **all three isolation strategies**, AdonisJS gets the full range —
+row-level, schema-per-tenant, and database-per-tenant — out of the box.
+
+<Callout type="info">
+  `tenancy init` scaffolds AdonisJS + Lucid end-to-end, so the fastest path is
+  [`npx tenancy init`](/docs/getting-started/installation). This page covers the manual wiring.
+</Callout>
 
 ## Install
 
@@ -13,13 +18,12 @@ three isolation models).
 npm install tenancyjs-integration-adonis
 ```
 
-## Usage
+## Configure
 
-Register the provider and configure tenancy with `defineAdonisTenancyConfig`, then add the middleware to
-your router. Each request resolves its tenant and runs scoped, so your Lucid models are automatically
-isolated.
+Define your tenancy config with `defineAdonisTenancyConfig`, providing a resolver that turns the request
+context into a tenant:
 
-```ts
+```ts title="config/tenancy.ts"
 import { defineAdonisTenancyConfig } from "tenancyjs-integration-adonis";
 
 export default defineAdonisTenancyConfig({
@@ -27,5 +31,23 @@ export default defineAdonisTenancyConfig({
 });
 ```
 
-Because Lucid supports row-level, schema-per-tenant, and database-per-tenant, AdonisJS gets the full
-range of isolation strategies out of the box.
+Register the provider, then add the tenancy middleware to your router (the `init` scaffold does both for
+you). Each request resolves its tenant and runs scoped, so your Lucid models are automatically isolated
+— no per-query tenant filters.
+
+## How it behaves
+
+- The middleware opens a tenant scope for the request; Lucid queries run scoped through the adapter.
+- Resolution failures fail closed with the right status before your controller runs.
+- Central-scope work (cross-tenant admin) is opened explicitly, never by accident.
+
+## Next steps
+
+<Cards>
+  <Card title="Lucid adapter" href="/docs/adapters/lucid">
+    All three isolation strategies with Lucid.
+  </Card>
+  <Card title="Schema per tenant" href="/docs/strategies/schema-per-tenant">
+    A strong Adonis + Lucid pairing.
+  </Card>
+</Cards>

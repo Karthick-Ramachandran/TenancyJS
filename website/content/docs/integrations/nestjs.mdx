@@ -1,11 +1,16 @@
 ---
 title: NestJS
-description: A module + interceptor that scopes every request, on Express or Fastify.
+description: Scope every request with a module and interceptor, on Express or Fastify.
 ---
 
-`tenancyjs-integration-nest` provides a Nest module and interceptor. Register the module and requests
-are scoped for you; inject the tenant where you need it. Works on both the Express and Fastify
-platforms.
+`tenancyjs-integration-nest` brings tenant scoping to NestJS 11. Register the tenancy module and an
+interceptor opens a tenant scope for the lifetime of each request; your controllers and providers run
+inside it. It works on both the **Express** and **Fastify** platforms.
+
+<Callout type="info">
+  NestJS is fully supported, but `tenancy init` doesn't scaffold it yet — this page is the manual setup
+  (a few lines). See [Installation](/docs/getting-started/installation) for what `init` covers.
+</Callout>
 
 ## Install
 
@@ -13,17 +18,39 @@ platforms.
 npm install tenancyjs-integration-nest
 ```
 
-## Usage
+## Wire it up
 
-Register the tenancy module with your `manager` and a resolver, and the interceptor opens a tenant scope
-for the lifetime of each request.
+Provide your `manager` and a resolver to the tenancy module, and register the interceptor globally so
+every request is scoped. Then pair it with the [adapter](/docs/adapters) for your ORM.
 
-```ts
+```ts title="app.module.ts"
 import { Module } from "@nestjs/common";
 import { createNestResolverInput } from "tenancyjs-integration-nest";
+import { manager } from "./tenancy";
 
-// Provide the manager + resolver to the tenancy module, then the interceptor
-// scopes each request. Controllers and providers run inside the tenant scope.
+// Register the tenancy module with the manager + a resolver that turns the
+// incoming request into a tenant. The interceptor then opens a scope per
+// request, so controllers and providers run tenant-scoped.
+const resolver = createNestResolverInput({
+  manager,
+  resolve: (req) => ({ id: req.headers["x-tenant"] ?? "" }),
+});
+
+@Module({
+  // ...register the tenancy module + interceptor with `resolver`
+})
+export class AppModule {}
 ```
 
-Resolution failures fail closed with the correct HTTP status before your controller runs.
+## How it behaves
+
+- Each request resolves its tenant and runs inside the scope; your ORM queries (through the adapter) are
+  scoped automatically.
+- A resolution failure fails closed with the correct HTTP status **before** your controller runs.
+- Injectables resolved per-request see the active tenant.
+
+## Notes
+
+- Works with any [adapter](/docs/adapters) — Prisma, Knex, TypeORM, etc.
+- For the exact provider/interceptor registration for your Nest version, see the
+  [package README](https://github.com/Karthick-Ramachandran/TenancyJS/tree/main/packages/integration-nest).

@@ -1,31 +1,48 @@
 ---
 title: CLI
-description: Inspect, manage, migrate, and run against your live tenants — from one command.
+description: Inspect, manage, migrate, provision, and run against your live tenants — from one command.
 ---
 
 The `tenancy` CLI (`tenancyjs-cli`) is how you _operate_ a tenancy. It loads your
-[`tenancy.config.ts`](/docs/getting-started/configuration) at runtime — Node 24 strips the types, so there's no
-transpiler dependency — and acts against your real tenants through **your** store and hooks. It
-orchestrates and fails closed, but never invents ORM behaviour it hasn't tested.
+[`tenancy.config.ts`](/docs/getting-started/configuration) at runtime — Node 24 strips the types, so
+there's no transpiler dependency — and acts against your real tenants through **your** store and hooks.
+It orchestrates and fails closed, but never invents ORM behaviour it hasn't tested.
 
 ```bash
-npx tenancy <command>
+npx tenancy <command> [--config <path>] [--json]
 ```
 
-## Set up your project
+Every operational command:
+
+- loads your runtime, resolves tenants through the **hardened** store,
+- **redacts secrets** from human and `--json` output,
+- **disposes** connections on exit — including on failure,
+- exits non-zero on error (so it's CI-friendly).
+
+## Set up a project
 
 ```bash
-npx tenancy init      # scaffold config + wiring for your framework and ORM
-npx tenancy tenant check   # verify the runtime loads and the store works
+npx tenancy init          # scaffold config + wiring for your framework and ORM
+npx tenancy tenant check  # verify the runtime loads and the store works
 ```
 
-`tenant check` is the honest one: it reads each adapter's own capability report and **warns** about any
-adapter/strategy combination that isn't tested-supported, instead of pretending it's production-ready.
+`tenant check` is the honest one. It reads each adapter's own capability report and **warns** about any
+adapter/strategy combination that isn't tested-supported, instead of pretending it's production-ready:
+
+```ansi
+OK   runtime: tenancy config loaded
+OK   adapters: 1 adapter(s) configured
+WARN adapter:prisma: schemaPerTenant is reported as "unsupported", not
+     tested-supported — not in the verified matrix; use at your own risk
+OK   store: implements list, find, create
+OK   store.list: read 12 tenant(s)
+```
+
+It exits `0` when healthy and `2` when a probe fails.
 
 ## Manage tenants
 
-These read and write your bring-your-own [tenant store](/docs/getting-started/configuration#bring-your-own-tenant-store).
-Output is redacted (no leaked secrets) and available as `--json`.
+Read and write your bring-your-own [tenant store](/docs/getting-started/configuration#bring-your-own-tenant-store).
 
 ```bash
 npx tenancy tenant list
@@ -35,30 +52,53 @@ npx tenancy tenant suspend acme
 npx tenancy tenant activate acme
 ```
 
+`--set key=value` is repeatable and is validated before the runtime loads, so a typo fails fast. The id
+is optional on `create` if your store generates it.
+
 ## Run a script in a tenant scope
 
 Run a one-off script — a backfill, an admin task — inside a resolved tenant (or the central) scope. The
-script's top-level code and its default export both see the active context.
+script's top-level code **and** its default export run with the active context.
 
 ```bash
 npx tenancy run ./backfill.ts --tenant acme
 npx tenancy run ./rollup.ts --central
 ```
 
+You must pass exactly one of `--tenant <id>` or `--central`; the tenant is resolved (and validated)
+through your store before the script runs.
+
 ## Provision & migrate
 
 For schema- and database-per-tenant, these delegate to the `provisioner` hooks in your config — the CLI
-never runs an ORM itself. `--all` fans out across every tenant (only `migrate` may; `deprovision` always
-needs an explicit id, so a destructive drop can't fan out by accident).
+never runs an ORM itself. It resolves each tenant's placement from the store record and runs your hook.
 
 ```bash
-npx tenancy tenant provision acme
-npx tenancy tenant migrate acme
-npx tenancy tenant migrate --all
-npx tenancy tenant deprovision acme
+npx tenancy tenant provision acme     # create the tenant's schema/database
+npx tenancy tenant migrate acme       # run your migrator for one tenant
+npx tenancy tenant migrate --all      # ...for every tenant, reporting each outcome
+npx tenancy tenant deprovision acme   # drop it — explicit id only
 ```
 
-<Callout type="info">
-  Every operational command supports `--json`, redacts secrets, resolves tenants through the hardened
-  store, and disposes connections on exit — including on failure.
+<Callout type="warn">
+  `--all` is only valid for `migrate`. `deprovision` always requires an explicit id, so a destructive
+  drop can never fan out across every tenant by accident. A partial `--all` run reports which tenants
+  failed and exits non-zero.
 </Callout>
+
+## Every command
+
+| Command | Does |
+| --- | --- |
+| `tenancy init` | Scaffold config + wiring for your stack |
+| `tenancy tenant check` | Health-probe the runtime + warn on untested combos |
+| `tenancy tenant list` | List tenants from your store |
+| `tenancy tenant show <id>` | Show one tenant |
+| `tenancy tenant create [<id>] [--set k=v …]` | Create a tenant |
+| `tenancy tenant suspend <id>` / `activate <id>` | Change tenant status |
+| `tenancy tenant provision <id>` / `deprovision <id>` | Create / drop a tenant's placement |
+| `tenancy tenant migrate (<id> \| --all)` | Migrate one or all tenants |
+| `tenancy run <script> (--tenant <id> \| --central)` | Run a script in a scope |
+| `tenancy doctor` | Inspect a project's static setup |
+
+Add `--json` to any of them for machine-readable, still-redacted output.

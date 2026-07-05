@@ -1,0 +1,80 @@
+---
+title: Onboarding & offboarding
+description: The lifecycle of a tenant — create, provision, migrate, suspend, and remove.
+---
+
+A tenant's life has a few distinct moments. TenancyJS gives you a command (and a hook) for each, so
+onboarding and offboarding are scripted and repeatable rather than manual.
+
+## Onboarding
+
+<Steps>
+
+<Step>
+### Create the record
+
+Add the tenant to your store — this is the source of truth, including its placement (schema/database)
+for the isolating strategies.
+
+```bash
+npx tenancy tenant create acme --set plan=pro
+```
+</Step>
+
+<Step>
+### Provision its storage
+
+For [schema-](/docs/strategies/schema-per-tenant) or
+[database-per-tenant](/docs/strategies/database-per-tenant), create the schema/database via your
+`provisioner.provision` hook.
+
+```bash
+npx tenancy tenant provision acme
+```
+
+(Row-level tenants share tables, so there's nothing to provision.)
+</Step>
+
+<Step>
+### Migrate its schema
+
+Bring the tenant's storage up to your current schema through your `provisioner.migrate` hook.
+
+```bash
+npx tenancy tenant migrate acme
+```
+</Step>
+
+</Steps>
+
+## Day-two: rolling out a migration
+
+When you ship a schema change, migrate every tenant. `--all` reports each tenant's outcome and exits
+non-zero if any failed, so it's safe to run in CI:
+
+```bash
+npx tenancy tenant migrate --all
+```
+
+## Suspending
+
+Suspending flips status in your store; your [resolver](/docs/guides/resolving-tenants) should treat a
+suspended tenant as a fail-closed **404**, so requests stop immediately.
+
+```bash
+npx tenancy tenant suspend acme
+npx tenancy tenant activate acme   # bring it back
+```
+
+## Offboarding
+
+Dropping a tenant's storage is destructive, so it always requires an explicit id — never `--all`.
+
+```bash
+npx tenancy tenant deprovision acme   # runs your provisioner.deprovision hook
+```
+
+<Callout type="warn">
+  Deprovision drops data. Keep it behind your own confirmation/backup process; TenancyJS makes it
+  explicit (no fan-out), but it won't second-guess a targeted command.
+</Callout>
