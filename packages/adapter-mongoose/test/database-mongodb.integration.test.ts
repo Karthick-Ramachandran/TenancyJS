@@ -7,7 +7,10 @@ import {
 } from "mongoose";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { createMongooseTenancy } from "../src/index.js";
+import {
+  MongooseTenancyConfigurationError,
+  createMongooseTenancy,
+} from "../src/index.js";
 
 const mongoUrl = process.env.TEST_MONGODB_URL;
 const describeMongo = mongoUrl === undefined ? describe.skip : describe;
@@ -117,5 +120,60 @@ describeMongo("Mongoose MongoDB database-per-tenant isolation", () => {
         client.model(model()).count(),
       ),
     ).rejects.toMatchObject({ code: "TENANCY_RESOURCE_CACHE_COLLISION" });
+  });
+
+  // ADR-0033: the leased Connection is the tenant's own database, so raw finds
+  // and $lookup aggregations (Mongo's join) cannot reach another tenant.
+  it("unrestricted() Connection stays inside the tenant's own database", async () => {
+    await run(tenantA, (client) =>
+      client.model(model()).create({ _id: "u", title: "A" }),
+    );
+    await run(tenantB, (client) =>
+      client.model(model()).create({ _id: "u", title: "B" }),
+    );
+    const titlesA = await run(tenantA, async (client) => {
+      const docs = await client
+        .unrestricted()
+        .model<Post>("Post")
+        .find({ _id: "u" })
+        .lean();
+      return docs.map((doc) => doc.title);
+    });
+    expect(titlesA).toEqual(["A"]); // never tenant B's colliding doc
+    const joinB = await run(tenantB, async (client) => {
+      const docs = await client
+        .unrestricted()
+        .model<Post>("Post")
+        .aggregate<{ title: string }>([
+          { $match: { _id: "u" } },
+          {
+            $lookup: {
+              from: "posts",
+              localField: "_id",
+              foreignField: "_id",
+              as: "self",
+            },
+          },
+        ]);
+      return docs.map((doc) => doc.title);
+    });
+    expect(joinB).toEqual(["B"]);
+  });
+
+  it("reports database-enforced capabilities for database-per-tenant", () => {
+    expect(tenancy.capabilities.nestedReads).toBe("supported");
+    expect(tenancy.capabilities.nestedWrites).toBe("supported");
+    expect(tenancy.capabilities.rawQueries).toBe("supported");
+  });
+
+  it("refuses unrestricted() in central mode — it runs on the shared base connection", async () => {
+    // Central mode uses the shared base connection, not a leased tenant database,
+    // so the raw handle must stay fail-closed (ADR-0033) — the same leak vector
+    // guarded in every adapter.
+    await expect(
+      manager.runInCentralContext(() =>
+        tenancy.run(async (client) => client.unrestricted()),
+      ),
+    ).rejects.toBeInstanceOf(MongooseTenancyConfigurationError);
   });
 });

@@ -1,4 +1,5 @@
-import { drizzle } from "drizzle-orm/node-postgres";
+import { sql } from "drizzle-orm";
+import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import { pgSchema, pgTable, text } from "drizzle-orm/pg-core";
 import { TenancyManager } from "tenancyjs-core";
 import knex, { type Knex } from "knex";
@@ -6,6 +7,7 @@ import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import {
+  DrizzleTenancyConfigurationError,
   createDrizzleTenancy,
   createPostgresDrizzleBinding,
 } from "../src/index.js";
@@ -218,6 +220,16 @@ describePostgres("Drizzle PostgreSQL schema-per-tenant isolation", () => {
       ),
     ).rejects.toBeDefined();
   });
+
+  it("refuses unrestricted() in schema-per-tenant scope (facade-enforced)", async () => {
+    // ADR-0033: schema-per-tenant without a per-tenant role is facade-enforced,
+    // so the native drizzle transaction must not be exposed.
+    await expect(
+      run({ id: "tenant-a", schema: schemaA, database: "" }, async (client) =>
+        client.unrestricted(),
+      ),
+    ).rejects.toBeInstanceOf(DrizzleTenancyConfigurationError);
+  });
 });
 
 describePostgres("Drizzle PostgreSQL database-per-tenant isolation", () => {
@@ -306,5 +318,50 @@ describePostgres("Drizzle PostgreSQL database-per-tenant isolation", () => {
         client.table(posts).count(),
       ),
     ).rejects.toMatchObject({ code: "TENANCY_RESOURCE_CACHE_COLLISION" });
+  });
+
+  // ADR-0033: the leased binding wraps the tenant's own database, so the native
+  // drizzle transaction's raw SQL and joins can't reach another tenant.
+  it("unrestricted() native drizzle tx stays inside the tenant's own database", async () => {
+    const tenantA = { id: "tenant-a", schema: "", database: databaseA };
+    const tenantB = { id: "tenant-b", schema: "", database: databaseB };
+    await run(tenantA, (client) =>
+      client.table(posts).create({ id: "u", title: "A" }),
+    );
+    await run(tenantB, (client) =>
+      client.table(posts).create({ id: "u", title: "B" }),
+    );
+    const titlesA = await run(tenantA, async (client) => {
+      const db = client.unrestricted<NodePgDatabase>();
+      const result = await db.execute(
+        sql`select title from posts where id = ${"u"}`,
+      );
+      return (result.rows as { title: string }[]).map((row) => row.title);
+    });
+    expect(titlesA).toEqual(["A"]); // never tenant B's colliding row
+    const joinB = await run(tenantB, async (client) => {
+      const db = client.unrestricted<NodePgDatabase>();
+      const result = await db.execute(
+        sql`select p1.title from posts p1 join posts p2 on p1.id = p2.id where p1.id = ${"u"}`,
+      );
+      return (result.rows as { title: string }[]).map((row) => row.title);
+    });
+    expect(joinB).toEqual(["B"]);
+  });
+
+  it("reports database-enforced capabilities for database-per-tenant", () => {
+    expect(tenancy.capabilities.nestedReads).toBe("supported");
+    expect(tenancy.capabilities.nestedWrites).toBe("supported");
+    expect(tenancy.capabilities.rawQueries).toBe("supported");
+  });
+
+  it("refuses unrestricted() in central mode — it runs on the shared base binding", async () => {
+    // Central mode uses the shared base binding, not a leased tenant database,
+    // so the raw handle must stay fail-closed (ADR-0033).
+    await expect(
+      manager.runInCentralContext(() =>
+        tenancy.run(async (client) => client.unrestricted()),
+      ),
+    ).rejects.toBeInstanceOf(DrizzleTenancyConfigurationError);
   });
 });

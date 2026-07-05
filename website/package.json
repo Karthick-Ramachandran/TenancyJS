@@ -7,6 +7,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "deploy": "NEXT_PUBLIC_SITE_URL=https://tenancyjs.pages.dev next build && wrangler pages deploy out --project-name tenancyjs --branch main --commit-dirty=true",
     "postinstall": "fumadocs-mdx"
   },
   "dependencies": {

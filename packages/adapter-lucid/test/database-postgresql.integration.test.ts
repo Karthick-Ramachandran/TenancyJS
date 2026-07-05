@@ -6,6 +6,7 @@ import knex, { type Knex } from "knex";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import {
+  LucidTenancyConfigurationError,
   createLucidTenancy,
   type LucidTenantConnection,
 } from "../src/index.js";
@@ -204,5 +205,49 @@ describePostgres("Lucid PostgreSQL database-per-tenant isolation", () => {
     await expect(
       runInTenant(broken, async () => Post.query()),
     ).rejects.toBeDefined();
+  });
+
+  // ADR-0033: scope.unrestricted() hands back the tenant's own leased
+  // transaction, so raw SQL and joins can't cross tenants.
+  it("unrestricted() raw SQL stays inside the tenant's own database", async () => {
+    await runInTenant(tenantA, () => createPost("u", "A"));
+    await runInTenant(tenantB, () => createPost("u", "B"));
+    const titlesA = await manager.runWithTenant(tenantA, () =>
+      tenancy.run(async (scope) => {
+        const result = await scope
+          .unrestricted()
+          .rawQuery("select title from posts where id = ?", ["u"]);
+        return (result.rows as { title: string }[]).map((row) => row.title);
+      }),
+    );
+    expect(titlesA).toEqual(["A"]); // never tenant B's colliding row
+    const joinB = await manager.runWithTenant(tenantB, () =>
+      tenancy.run(async (scope) => {
+        const result = await scope
+          .unrestricted()
+          .rawQuery(
+            "select p1.title from posts p1 join posts p2 on p1.id = p2.id where p1.id = ?",
+            ["u"],
+          );
+        return (result.rows as { title: string }[]).map((row) => row.title);
+      }),
+    );
+    expect(joinB).toEqual(["B"]);
+  });
+
+  it("reports database-enforced capabilities for database-per-tenant", () => {
+    expect(tenancy.capabilities.nestedReads).toBe("supported");
+    expect(tenancy.capabilities.nestedWrites).toBe("supported");
+    expect(tenancy.capabilities.rawQueries).toBe("supported");
+  });
+
+  it("refuses unrestricted() in central mode — it runs on the shared connection", async () => {
+    // Central mode uses the shared base connection, not a leased tenant database,
+    // so the raw handle must stay fail-closed (ADR-0033).
+    await expect(
+      manager.runInCentralContext(() =>
+        tenancy.run(async (scope) => scope.unrestricted()),
+      ),
+    ).rejects.toBeInstanceOf(LucidTenancyConfigurationError);
   });
 });

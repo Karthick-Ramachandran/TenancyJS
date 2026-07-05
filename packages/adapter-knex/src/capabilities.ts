@@ -1,4 +1,7 @@
-import type { TenancyAdapterCapabilities } from "tenancyjs-core";
+import {
+  databaseEnforcedCapabilities,
+  type TenancyAdapterCapabilities,
+} from "tenancyjs-core";
 
 export const KNEX_ADAPTER_CAPABILITIES = Object.freeze({
   rowLevel: "supported",
@@ -22,13 +25,7 @@ export const KNEX_ADAPTER_CAPABILITIES = Object.freeze({
 export function knexCapabilities(
   strategy: "rowLevel" | "schemaPerTenant" | "databasePerTenant",
 ): TenancyAdapterCapabilities {
-  if (strategy === "databasePerTenant") {
-    return Object.freeze({
-      ...KNEX_ADAPTER_CAPABILITIES,
-      nestedReads: "supported",
-      nestedWrites: "supported",
-      rawQueries: "supported",
-    });
-  }
-  return KNEX_ADAPTER_CAPABILITIES;
+  return strategy === "databasePerTenant"
+    ? databaseEnforcedCapabilities(KNEX_ADAPTER_CAPABILITIES)
+    : KNEX_ADAPTER_CAPABILITIES;
 }

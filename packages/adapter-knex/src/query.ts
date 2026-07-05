@@ -1,4 +1,4 @@
-import type { TenantContext } from "tenancyjs-core";
+import { unrestrictedRefusedMessage, type TenantContext } from "tenancyjs-core";
 import { decideTenantDiscriminator } from "tenancyjs-adapter-shared";
 import type { Knex } from "knex";
 
@@ -108,10 +108,11 @@ export function createProtectedKnexClient(
       // admin connection). Fail closed everywhere the boundary isn't proven.
       if (!databaseEnforced) {
         throw new KnexTenancyConfigurationError(
-          "unrestricted() gives full, raw query access and is only available in a database-enforced scope, " +
-            "where the connection is the tenant's own leased database (database-per-tenant, tenant mode). " +
-            `The current scope (strategy=${strategy}, mode=${context.mode}) is facade-enforced, so full ` +
-            "query access is refused (ADR-0033).",
+          unrestrictedRefusedMessage({
+            adapter: "knex",
+            strategy,
+            mode: context.mode,
+          }),
         );
       }
       return transaction;

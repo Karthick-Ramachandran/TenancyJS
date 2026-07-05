@@ -17,6 +17,10 @@ export {
   TenantContextError,
   TenantStoreContractError,
 } from "./errors.js";
+export {
+  databaseEnforcedCapabilities,
+  unrestrictedRefusedMessage,
+} from "./tier.js";
 export { TenancyManager } from "./tenancy-manager.js";
 export {
   defineTenancyRuntime,

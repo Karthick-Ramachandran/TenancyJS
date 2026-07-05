@@ -31,6 +31,14 @@ export interface ProtectedMongooseModel {
 
 export interface ProtectedMongooseClient {
   model(model: Model<unknown>): ProtectedMongooseModel;
+  /**
+   * The raw, tenant-scoped Mongoose `Connection` — full query freedom
+   * (aggregation, populate, native collection access). Available **only** in a
+   * database-enforced scope (database-per-tenant, tenant mode), where the leased
+   * connection *is* the tenant's own database. Throws in row-level scope, which
+   * is facade-only (MongoDB has no row-level backstop) (ADR-0033).
+   */
+  unrestricted(): Connection;
 }
 
 export interface MongooseTenancyRunner {

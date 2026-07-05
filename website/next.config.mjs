@@ -6,6 +6,9 @@ const withMDX = createMDX();
 const config = {
   reactStrictMode: true,
   turbopack: { root: import.meta.dirname },
+  // Fully static build (Cloudflare Pages / any static host).
+  output: "export",
+  images: { unoptimized: true },
 };
 
 export default withMDX(config);

@@ -5,7 +5,7 @@ import type {
   TenantContext,
   TenantRecord,
 } from "tenancyjs-core";
-import { TenantContextError } from "tenancyjs-core";
+import { TenantContextError, unrestrictedRefusedMessage } from "tenancyjs-core";
 import {
   adapterEnforcedRowValidationResult,
   applyPostgresRowContext,
@@ -28,7 +28,7 @@ import type {
   Repository,
 } from "typeorm";
 
-import { TYPEORM_ADAPTER_CAPABILITIES } from "./capabilities.js";
+import { typeOrmCapabilities } from "./capabilities.js";
 import {
   defineTypeOrmTenancyConfig,
   matchesTypeOrmDialect,
@@ -138,7 +138,7 @@ export function createTypeOrmTenancy<
     }
     const context = config.manager.getContext();
     if (context === undefined) throw new TenantContextError("missing");
-    const runScope = (dataSource: DataSource) => {
+    const runScope = (dataSource: DataSource, databaseEnforced: boolean) => {
       if (!matchesTypeOrmDialect(dataSource.options.type, config.dialect))
         throw new TypeOrmTenancyConfigurationError(
           "TypeORM tenant DataSource dialect does not match the base configuration.",
@@ -150,7 +150,13 @@ export function createTypeOrmTenancy<
           await schemaEngine!.applyContext(typeOrmExecutor(manager), context);
         }
         return callback(
-          createProtectedClient(config, manager, context, config.strategy),
+          createProtectedClient(
+            config,
+            manager,
+            context,
+            config.strategy,
+            databaseEnforced,
+          ),
         );
       });
     };
@@ -160,16 +166,18 @@ export function createTypeOrmTenancy<
         context.tenant.id,
         placement.key,
         placement.create,
-        runScope,
+        // Only the leased per-tenant DataSource is database-enforced (ADR-0033).
+        (dataSource) => runScope(dataSource, true),
       );
     }
-    return runScope(config.dataSource);
+    // Shared base DataSource (central mode / facade-enforced strategies).
+    return runScope(config.dataSource, false);
   }
 
   return Object.freeze({
     name: "typeorm" as const,
     strategy: config.strategy,
-    capabilities: TYPEORM_ADAPTER_CAPABILITIES,
+    capabilities: typeOrmCapabilities(config.strategy),
     config,
     validate,
     run,
@@ -184,8 +192,25 @@ function createProtectedClient<TTenant extends TenantRecord>(
   manager: EntityManager,
   context: TenantContext<TTenant>,
   strategy: "rowLevel" | "schemaPerTenant" | "databasePerTenant",
+  databaseEnforced: boolean,
 ): ProtectedTypeOrmClient {
   return Object.freeze({
+    unrestricted(): EntityManager {
+      // ADR-0033: the raw, tenant-scoped EntityManager — full query freedom
+      // (relations, query builder, raw SQL). Available only in a
+      // database-enforced scope, where a per-tenant DataSource was leased and
+      // the connection is the tenant's own database. Fail closed otherwise.
+      if (!databaseEnforced) {
+        throw new TypeOrmTenancyConfigurationError(
+          unrestrictedRefusedMessage({
+            adapter: "typeorm",
+            strategy,
+            mode: context.mode,
+          }),
+        );
+      }
+      return manager;
+    },
     repository<TEntity extends ObjectLiteral>(entity: EntityTarget<TEntity>) {
       const policy = config.classify(entity);
       if (policy === undefined) throw new TypeOrmEntityUnregisteredError();

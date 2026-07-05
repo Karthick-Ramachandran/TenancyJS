@@ -26,12 +26,13 @@ not always the case, so TenancyJS classifies every active scope into one of two 
   database-enforced scope can hand you the **real, tenant-scoped client** for full query freedom.
 
 <Callout type="info">
-  **Available today:** [Knex](/docs/adapters/knex#full-query-freedom-unrestricted) **database-per-tenant**
-  exposes `client.unrestricted()` — the raw tenant-scoped transaction with full joins, raw SQL, and
-  nested queries, safe because the connection *is* the tenant's own database. This is fail-closed: it
-  **throws** in any facade-enforced scope (including a database-per-tenant config used in central mode).
-  Extending this to the other adapters, and to PostgreSQL forced-RLS and schema-plus-role scopes, is
-  [on the roadmap](/docs/concepts/capability-matrix#roadmap).
+  **Available today on every adapter:** in a **database-per-tenant** scope, `client.unrestricted()`
+  returns the raw tenant-scoped client — full joins, raw SQL, and nested queries — safe because the
+  connection *is* the tenant's own database. It works on Knex, TypeORM, Sequelize, Drizzle, and Mongoose;
+  on [Lucid](/docs/adapters/lucid) it's `scope.unrestricted()`; **Prisma** database-per-tenant already
+  hands you the raw leased client directly. This is fail-closed: it **throws** in any facade-enforced
+  scope (including a database-per-tenant config used in central mode). Extending it to PostgreSQL
+  forced-RLS and schema-plus-role scopes is [on the roadmap](/docs/concepts/capability-matrix#roadmap).
 </Callout>
 
 Everything below describes the **facade-enforced** tier. Read each restriction as "…unless the scope is
@@ -42,14 +43,13 @@ database-enforced, where the database isolates it anyway."
 In a facade-enforced scope, raw SQL and native query methods are **rejected** by every adapter: Prisma's
 `$queryRaw`/`$executeRaw`, Knex's `.raw()`, Drizzle's `sql`-template execution, native `execute`, and
 equivalents. The facade can't guarantee a hand-written query is filtered to the tenant, so it refuses
-rather than run it unscoped. (In a database-enforced scope the database isolates raw SQL anyway — today,
-Knex database-per-tenant via [`unrestricted()`](/docs/adapters/knex#full-query-freedom-unrestricted).)
+rather than run it unscoped. (In a database-enforced scope the database isolates raw SQL anyway — every
+adapter's database-per-tenant scope gives you `client.unrestricted()` for exactly this.)
 
 - **Workaround:** use the scoped query builder / model API the adapter gives you. If you genuinely need
   arbitrary raw access, use [database-per-tenant](/docs/strategies/database-per-tenant) — a physically
-  separate connection per tenant means raw queries are isolated by construction. On Knex that scope
-  gives you [`client.unrestricted()`](/docs/adapters/knex#full-query-freedom-unrestricted) for exactly
-  this.
+  separate connection per tenant means raw queries are isolated by construction, and that scope hands you
+  the raw client via [`unrestricted()`](/docs/strategies/database-per-tenant#full-query-freedom).
 
 ## Nested writes — not supported (facade-enforced scopes)
 
@@ -58,8 +58,8 @@ are **rejected** in facade-enforced scopes. The facade scopes the top-level oper
 guarantee every nested branch lands in the right tenant.
 
 - **Workaround:** split the mutation into separate scoped writes inside the same tenant scope (they all
-  run in one tenant transaction) — or use a database-enforced scope, where nested writes are isolated by
-  the database (today: Knex database-per-tenant via `unrestricted()`).
+  run in one tenant transaction) — or use a database-per-tenant scope, where nested writes are isolated by
+  the database and `client.unrestricted()` gives you the raw client.
 
 ## Nested reads — not supported (facade-enforced scopes; Lucid excepted)
 
@@ -68,8 +68,8 @@ in facade-enforced scopes on Prisma, Knex, TypeORM, Sequelize, Mongoose, and Dri
 exception** and supports nested reads on its facade.
 
 - **Workaround:** load the related rows as separate scoped queries. On Lucid, nested reads work
-  directly. In a database-enforced scope they're safe by construction (today: Knex database-per-tenant
-  via `unrestricted()`).
+  directly. In a database-per-tenant scope they're safe by construction, and `client.unrestricted()`
+  gives you the raw client for arbitrary joins.
 
 ## Native handles bypass isolation
 

@@ -121,6 +121,27 @@ const guarantees = [
   },
 ];
 
+const steps = [
+  {
+    n: "01",
+    name: "Set the tenant per request",
+    body: "Your framework integration (Express, Next.js, NestJS, AdonisJS) resolves who the request belongs to and opens a tenant scope.",
+    code: "app.use(tenancyMiddleware({ resolver }));",
+  },
+  {
+    n: "02",
+    name: "Query through the scoped client",
+    body: "Inside the scope, your ORM adapter hands you a client that's already filtered to the tenant. No tenantId threading, no manual WHERE.",
+    code: "const orders = await db.order.findMany();",
+  },
+  {
+    n: "03",
+    name: "Outside a scope, it fails closed",
+    body: "No valid tenant context? Tenant-aware access throws at the boundary instead of returning another tenant's rows. The safe path is the default.",
+    code: "await db.order.findMany(); // ✗ throws",
+  },
+];
+
 function Kicker({ children }: { children: ReactNode }) {
   return (
     <p className="text-sm font-semibold uppercase tracking-[0.14em] text-fd-primary">
@@ -253,6 +274,52 @@ export default function HomePage() {
             </Link>
           </div>
           <Editor />
+        </div>
+      </section>
+
+      {/* ── How it works ─────────────────────────────────────────────── */}
+      <section className="border-t border-fd-border/70 px-6 py-24">
+        <div className="mx-auto max-w-6xl">
+          <div className="mx-auto max-w-2xl text-center">
+            <Kicker>How you use it</Kicker>
+            <h2 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">
+              Three moving parts, one scoped client
+            </h2>
+            <p className="mt-5 text-lg text-fd-muted-foreground">
+              Pick a <strong className="text-fd-foreground">strategy</strong>,
+              plug in your ORM <strong className="text-fd-foreground">adapter</strong>{" "}
+              and framework{" "}
+              <strong className="text-fd-foreground">integration</strong> - they
+              compose, and none of them need to know about each other.
+            </p>
+          </div>
+          <div className="mt-14 grid gap-5 md:grid-cols-3">
+            {steps.map((s) => (
+              <div
+                key={s.n}
+                className="relative rounded-2xl border border-fd-border bg-fd-card/50 p-7"
+              >
+                <div className="font-mono text-xs font-bold text-fd-primary">
+                  {s.n}
+                </div>
+                <h3 className="mt-3 text-lg font-semibold">{s.name}</h3>
+                <p className="mt-3 text-sm leading-relaxed text-fd-muted-foreground">
+                  {s.body}
+                </p>
+                <div className="mt-5 overflow-x-auto rounded-lg border border-fd-border/70 bg-[#0b0c10] px-3 py-2.5 font-mono text-xs text-[#d4d7de]">
+                  {s.code}
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-8 text-center">
+            <Link
+              href="/docs/getting-started/quickstart"
+              className="inline-flex font-semibold text-fd-primary hover:underline"
+            >
+              Wire it up in the quickstart →
+            </Link>
+          </div>
         </div>
       </section>
 
