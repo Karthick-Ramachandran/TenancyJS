@@ -346,6 +346,7 @@ function createSchemaEngine<TTenant extends TenantRecord>(
     adapterName: "Lucid",
     resolveSchema: config.schema!,
     centralSchema: config.centralSchema,
+    ...(config.role === undefined ? {} : { resolveRole: config.role }),
     tenantTables: config.tenantModels.map((model) => model.table),
   });
 }

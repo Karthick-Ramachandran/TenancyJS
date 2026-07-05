@@ -53,6 +53,7 @@ where n.nspname = any(current_schemas(false))
 const SET_ROW_CONTEXT_SQL =
   "select set_config(?, ?, true), set_config(?, ?, true)";
 const SET_SEARCH_PATH_SQL = "select set_config('search_path', ?, true)";
+const SET_ROLE_SQL = "select set_config('role', ?, true)";
 
 interface RoleRow {
   readonly role_name: string;
@@ -113,6 +114,13 @@ export interface PostgresSchemaStrategyOptions<
   readonly centralSchema?: string;
   readonly tenantTables: readonly string[];
   readonly centralTables?: readonly string[];
+  /**
+   * Optional database-enforced hardening: a per-tenant Postgres role holding
+   * USAGE on only its own schema. When set, the tenant scope also
+   * `SET LOCAL ROLE`s it, so the database itself blocks cross-schema access
+   * (defense in depth beyond the adapter's search_path + no-raw rule).
+   */
+  readonly resolveRole?: (tenant: TTenant) => string;
 }
 
 export interface PostgresSchemaStrategyEngine<
@@ -306,6 +314,18 @@ export function createPostgresStrategyEngine<
           throw new PostgresStrategyValidationError();
         }
         await execute(SET_SEARCH_PATH_SQL, [schema]);
+        if (context.mode === "tenant" && options.resolveRole !== undefined) {
+          const role = assertSqlIdentifier(
+            options.resolveRole(context.tenant),
+            {
+              label: "Tenant role",
+            },
+          );
+          // Transaction-local role switch; reverts on commit. The role holds
+          // USAGE on only its own schema, so the database blocks cross-schema
+          // access even for a raw or schema-qualified query.
+          await execute(SET_ROLE_SQL, [role]);
+        }
       } catch (error) {
         if (error instanceof PostgresStrategyValidationError) throw error;
         throw new PostgresStrategyValidationError();

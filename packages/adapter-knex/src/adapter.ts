@@ -200,6 +200,7 @@ function createSchemaEngine<TTenant extends TenantRecord>(
     adapterName: "Knex",
     resolveSchema: config.schema!,
     centralSchema: config.centralSchema,
+    ...(config.role === undefined ? {} : { resolveRole: config.role }),
     tenantTables: Object.values(config.tenantTables).map(
       (table) => table.table,
     ),
