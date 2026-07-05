@@ -9,39 +9,52 @@ description: Start with the CLI — it scaffolds your tenancy for your stack. Or
   config via Node's native type-stripping (no transpiler needed).
 - TypeScript is recommended but not required.
 
-## Recommended: scaffold with the CLI
+## Two independent choices: framework × ORM
 
-The fastest way to get set up. `tenancy init` detects your framework and ORM, then writes a working
-`tenancy.config.ts`, your tenant registration, and the request middleware — correctly wired for your
-stack. No copy-pasting boilerplate.
+TenancyJS composes from two axes that **don't need to know about each other**:
+
+1. An **integration** for your framework — Express, Next.js, NestJS, or AdonisJS.
+2. An **adapter** for your ORM — Prisma, Knex, Lucid, TypeORM, Sequelize, or Mongoose.
+
+Any integration works with any adapter. **Express + Sequelize**, **Next.js + Knex**,
+**NestJS + Mongoose** — all valid; both pieces just talk to the same core `TenancyManager`. So there's
+no fixed "stack": you pick your framework's integration and your ORM's adapter, plus `tenancyjs-core`.
+
+<Callout type="info">
+  Wondering if your combination is supported? The framework and ORM are orthogonal — every integration ×
+  every adapter works. What *does* vary is which **isolation strategy** each adapter supports (row-level
+  vs schema/database-per-tenant) — that's the [capability matrix](/docs/concepts/capability-matrix).
+</Callout>
+
+## Fastest path: scaffold with the CLI
+
+`tenancy init` writes a working `tenancy.config.ts`, tenant registration, and request middleware for
+you — no boilerplate.
 
 ```bash
 npx tenancy init
 ```
 
-### Which stacks does `init` scaffold?
+Today it ships ready-made templates for these three popular combinations:
 
-| Framework | ORM | `tenancy init` | Guide |
-| --- | --- | :---: | --- |
-| Express | Prisma | ✅ scaffolded | [Express](/docs/integrations/express) |
-| AdonisJS | Lucid | ✅ scaffolded | [AdonisJS](/docs/integrations/adonis) |
-| Next.js | Prisma | ✅ scaffolded | [Next.js](/docs/integrations/nextjs) |
-| **NestJS** | any adapter | manual (a few lines) | [NestJS](/docs/integrations/nestjs) |
+| Framework | ORM | `tenancy init` |
+| --- | --- | :---: |
+| Express | Prisma | ✅ scaffolded |
+| AdonisJS | Lucid | ✅ scaffolded |
+| Next.js | Prisma | ✅ scaffolded |
 
-<Callout type="info">
-  **On NestJS, or a different ORM (Knex, TypeORM, Sequelize, Mongoose)?** It's fully supported — the CLI
-  just doesn't scaffold it *yet*. Use the [Manual setup](#manual-setup) below together with your
-  [integration guide](/docs/integrations) (e.g. [NestJS](/docs/integrations/nestjs)) and
-  [adapter guide](/docs/adapters). It's only a few lines of wiring.
-</Callout>
-
-`init` writes the wiring; add the packages it uses for your stack (for example, Express + Prisma):
+Add the packages it wired (for Express + Prisma):
 
 ```bash
 npm install tenancyjs-core tenancyjs-adapter-prisma tenancyjs-integration-express
 ```
 
-Then jump to the [Quickstart](/docs/getting-started/quickstart) to see it working.
+Then jump to the [Quickstart](/docs/getting-started/quickstart).
+
+<Callout type="info">
+  Any other combination — **Express + Sequelize**, **Next.js + Knex**, **NestJS + anything** — isn't
+  scaffolded *yet*, but it's a few lines of manual wiring. Follow [manual setup](#manual-setup) below.
+</Callout>
 
 ### The CLI does more than scaffold
 
@@ -50,15 +63,18 @@ your live tenants. See the full **[CLI reference →](/docs/cli)**.
 
 ## Manual setup
 
-TenancyJS is a set of small, composable `tenancyjs-*` packages. Install the core, then add the adapter
-for your ORM and the integration for your framework.
+Works for **any** framework × ORM. Install three things: the core, your framework's **integration**, and
+your ORM's **adapter**. For example, Express with Sequelize:
 
 <Tabs items={["npm", "pnpm", "yarn", "bun"]}>
-  <Tab value="npm">```bash npm install tenancyjs-core ```</Tab>
-  <Tab value="pnpm">```bash pnpm add tenancyjs-core ```</Tab>
-  <Tab value="yarn">```bash yarn add tenancyjs-core ```</Tab>
-  <Tab value="bun">```bash bun add tenancyjs-core ```</Tab>
+  <Tab value="npm">```bash npm install tenancyjs-core tenancyjs-integration-express tenancyjs-adapter-sequelize ```</Tab>
+  <Tab value="pnpm">```bash pnpm add tenancyjs-core tenancyjs-integration-express tenancyjs-adapter-sequelize ```</Tab>
+  <Tab value="yarn">```bash yarn add tenancyjs-core tenancyjs-integration-express tenancyjs-adapter-sequelize ```</Tab>
+  <Tab value="bun">```bash bun add tenancyjs-core tenancyjs-integration-express tenancyjs-adapter-sequelize ```</Tab>
 </Tabs>
+
+Then follow the two guides for your choices — the [integration guide](/docs/integrations) for the
+framework half and the [adapter guide](/docs/adapters) for the ORM half. That's the whole wiring.
 
 | Package | Role |
 | --- | --- |
