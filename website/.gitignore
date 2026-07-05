@@ -4,3 +4,4 @@
 /.source
 next-env.d.ts
 *.tsbuildinfo
+.next-dev.log
