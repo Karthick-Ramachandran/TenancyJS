@@ -1,4 +1,5 @@
 import type { TenantCheckResult } from "./commands/check.js";
+import type { ProvisionResult } from "./commands/provision.js";
 import type { RunScriptResult } from "./commands/run.js";
 import type {
   TenantListResult,
@@ -52,6 +53,25 @@ export function formatTenantCheck(result: TenantCheckResult): string {
     result.healthy
       ? "Tenancy runtime healthy."
       : "Tenancy runtime has failures.",
+  );
+  return `${redactText(lines.join("\n"))}\n`;
+}
+
+const PROVISION_VERB = {
+  provision: "Provisioned",
+  deprovision: "Deprovisioned",
+  migrate: "Migrated",
+} as const;
+
+export function formatProvisionResult(result: ProvisionResult): string {
+  const lines = result.results.map((outcome) =>
+    outcome.status === "ok"
+      ? `OK ${outcome.tenantId}`
+      : `FAIL ${outcome.tenantId}: ${outcome.error ?? "failed"}`,
+  );
+  const okCount = result.results.filter((r) => r.status === "ok").length;
+  lines.push(
+    `${PROVISION_VERB[result.subcommand]} ${okCount}/${result.results.length} tenant(s).`,
   );
   return `${redactText(lines.join("\n"))}\n`;
 }

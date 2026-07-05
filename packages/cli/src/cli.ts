@@ -8,6 +8,10 @@ import {
   ormForFramework,
 } from "./capabilities.js";
 import { runTenantCheck } from "./commands/check.js";
+import {
+  runProvisionAction,
+  type ProvisionAction,
+} from "./commands/provision.js";
 import { runScript, type RunScope } from "./commands/run.js";
 import {
   runTenantActivate,
@@ -25,6 +29,7 @@ import {
   formatJson,
   formatLeakTest,
   formatPlan,
+  formatProvisionResult,
   formatRunResult,
   formatTenantCheck,
   formatTenantJson,
@@ -211,10 +216,42 @@ async function runTenant(
     );
     return 0;
   }
+  if (
+    parsed.subcommand === "provision" ||
+    parsed.subcommand === "deprovision" ||
+    parsed.subcommand === "migrate"
+  ) {
+    return await runProvision(parsed, parsed.subcommand, loadOptions, io);
+  }
   throw new CliUsageError(
     `Unknown tenant subcommand: ${parsed.subcommand ?? "(none)"}. ` +
-      'Use "tenant check", "list", "show <id>", "create [<id>]", "suspend <id>", or "activate <id>".',
+      'Use "tenant check", "list", "show <id>", "create [<id>]", "suspend <id>", ' +
+      '"activate <id>", "provision <id>", "deprovision <id>", or "migrate <id|--all>".',
   );
+}
+
+async function runProvision(
+  parsed: ParsedArguments,
+  action: ProvisionAction,
+  loadOptions: { root: string; configPath?: string },
+  io: CliIo,
+): Promise<number> {
+  // Only migrate may target every tenant; provision/deprovision demand an
+  // explicit id so a destructive drop can never fan out by accident.
+  if (action !== "migrate" && parsed.all) {
+    throw new CliUsageError(`--all is only valid for tenant migrate.`);
+  }
+  const target =
+    parsed.all && action === "migrate"
+      ? ({ all: true } as const)
+      : ({ id: requireTenantId(parsed, action) } as const);
+  const result = await withRuntime(loadOptions, (runtime) =>
+    runProvisionAction(runtime, action, target),
+  );
+  io.writeStdout(
+    parsed.json ? formatJson(result) : formatProvisionResult(result),
+  );
+  return result.ok ? 0 : 2;
 }
 
 async function runRun(
@@ -343,6 +380,7 @@ interface ParsedArguments {
   readonly set?: readonly string[];
   readonly framework?: InitFramework;
   readonly apply: boolean;
+  readonly all: boolean;
   readonly json: boolean;
   readonly yes: boolean;
 }
@@ -368,6 +406,7 @@ function parseArguments(arguments_: readonly string[]): ParsedArguments {
       command: "help",
       central: false,
       apply: false,
+      all: false,
       json: false,
       yes: false,
     };
@@ -390,6 +429,7 @@ function parseArguments(arguments_: readonly string[]): ParsedArguments {
   let framework: InitFramework | undefined;
   let apply = false;
   let central = false;
+  let all = false;
   let json = false;
   let yes = false;
   for (let index = 1; index < arguments_.length; index += 1) {
@@ -397,6 +437,7 @@ function parseArguments(arguments_: readonly string[]): ParsedArguments {
     if (argument === "--apply") apply = true;
     else if (argument === "--json") json = true;
     else if (argument === "--central") central = true;
+    else if (argument === "--all") all = true;
     else if (argument === "--yes" || argument === "-y") yes = true;
     else if (argument === "--set") {
       const value = arguments_[index + 1];
@@ -447,6 +488,8 @@ function parseArguments(arguments_: readonly string[]): ParsedArguments {
     throw new CliUsageError(
       "--central and --tenant are valid only for the run command.",
     );
+  if (commandValue !== "tenant" && all)
+    throw new CliUsageError("--all is valid only for tenant migrate.");
   return {
     command: commandValue,
     ...(commandValue === "tenant" && positionals[0] !== undefined
@@ -466,6 +509,7 @@ function parseArguments(arguments_: readonly string[]): ParsedArguments {
     ...(framework === undefined ? {} : { framework }),
     central,
     apply,
+    all,
     json,
     yes,
   };
@@ -496,6 +540,9 @@ Usage:
   tenancy tenant create [<id>] [--set key=value ...] [--config <path>] [--json]
   tenancy tenant suspend <id> [--config <path>] [--json]
   tenancy tenant activate <id> [--config <path>] [--json]
+  tenancy tenant provision <id> [--config <path>] [--json]
+  tenancy tenant deprovision <id> [--config <path>] [--json]
+  tenancy tenant migrate (<id> | --all) [--config <path>] [--json]
   tenancy run <script> (--tenant <id> | --central) [--config <path>] [--json]
 
 init previews changes (dry run) unless --apply is present. It detects your stack and, when it cannot,
@@ -504,8 +551,9 @@ Express 5.2 + Prisma 7.8, AdonisJS 7.3 + Lucid 22.4, or Next.js 16 + Prisma 7.8.
 single-database row-level (forced RLS); Node.js >= 24 is required.
 
 tenant and run commands load your tenancy.config.ts at runtime (Node 24 strips types natively) to reach
-the TenantStore and manager you passed to defineTenancyRuntime. Pass --config to point at a non-default
-config path. run executes a script inside a tenant scope (--tenant <id>) or the central scope
-(--central); the script's top-level code and its optional default export both see the active context.
+the TenantStore, manager, and provisioner you passed to defineTenancyRuntime. Pass --config to point at
+a non-default config path. run executes a script inside a tenant scope (--tenant <id>) or the central
+scope (--central). provision/deprovision/migrate delegate to your runtime's provisioner hooks (the CLI
+never invokes an ORM itself); tenant check reports any adapter/strategy that is not tested-supported.
 `;
 }

@@ -39,11 +39,18 @@ export interface LoadedTenantStore {
 export interface LoadedAdapter {
   readonly name: string;
   readonly strategy: string;
+  /**
+   * The adapter's own capability self-report (status per strategy). Its values
+   * flip to "supported" only after a real adversarial test, so it is the honest
+   * source of truth for what a stack has actually been verified to do.
+   */
+  readonly capabilities?: Readonly<Record<string, string>>;
 }
 
 export interface LoadedProvisioner {
   provision?(tenant: { readonly id: string }): Promise<void>;
   deprovision?(tenant: { readonly id: string }): Promise<void>;
+  migrate?(tenant: { readonly id: string }): Promise<void>;
 }
 
 /** Matches `Symbol.for("tenancyjs.runtime")` set by `defineTenancyRuntime`. */

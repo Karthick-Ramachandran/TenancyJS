@@ -66,9 +66,17 @@ throwing script; disposal via `withRuntime`. `--tenant`/`--central` rejected on 
 
 ## T5: migrate / provision (Phase 5)
 
-Status: Todo
+Status: Done
 
-Scope: delegate to native ORM tooling with per-tenant placement; schema/db-per-tenant only.
+Scope: delegate to host provisioner hooks with per-tenant placement (ADR-0029, supersedes the earlier
+"CLI shells out to ORM tools" model).
+
+Delivered: `tenant provision <id>`, `tenant deprovision <id>`, `tenant migrate (<id> | --all)` —
+delegate to the runtime's `provisioner` hooks (host wraps its own ORM); CLI orchestrates + reports
+per-tenant outcomes and exits 2 on any failure. `--all` only for migrate (deprovision/provision require
+an explicit id so a destructive drop can't fan out). Fail-closed on missing provisioner/hook/store.
+Plus capability-honesty: `tenant check` reads each adapter's own capability self-report and warns
+("use at your own risk") for any strategy that is not tested-supported — no hardcoded matrix to drift.
 
 ## T6: Polish (Phase 6)
 

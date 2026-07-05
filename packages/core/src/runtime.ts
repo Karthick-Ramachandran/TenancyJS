@@ -8,14 +8,20 @@ const RUNTIME_BRAND: unique symbol = Symbol.for("tenancyjs.runtime");
 
 /**
  * Per-tenant provisioning hooks the operational CLI delegates to for
- * schema/database-per-tenant (`provision`/`deprovision`). Optional; a command
- * that needs an absent hook fails closed with a clear message.
+ * schema/database-per-tenant (ADR-0029). The host wraps its own ORM/tooling in
+ * these; the CLI orchestrates (resolve tenants + placement, run per-tenant,
+ * fail-closed) but never invokes an ORM itself. All optional; a command whose
+ * hook is absent fails closed with a clear message rather than a silent no-op.
  */
 export interface TenancyProvisioner<
   TTenant extends TenantRecord = TenantRecord,
 > {
+  /** Create the tenant's schema/database. */
   provision?(tenant: TTenant): MaybePromise<void>;
+  /** Drop the tenant's schema/database. */
   deprovision?(tenant: TTenant): MaybePromise<void>;
+  /** Run the host's migrator against the tenant's placement. */
+  migrate?(tenant: TTenant): MaybePromise<void>;
 }
 
 /** What a host passes to {@link defineTenancyRuntime}. */

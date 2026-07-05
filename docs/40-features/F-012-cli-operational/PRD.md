@@ -8,15 +8,16 @@ tenants*: list/create/suspend/activate them, run a script inside a tenant scope,
 per-tenant storage — all through the host's own `tenancy.config.ts` runtime, fail-closed, with
 secrets redacted. This feature makes the CLI operational without TenancyJS owning where tenants live
 (bring-your-own `TenantStore`, per ADR-0028) and without reimplementing any ORM's migration tooling
-(delegation, per ADR-0027).
+(delegation to host hooks, per ADR-0029).
 
 ## In Scope
 
-- **Runtime config loading** (ADR-0027): resolve + dynamically import `tenancy.config.ts` (Node 24
+- **Runtime config loading** (ADR-0029): resolve + dynamically import `tenancy.config.ts` (Node 24
   native TS type-stripping, no transpiler dep) exposing a `defineTenancyRuntime()` contract.
 - **Registry commands**: `tenant list | show | create | suspend | activate` against the host store.
 - **`run <script>`**: execute a host script inside a resolved tenant (or central) scope.
-- **`migrate` / `migrate:central`**: delegate to the host ORM's migrator with per-tenant placement.
+- **`tenant provision` / `deprovision` / `migrate`**: delegate to the host runtime's provisioner hooks
+  with per-tenant placement (ADR-0029); the CLI never invokes an ORM itself.
 - **`provision` / `deprovision`**: create/drop a tenant's schema or database for schema/db-per-tenant.
 - **Hardened store contract** (ADR-0028): validate the store's output (id must match, unique ids).
 - **`doctor` extension**: verify a configured runtime loads and the store round-trips.

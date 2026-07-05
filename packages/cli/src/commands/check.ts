@@ -1,4 +1,4 @@
-import type { LoadedTenancyRuntime } from "../runtime-loader.js";
+import type { LoadedAdapter, LoadedTenancyRuntime } from "../runtime-loader.js";
 
 export type CheckStatus = "ok" | "warn" | "fail";
 
@@ -41,6 +41,7 @@ export async function runTenantCheck(
       status: "ok",
       detail: `${runtime.adapters.length} adapter(s) configured`,
     },
+    ...runtime.adapters.map((adapter) => capabilityCheck(adapter)),
   ];
 
   if (runtime.store === undefined) {
@@ -72,6 +73,32 @@ export async function runTenantCheck(
     subcommand: "check",
     healthy,
     checks,
+  };
+}
+
+/**
+ * Report an adapter's configured strategy against its own capability
+ * self-report. "supported" is only ever set after a real adversarial test, so
+ * anything else is surfaced as a limitation ("use at your own risk") instead of
+ * being silently treated as production-ready — the honesty the init banner
+ * promises, carried through to operations (ADR-0029).
+ */
+function capabilityCheck(adapter: LoadedAdapter): TenantCheckItem {
+  const status = adapter.capabilities?.[adapter.strategy];
+  const name = `adapter:${adapter.name}`;
+  if (status === "supported") {
+    return {
+      name,
+      status: "ok",
+      detail: `${adapter.strategy} is tested-supported`,
+    };
+  }
+  return {
+    name,
+    status: "warn",
+    detail:
+      `${adapter.strategy} is reported as "${status ?? "unknown"}", not tested-supported — ` +
+      "this combination is not in the verified matrix; use at your own risk",
   };
 }
 

@@ -33,6 +33,12 @@ export type {
   TenantCheckItem,
   TenantCheckResult,
 } from "./commands/check.js";
+export { runProvisionAction } from "./commands/provision.js";
+export type {
+  ProvisionAction,
+  ProvisionOutcome,
+  ProvisionResult,
+} from "./commands/provision.js";
 export { runScript } from "./commands/run.js";
 export type {
   RunScope,

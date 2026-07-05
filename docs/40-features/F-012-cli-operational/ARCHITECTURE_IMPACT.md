@@ -11,8 +11,11 @@
 
 ## ADR Impact
 
-Introduced and accepted **ADR-0027** (CLI operational architecture: runtime config loading + command
-engine) and **ADR-0028** (tenant store contract). No existing ADR is superseded.
+Governed by **ADR-0029** (CLI operational architecture: config loading, command engine, and
+provisioning via host hooks) and **ADR-0028** (tenant store contract). ADR-0029 keeps the original
+config-loading/command-engine decisions but has provisioning/migration delegate to host-provided
+provisioner hooks instead of the CLI shelling out to ORM tools, and adds a capability-honesty rule.
+(The superseded predecessor is linked from ADR-0029's header.)
 
 ## Security Impact
 

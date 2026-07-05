@@ -81,4 +81,46 @@ describe("runTenantCheck", () => {
     );
     expect(checkNamed(result, "adapters")?.detail).toContain("1 adapter(s)");
   });
+
+  it("marks a tested-supported adapter/strategy as ok", async () => {
+    const result = await runTenantCheck(
+      runtime({
+        adapters: [
+          {
+            name: "knex",
+            strategy: "rowLevel",
+            capabilities: { rowLevel: "supported" },
+          },
+        ],
+        store: { list: async () => [] },
+      }),
+    );
+    expect(checkNamed(result, "adapter:knex")?.status).toBe("ok");
+    expect(result.healthy).toBe(true);
+  });
+
+  it("warns (honestly, not failing) when the adapter/strategy is not tested-supported", async () => {
+    const result = await runTenantCheck(
+      runtime({
+        adapters: [
+          {
+            name: "prisma",
+            strategy: "schemaPerTenant",
+            capabilities: { schemaPerTenant: "unsupported" },
+          },
+          // No capabilities self-report at all -> also untested.
+          { name: "custom", strategy: "rowLevel" },
+        ],
+        store: { list: async () => [] },
+      }),
+    );
+    expect(checkNamed(result, "adapter:prisma")?.status).toBe("warn");
+    expect(checkNamed(result, "adapter:prisma")?.detail).toContain(
+      "use at your own risk",
+    );
+    expect(checkNamed(result, "adapter:custom")?.status).toBe("warn");
+    expect(checkNamed(result, "adapter:custom")?.detail).toContain("unknown");
+    // Untested is a warning, not a failure — the runtime is still usable.
+    expect(result.healthy).toBe(true);
+  });
 });

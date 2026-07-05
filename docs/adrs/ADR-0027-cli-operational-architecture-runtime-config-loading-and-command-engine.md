@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Accepted — superseded by ADR-0029-cli-operational-architecture-config-loading-command-engine-and-provisioning-via
 
 ## Context
 
