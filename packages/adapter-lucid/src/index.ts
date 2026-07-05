@@ -7,9 +7,12 @@ export {
   defineLucidTenancyConfig,
 } from "./config.js";
 export type {
+  LucidDatabasePlacement,
+  LucidTenantConnection,
   LucidTenantModelConfig,
   LucidTenancyConfig,
   LucidTenancyOptions,
+  LucidTransactionProvider,
   NormalizedLucidTenantModelConfig,
 } from "./config.js";
 export {
