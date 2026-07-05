@@ -55,9 +55,14 @@ is loaded so bad args fail fast.
 
 ## T4: run <script> (Phase 4)
 
-Status: Todo
+Status: Done
 
 Scope: execute a host script inside a resolved tenant/central scope; exit codes; disposal.
+
+Delivered: `tenancy run <script> (--tenant <id> | --central)` — imports the script inside the resolved
+scope so its top-level code and optional default export both see the active tenant context; scope
+resolved from the store for `--tenant`. Fail-closed on missing script, unknown tenant, no store, or a
+throwing script; disposal via `withRuntime`. `--tenant`/`--central` rejected on non-run commands.
 
 ## T5: migrate / provision (Phase 5)
 

@@ -19,8 +19,11 @@ export interface LoadedTenancyRuntime {
 }
 
 export interface LoadedTenancyManager {
-  runWithTenant<T>(tenant: { readonly id: string }, callback: () => T): T;
-  runAsCentral<T>(callback: () => T): T;
+  runWithTenant<T>(
+    tenant: { readonly id: string },
+    callback: () => T | Promise<T>,
+  ): Promise<T>;
+  runInCentralContext<T>(callback: () => T | Promise<T>): Promise<T>;
   getContext(): unknown;
 }
 

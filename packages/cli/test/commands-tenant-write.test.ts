@@ -11,8 +11,8 @@ import type { LoadedTenancyRuntime } from "../src/runtime-loader.js";
 function runtime(store: LoadedTenancyRuntime["store"]): LoadedTenancyRuntime {
   return {
     manager: {
-      runWithTenant: (_tenant, callback) => callback(),
-      runAsCentral: (callback) => callback(),
+      runWithTenant: async (_tenant, callback) => callback(),
+      runInCentralContext: async (callback) => callback(),
       getContext: () => undefined,
     },
     ...(store === undefined ? {} : { store }),

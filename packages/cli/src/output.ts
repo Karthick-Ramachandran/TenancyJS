@@ -1,3 +1,4 @@
+import type { RunScriptResult } from "./commands/run.js";
 import type {
   TenantListResult,
   TenantMutationResult,
@@ -40,6 +41,14 @@ const MUTATION_VERB = {
 export function formatTenantMutation(result: TenantMutationResult): string {
   const headline = `Tenant "${result.tenant.id}" ${MUTATION_VERB[result.subcommand]}.`;
   return `${redactText([headline, describeTenant(result.tenant, true)].join("\n"))}\n`;
+}
+
+export function formatRunResult(result: RunScriptResult): string {
+  const scope =
+    result.scope.mode === "central"
+      ? "central scope"
+      : `tenant "${result.scope.tenantId}"`;
+  return `${redactText(`Ran ${result.script} in ${scope}.`)}\n`;
 }
 
 /**

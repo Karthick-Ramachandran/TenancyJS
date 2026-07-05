@@ -13,7 +13,7 @@ export default {
   manager: {
     runWithTenant: (_tenant: FixtureTenant, callback: () => unknown) =>
       callback(),
-    runAsCentral: (callback: () => unknown) => callback(),
+    runInCentralContext: (callback: () => unknown) => callback(),
     getContext: (): unknown => undefined,
   },
   store: {

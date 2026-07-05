@@ -7,6 +7,7 @@ import {
   checkNodeVersion,
   ormForFramework,
 } from "./capabilities.js";
+import { runScript, type RunScope } from "./commands/run.js";
 import {
   runTenantActivate,
   runTenantCreate,
@@ -23,6 +24,7 @@ import {
   formatJson,
   formatLeakTest,
   formatPlan,
+  formatRunResult,
   formatTenantJson,
   formatTenantList,
   formatTenantMutation,
@@ -84,6 +86,9 @@ export async function runCli(
     }
     if (parsed.command === "tenant") {
       return await runTenant(parsed, root, io);
+    }
+    if (parsed.command === "run") {
+      return await runRun(parsed, root, io);
     }
     if (parsed.testFile === undefined) {
       throw new CliUsageError(
@@ -203,6 +208,39 @@ async function runTenant(
   );
 }
 
+async function runRun(
+  parsed: ParsedArguments,
+  root: string,
+  io: CliIo,
+): Promise<number> {
+  if (parsed.script === undefined) {
+    throw new CliUsageError("run requires a <script> path.");
+  }
+  const scope = resolveRunScope(parsed);
+  const loadOptions = {
+    root,
+    ...(parsed.config === undefined ? {} : { configPath: parsed.config }),
+  };
+  const result = await withRuntime(loadOptions, (runtime) =>
+    runScript(runtime, { root, script: parsed.script!, scope }),
+  );
+  io.writeStdout(parsed.json ? formatJson(result) : formatRunResult(result));
+  return 0;
+}
+
+function resolveRunScope(parsed: ParsedArguments): RunScope {
+  if (parsed.central && parsed.tenant !== undefined) {
+    throw new CliUsageError("Use either --central or --tenant <id>, not both.");
+  }
+  if (parsed.central) return { mode: "central" };
+  if (parsed.tenant !== undefined) {
+    return { mode: "tenant", tenantId: parsed.tenant };
+  }
+  throw new CliUsageError(
+    "run requires a scope: pass --tenant <id> or --central.",
+  );
+}
+
 function requireTenantId(parsed: ParsedArguments, subcommand: string): string {
   if (parsed.tenantId === undefined) {
     throw new CliUsageError(`tenant ${subcommand} requires <id>.`);
@@ -284,9 +322,12 @@ function describeDetection(detection: ProjectDetection): string {
 }
 
 interface ParsedArguments {
-  readonly command: "init" | "doctor" | "test:leak" | "tenant" | "help";
+  readonly command: "init" | "doctor" | "test:leak" | "tenant" | "run" | "help";
   readonly subcommand?: string;
   readonly tenantId?: string;
+  readonly script?: string;
+  readonly tenant?: string;
+  readonly central: boolean;
   readonly root?: string;
   readonly testFile?: string;
   readonly config?: string;
@@ -302,7 +343,10 @@ const VALUE_FLAGS = new Set([
   "--test-file",
   "--framework",
   "--config",
+  "--tenant",
 ]);
+
+const OPERATIONAL_COMMANDS = new Set(["tenant", "run"]);
 
 function parseArguments(arguments_: readonly string[]): ParsedArguments {
   const commandValue = arguments_[0] ?? "help";
@@ -311,13 +355,20 @@ function parseArguments(arguments_: readonly string[]): ParsedArguments {
     commandValue === "-h" ||
     commandValue === "help"
   ) {
-    return { command: "help", apply: false, json: false, yes: false };
+    return {
+      command: "help",
+      central: false,
+      apply: false,
+      json: false,
+      yes: false,
+    };
   }
   if (
     commandValue !== "init" &&
     commandValue !== "doctor" &&
     commandValue !== "test:leak" &&
-    commandValue !== "tenant"
+    commandValue !== "tenant" &&
+    commandValue !== "run"
   ) {
     throw new CliUsageError(`Unknown command: ${commandValue}`);
   }
@@ -326,14 +377,17 @@ function parseArguments(arguments_: readonly string[]): ParsedArguments {
   let root: string | undefined;
   let testFile: string | undefined;
   let config: string | undefined;
+  let tenant: string | undefined;
   let framework: InitFramework | undefined;
   let apply = false;
+  let central = false;
   let json = false;
   let yes = false;
   for (let index = 1; index < arguments_.length; index += 1) {
     const argument = arguments_[index]!;
     if (argument === "--apply") apply = true;
     else if (argument === "--json") json = true;
+    else if (argument === "--central") central = true;
     else if (argument === "--yes" || argument === "-y") yes = true;
     else if (argument === "--set") {
       const value = arguments_[index + 1];
@@ -350,6 +404,7 @@ function parseArguments(arguments_: readonly string[]): ParsedArguments {
       if (argument === "--root") root = value;
       else if (argument === "--test-file") testFile = value;
       else if (argument === "--config") config = value;
+      else if (argument === "--tenant") tenant = value;
       else {
         if (value !== "express" && value !== "adonis" && value !== "next") {
           throw new CliUsageError(
@@ -365,16 +420,24 @@ function parseArguments(arguments_: readonly string[]): ParsedArguments {
       positionals.push(argument);
     }
   }
-  if (commandValue !== "tenant" && positionals.length > 0)
+  if (!OPERATIONAL_COMMANDS.has(commandValue) && positionals.length > 0)
     throw new CliUsageError(`Unexpected argument: ${positionals[0]}`);
+  if (commandValue === "run" && positionals.length > 1)
+    throw new CliUsageError(`Unexpected argument: ${positionals[1]}`);
   if (commandValue !== "init" && apply)
     throw new CliUsageError("--apply is valid only for init.");
   if (commandValue !== "init" && (framework !== undefined || yes))
     throw new CliUsageError("--framework and --yes are valid only for init.");
-  if (commandValue !== "tenant" && config !== undefined)
-    throw new CliUsageError("--config is valid only for tenant commands.");
+  if (!OPERATIONAL_COMMANDS.has(commandValue) && config !== undefined)
+    throw new CliUsageError(
+      "--config is valid only for tenant and run commands.",
+    );
   if (commandValue !== "tenant" && set.length > 0)
     throw new CliUsageError("--set is valid only for tenant create.");
+  if (commandValue !== "run" && (central || tenant !== undefined))
+    throw new CliUsageError(
+      "--central and --tenant are valid only for the run command.",
+    );
   return {
     command: commandValue,
     ...(commandValue === "tenant" && positionals[0] !== undefined
@@ -383,11 +446,16 @@ function parseArguments(arguments_: readonly string[]): ParsedArguments {
     ...(commandValue === "tenant" && positionals[1] !== undefined
       ? { tenantId: positionals[1] }
       : {}),
+    ...(commandValue === "run" && positionals[0] !== undefined
+      ? { script: positionals[0] }
+      : {}),
+    ...(tenant === undefined ? {} : { tenant }),
     ...(root === undefined ? {} : { root }),
     ...(testFile === undefined ? {} : { testFile }),
     ...(config === undefined ? {} : { config }),
     ...(set.length === 0 ? {} : { set }),
     ...(framework === undefined ? {} : { framework }),
+    central,
     apply,
     json,
     yes,
@@ -418,13 +486,16 @@ Usage:
   tenancy tenant create [<id>] [--set key=value ...] [--config <path>] [--json]
   tenancy tenant suspend <id> [--config <path>] [--json]
   tenancy tenant activate <id> [--config <path>] [--json]
+  tenancy run <script> (--tenant <id> | --central) [--config <path>] [--json]
 
 init previews changes (dry run) unless --apply is present. It detects your stack and, when it cannot,
 asks you to choose one interactively; pass --framework to skip the prompt in CI. Supported stacks:
 Express 5.2 + Prisma 7.8, AdonisJS 7.3 + Lucid 22.4, or Next.js 16 + Prisma 7.8. Isolation is
 single-database row-level (forced RLS); Node.js >= 24 is required.
 
-tenant commands load your tenancy.config.ts at runtime (Node 24 strips types natively) to reach the
-TenantStore you passed to defineTenancyRuntime. Pass --config to point at a non-default config path.
+tenant and run commands load your tenancy.config.ts at runtime (Node 24 strips types natively) to reach
+the TenantStore and manager you passed to defineTenancyRuntime. Pass --config to point at a non-default
+config path. run executes a script inside a tenant scope (--tenant <id>) or the central scope
+(--central); the script's top-level code and its optional default export both see the active context.
 `;
 }

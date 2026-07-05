@@ -5,7 +5,7 @@ export default {
   [RUNTIME_BRAND]: true,
   manager: {
     runWithTenant: (_tenant, callback) => callback(),
-    runAsCentral: (callback) => callback(),
+    runInCentralContext: (callback) => callback(),
     getContext: () => undefined,
   },
   adapters: [],
