@@ -65,8 +65,14 @@ figure[data-rehype-pretty-code-figure] pre,
   );
 }
 
-/* Reusable brand gradient text for hero/landing accents. */
+/* Reusable brand gradient text — deeper on light, brighter on dark. */
 .tj-grad {
+  background: linear-gradient(100deg, #6d4aff 0%, #9333ea 52%, #db2777 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.dark .tj-grad {
   background: linear-gradient(100deg, #8b83ff 0%, #c084fc 52%, #f472b6 100%);
   -webkit-background-clip: text;
   background-clip: text;
