@@ -84,3 +84,12 @@ model preferences.
   suites. They are schema-isolated, so contention is load/timing, not cross-test corruption. Watch CI;
   if a real-DB file flakes, cap real-DB file concurrency (`poolOptions`/`maxConcurrency`) rather than
   weakening the tests.
+- Prisma schema-per-tenant cannot be done by pinning a connection's `search_path` per tenant. A
+  `PrismaClient` built with `?options=-c search_path=<schema>` (or a `pg.Pool` `options`) does NOT route
+  its queries to that schema — an adversarial two-schema test showed tenant A's client reading tenant B's
+  rows, and the `pg.Pool` `options` form errors on connect. Prisma resolves table names from the
+  datasource, not the session `search_path`, so runtime search_path pinning is silently ignored. This is
+  why Prisma schema-per-tenant is deferred (ADR-0018): a real implementation needs the tenant's schema in
+  the **datasource** (a per-tenant generated client, or Prisma multi-schema), not a runtime session
+  setting. Database-per-tenant (a `PrismaClient` per DB URL) and row-level (query-arg rewriting) work
+  fine; only schema-per-tenant hits this wall. Do not re-attempt the search_path route.
