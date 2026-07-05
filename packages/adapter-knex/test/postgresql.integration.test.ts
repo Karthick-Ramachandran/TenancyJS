@@ -3,6 +3,7 @@ import knex, { type Knex } from "knex";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import {
+  KnexTenancyConfigurationError,
   KnexTenantFieldConflictError,
   createKnexTenancy,
   type ProtectedKnexClient,
@@ -207,6 +208,14 @@ describePostgres("Knex PostgreSQL row-level isolation", () => {
       expect(rows).toEqual([{ id: "post-b" }]);
     });
     await expect(runtimeBase(postsTable).select("id")).resolves.toEqual([]);
+  });
+
+  it("refuses unrestricted() in row-level scope (facade-enforced)", async () => {
+    // ADR-0033: row-level (no forced-RLS tier yet) is facade-enforced — the
+    // facade is the only guard, so the raw handle must never be exposed.
+    await expect(
+      withTenant("tenant-a", async (db) => db.unrestricted()),
+    ).rejects.toBeInstanceOf(KnexTenancyConfigurationError);
   });
 
   function withTenant<TResult>(

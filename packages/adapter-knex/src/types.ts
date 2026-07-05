@@ -1,4 +1,5 @@
 import type { MaybePromise } from "tenancyjs-core";
+import type { Knex } from "knex";
 
 export type KnexSafeScalar = string | number | boolean | Date | null;
 export type KnexDataRecord = Readonly<Record<string, KnexSafeScalar>>;
@@ -48,4 +49,12 @@ export interface ProtectedKnexClient {
   transaction<TResult>(
     callback: (client: ProtectedKnexClient) => MaybePromise<TResult>,
   ): Promise<TResult>;
+  /**
+   * The raw, tenant-scoped Knex transaction — full query freedom (joins, raw
+   * SQL, nested selects). Available **only** in a database-enforced scope
+   * (currently database-per-tenant), where the connection *is* the tenant's
+   * database, so every query is isolated by construction (ADR-0033). Throws in
+   * any facade-enforced scope, where the facade is the only guard.
+   */
+  unrestricted(): Knex.Transaction;
 }

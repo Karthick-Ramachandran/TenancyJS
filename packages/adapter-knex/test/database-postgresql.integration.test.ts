@@ -2,7 +2,11 @@ import { TenancyManager } from "tenancyjs-core";
 import knex, { type Knex } from "knex";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
-import { createKnexTenancy, type ProtectedKnexClient } from "../src/index.js";
+import {
+  KnexTenancyConfigurationError,
+  createKnexTenancy,
+  type ProtectedKnexClient,
+} from "../src/index.js";
 
 const databaseUrl = process.env.TEST_DATABASE_URL;
 const describePostgres = databaseUrl === undefined ? describe.skip : describe;
@@ -162,5 +166,55 @@ describePostgres("Knex PostgreSQL database-per-tenant isolation", () => {
     await expect(
       runInTenant(broken, async (client) => client.table("posts").select("id")),
     ).rejects.toBeDefined();
+  });
+
+  // ── ADR-0033: full query freedom via unrestricted() ─────────────────────
+  // database-per-tenant is database-enforced by construction — the connection
+  // IS the tenant's database, so raw SQL, joins, and nested queries physically
+  // cannot reach another tenant. Adversarial: colliding ids, prove no cross.
+  it("unrestricted() raw query and join stay inside the tenant's own database", async () => {
+    await runInTenant(tenantA, async (client) =>
+      client.table("posts").insert({ id: "x", title: "A" }),
+    );
+    await runInTenant(tenantB, async (client) =>
+      client.table("posts").insert({ id: "x", title: "B" }),
+    );
+
+    // Raw SQL through the real (tenant-scoped) transaction.
+    const rawTitlesA = await runInTenant(tenantA, async (client) => {
+      const result = await client
+        .unrestricted()
+        .raw("select title from posts where id = ?", ["x"]);
+      return (result.rows as { title: string }[]).map((row) => row.title);
+    });
+    expect(rawTitlesA).toEqual(["A"]); // never sees tenant B's colliding row
+
+    // A join (self-join here) — only ever touches this tenant's database.
+    const joinTitlesB = await runInTenant(tenantB, async (client) => {
+      const rows = await client
+        .unrestricted()
+        .from("posts as p1")
+        .join("posts as p2", "p1.id", "p2.id")
+        .select<{ title: string }[]>("p1.title");
+      return rows.map((row) => row.title);
+    });
+    expect(joinTitlesB).toEqual(["B"]);
+  });
+
+  it("reports nested reads/writes and raw queries as supported for database-per-tenant", () => {
+    expect(tenancy.capabilities.nestedReads).toBe("supported");
+    expect(tenancy.capabilities.nestedWrites).toBe("supported");
+    expect(tenancy.capabilities.rawQueries).toBe("supported");
+  });
+
+  it("refuses unrestricted() in central mode — it runs on the shared admin connection", async () => {
+    // The freedom is granted by the *leased per-tenant connection*, not the
+    // strategy: in central mode a database-per-tenant config falls back to the
+    // shared admin connection, so the raw handle must stay fail-closed (ADR-0033).
+    await expect(
+      manager.runInCentralContext(() =>
+        tenancy.run(async (client) => client.unrestricted()),
+      ),
+    ).rejects.toBeInstanceOf(KnexTenancyConfigurationError);
   });
 });

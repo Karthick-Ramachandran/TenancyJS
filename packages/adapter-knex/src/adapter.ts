@@ -17,7 +17,7 @@ import {
 } from "tenancyjs-adapter-shared";
 import type { Knex } from "knex";
 
-import { KNEX_ADAPTER_CAPABILITIES } from "./capabilities.js";
+import { knexCapabilities } from "./capabilities.js";
 import {
   type KnexTenancyConfig,
   type KnexTenancyOptions,
@@ -83,6 +83,7 @@ export function createKnexTenancy<TTenant extends TenantRecord = TenantRecord>(
     client: Knex,
     context: TenantContext<TTenant>,
     callback: (client: ProtectedKnexClient) => MaybePromise<TResult>,
+    databaseEnforced: boolean,
   ): Promise<TResult> {
     const applyContext = config.strategy !== "databasePerTenant";
     return client.transaction(async (transaction) => {
@@ -105,6 +106,7 @@ export function createKnexTenancy<TTenant extends TenantRecord = TenantRecord>(
         (name) => classifyKnexTable(config, name),
         createSavepoint,
         config.strategy,
+        databaseEnforced,
       );
       return callback(protectedClient);
     });
@@ -128,10 +130,14 @@ export function createKnexTenancy<TTenant extends TenantRecord = TenantRecord>(
         context.tenant.id,
         placement.key,
         placement.create,
-        (leased) => runScope(leased, context, callback),
+        // Only this path leased the tenant's own database — the sole scope where
+        // the connection itself enforces isolation, so unrestricted() is allowed.
+        (leased) => runScope(leased, context, callback, true),
       );
     }
-    return runScope(config.knex, context, callback);
+    // Shared admin connection (central mode, or any facade-enforced strategy):
+    // isolation is the facade, never the connection — unrestricted() must throw.
+    return runScope(config.knex, context, callback, false);
   }
 
   async function close(): Promise<void> {
@@ -141,7 +147,7 @@ export function createKnexTenancy<TTenant extends TenantRecord = TenantRecord>(
   return Object.freeze({
     name: "knex",
     strategy: config.strategy,
-    capabilities: KNEX_ADAPTER_CAPABILITIES,
+    capabilities: knexCapabilities(config.strategy),
     config,
     validate,
     run,
