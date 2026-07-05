@@ -78,8 +78,12 @@ Scope: unified help, error taxonomy, `--json` audit, disposal audit, docs.
 
 ## T7: tenant check — runtime + store health (split from T2)
 
-Status: Todo
+Status: Done
 
 Scope: a `tenant check` command that loads the runtime and round-trips the store (`create`→`find`
 consistency where supported, or a read-only `list`/`find` probe), reporting fail-closed. Kept separate
 from the Express-specific framework `doctor`.
+
+Delivered: `tenant check` — read-only probe reporting runtime-loaded, adapter count, store methods
+present, and a non-mutating `list()` read; exits 0 when healthy, 2 when the probe fails; redacted human
++ `--json`. (Chose a read-only `list` probe over a `create`→`find` round-trip so `check` never mutates.)

@@ -63,6 +63,44 @@ describe("runCli tenant list", () => {
   });
 });
 
+describe("runCli tenant check", () => {
+  it("reports a healthy runtime and exits 0", async () => {
+    const output = captureIo();
+    const code = await runCli(
+      ["tenant", "check", "--config", "store-full.config.mjs"],
+      output.io,
+    );
+    expect(code).toBe(0);
+    const text = output.stdout.join("");
+    expect(text).toContain("OK runtime");
+    expect(text).toContain("Tenancy runtime healthy.");
+  });
+
+  it("exits 2 and redacts secrets when the store probe fails (human)", async () => {
+    const output = captureIo();
+    const code = await runCli(
+      ["tenant", "check", "--config", "store-broken.config.mjs"],
+      output.io,
+    );
+    expect(code).toBe(2);
+    const text = output.stdout.join("");
+    expect(text).toContain("FAIL store.list");
+    expect(text).toContain("Tenancy runtime has failures.");
+    expect(text).toContain("[REDACTED]");
+    expect(text).not.toContain("secret");
+  });
+
+  it("exits 2 with --json when the store probe fails", async () => {
+    const output = captureIo();
+    const code = await runCli(
+      ["tenant", "check", "--config", "store-broken.config.mjs", "--json"],
+      output.io,
+    );
+    expect(code).toBe(2);
+    expect(output.stdout.join("")).toContain('"healthy": false');
+  });
+});
+
 describe("runCli tenant show", () => {
   it("prints a single tenant as a block", async () => {
     const output = captureIo();

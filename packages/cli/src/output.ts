@@ -1,3 +1,4 @@
+import type { TenantCheckResult } from "./commands/check.js";
 import type { RunScriptResult } from "./commands/run.js";
 import type {
   TenantListResult,
@@ -41,6 +42,18 @@ const MUTATION_VERB = {
 export function formatTenantMutation(result: TenantMutationResult): string {
   const headline = `Tenant "${result.tenant.id}" ${MUTATION_VERB[result.subcommand]}.`;
   return `${redactText([headline, describeTenant(result.tenant, true)].join("\n"))}\n`;
+}
+
+export function formatTenantCheck(result: TenantCheckResult): string {
+  const lines = result.checks.map(
+    (check) => `${check.status.toUpperCase()} ${check.name}: ${check.detail}`,
+  );
+  lines.push(
+    result.healthy
+      ? "Tenancy runtime healthy."
+      : "Tenancy runtime has failures.",
+  );
+  return `${redactText(lines.join("\n"))}\n`;
 }
 
 export function formatRunResult(result: RunScriptResult): string {

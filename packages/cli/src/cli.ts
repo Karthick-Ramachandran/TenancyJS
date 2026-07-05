@@ -7,6 +7,7 @@ import {
   checkNodeVersion,
   ormForFramework,
 } from "./capabilities.js";
+import { runTenantCheck } from "./commands/check.js";
 import { runScript, type RunScope } from "./commands/run.js";
 import {
   runTenantActivate,
@@ -25,6 +26,7 @@ import {
   formatLeakTest,
   formatPlan,
   formatRunResult,
+  formatTenantCheck,
   formatTenantJson,
   formatTenantList,
   formatTenantMutation,
@@ -159,6 +161,13 @@ async function runTenant(
     root,
     ...(parsed.config === undefined ? {} : { configPath: parsed.config }),
   };
+  if (parsed.subcommand === "check") {
+    const result = await withRuntime(loadOptions, runTenantCheck);
+    io.writeStdout(
+      parsed.json ? formatTenantJson(result) : formatTenantCheck(result),
+    );
+    return result.healthy ? 0 : 2;
+  }
   if (parsed.subcommand === "list") {
     const result = await withRuntime(loadOptions, runTenantList);
     io.writeStdout(
@@ -204,7 +213,7 @@ async function runTenant(
   }
   throw new CliUsageError(
     `Unknown tenant subcommand: ${parsed.subcommand ?? "(none)"}. ` +
-      'Use "tenant list", "show <id>", "create [<id>]", "suspend <id>", or "activate <id>".',
+      'Use "tenant check", "list", "show <id>", "create [<id>]", "suspend <id>", or "activate <id>".',
   );
 }
 
@@ -481,6 +490,7 @@ Usage:
   tenancy init [--framework <express|adonis|next>] [--root <path>] [--apply] [--yes] [--json]
   tenancy doctor [--root <path>] [--test-file <path>] [--json]
   tenancy test:leak --test-file <path> [--root <path>] [--json]
+  tenancy tenant check [--config <path>] [--root <path>] [--json]
   tenancy tenant list [--config <path>] [--root <path>] [--json]
   tenancy tenant show <id> [--config <path>] [--root <path>] [--json]
   tenancy tenant create [<id>] [--set key=value ...] [--config <path>] [--json]

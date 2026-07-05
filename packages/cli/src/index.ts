@@ -27,6 +27,12 @@ export {
   TenancyCliError,
 } from "./errors.js";
 export type { CliErrorCode } from "./errors.js";
+export { runTenantCheck } from "./commands/check.js";
+export type {
+  CheckStatus,
+  TenantCheckItem,
+  TenantCheckResult,
+} from "./commands/check.js";
 export { runScript } from "./commands/run.js";
 export type {
   RunScope,

@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { runCli, type CliIo } from "../src/index.js";
+import { formatRunResult } from "../src/output.js";
 
 const FIXTURES = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -119,5 +120,26 @@ describe("runCli run", () => {
     const code = await runCli(["doctor", "--tenant", "x"], output.io);
     expect(code).toBe(2);
     expect(output.stderr.join("")).toMatch(/valid only for the run command/);
+  });
+});
+
+describe("formatRunResult", () => {
+  it("describes both tenant and central scopes", () => {
+    expect(
+      formatRunResult({
+        schemaVersion: 1,
+        command: "run",
+        script: "seed.mjs",
+        scope: { mode: "tenant", tenantId: "acme" },
+      }),
+    ).toContain('Ran seed.mjs in tenant "acme".');
+    expect(
+      formatRunResult({
+        schemaVersion: 1,
+        command: "run",
+        script: "seed.mjs",
+        scope: { mode: "central" },
+      }),
+    ).toContain("Ran seed.mjs in central scope.");
   });
 });
