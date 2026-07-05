@@ -3,7 +3,10 @@ import knex, { type Knex } from "knex";
 import { DataSource, EntitySchema } from "typeorm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { createTypeOrmTenancy } from "../src/index.js";
+import {
+  TypeOrmTenancyConfigurationError,
+  createTypeOrmTenancy,
+} from "../src/index.js";
 
 const databaseUrl = process.env.TEST_DATABASE_URL;
 const describePostgres = databaseUrl === undefined ? describe.skip : describe;
@@ -132,6 +135,14 @@ describePostgres("TypeORM PostgreSQL schema-per-tenant isolation", () => {
       ),
     ).rejects.toBeDefined();
   });
+
+  it("refuses unrestricted() in schema-per-tenant scope (facade-enforced)", async () => {
+    // ADR-0033: schema-per-tenant without a per-tenant role is facade-enforced,
+    // so the raw EntityManager must not be exposed.
+    await expect(
+      run(tenantA, async (client) => client.unrestricted()),
+    ).rejects.toBeInstanceOf(TypeOrmTenancyConfigurationError);
+  });
 });
 
 describePostgres("TypeORM PostgreSQL database-per-tenant isolation", () => {
@@ -212,5 +223,51 @@ describePostgres("TypeORM PostgreSQL database-per-tenant isolation", () => {
         client.repository(PostEntity).countBy(),
       ),
     ).rejects.toMatchObject({ code: "TENANCY_RESOURCE_CACHE_COLLISION" });
+  });
+
+  // ADR-0033: database-per-tenant is database-enforced — the leased EntityManager
+  // runs on the tenant's own database, so raw SQL and joins can't cross tenants.
+  it("unrestricted() EntityManager stays inside the tenant's own database", async () => {
+    await run(tenantA, (client) =>
+      client.repository(PostEntity).create({ id: "u", title: "A" }),
+    );
+    await run(tenantB, (client) =>
+      client.repository(PostEntity).create({ id: "u", title: "B" }),
+    );
+    const titlesA = await run(tenantA, async (client) => {
+      const rows = (await client
+        .unrestricted()
+        .query("select title from posts where id = $1", ["u"])) as {
+        title: string;
+      }[];
+      return rows.map((row) => row.title);
+    });
+    expect(titlesA).toEqual(["A"]); // never tenant B's colliding row
+    const joinB = await run(tenantB, async (client) => {
+      const rows = (await client
+        .unrestricted()
+        .query(
+          "select p1.title from posts p1 join posts p2 on p1.id = p2.id where p1.id = $1",
+          ["u"],
+        )) as { title: string }[];
+      return rows.map((row) => row.title);
+    });
+    expect(joinB).toEqual(["B"]);
+  });
+
+  it("reports database-enforced capabilities for database-per-tenant", () => {
+    expect(tenancy.capabilities.nestedReads).toBe("supported");
+    expect(tenancy.capabilities.nestedWrites).toBe("supported");
+    expect(tenancy.capabilities.rawQueries).toBe("supported");
+  });
+
+  it("refuses unrestricted() in central mode — it runs on the shared base DataSource", async () => {
+    // Central mode uses the shared base DataSource, not a leased tenant database,
+    // so the raw handle must stay fail-closed (ADR-0033).
+    await expect(
+      manager.runInCentralContext(() =>
+        tenancy.run(async (client) => client.unrestricted()),
+      ),
+    ).rejects.toBeInstanceOf(TypeOrmTenancyConfigurationError);
   });
 });

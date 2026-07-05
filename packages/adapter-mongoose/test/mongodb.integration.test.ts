@@ -7,7 +7,10 @@ import {
 } from "mongoose";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
-import { createMongooseTenancy } from "../src/index.js";
+import {
+  MongooseTenancyConfigurationError,
+  createMongooseTenancy,
+} from "../src/index.js";
 
 const mongoUrl = process.env.TEST_MONGODB_URL;
 const describeMongo =
@@ -135,5 +138,13 @@ describeMongo("Mongoose MongoDB row-level isolation", () => {
     await expect(
       run(tenantB, (client) => client.model(model).count()),
     ).resolves.toBe(1);
+  });
+
+  it("refuses unrestricted() in row-level scope (facade-only, no RLS)", async () => {
+    // ADR-0033: MongoDB row-level has no database backstop — the facade is the
+    // entire guarantee, so the raw connection must never be handed out.
+    await expect(
+      run(tenantA, async (client) => client.unrestricted()),
+    ).rejects.toBeInstanceOf(MongooseTenancyConfigurationError);
   });
 });

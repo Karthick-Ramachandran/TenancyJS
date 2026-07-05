@@ -33,6 +33,14 @@ export interface ProtectedSequelizeModel {
 
 export interface ProtectedSequelizeClient {
   model(model: ModelStatic<Model>): ProtectedSequelizeModel;
+  /**
+   * The raw, tenant-scoped Sequelize instance — full query freedom (raw SQL,
+   * includes, associations). Available **only** in a database-enforced scope
+   * (database-per-tenant, tenant mode), where this instance connects solely to
+   * the tenant's own leased database. Throws in any facade-enforced scope
+   * (ADR-0033).
+   */
+  unrestricted(): Sequelize;
 }
 
 export interface SequelizeTenancyRunner {

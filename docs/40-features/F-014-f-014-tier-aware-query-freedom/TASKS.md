@@ -21,7 +21,32 @@ central-mode gate test; re-review confirmed closed. See LESSONS.md and ADR-0033.
 
 ## T2: extend db-per-tenant freedom to Lucid, Prisma, TypeORM, Sequelize, Drizzle, Mongoose
 
-Status: Todo
+Status: Partly done (2026-07-05) — TypeORM, Sequelize, Mongoose, Prisma done; Drizzle + Lucid deferred (T2b).
+
+DRY/KISS: the two identical pieces moved to `tenancyjs-core` (`tier.ts`):
+`databaseEnforcedCapabilities(base)` (the nested/raw capability flip) and `unrestrictedRefusedMessage(ctx)`
+(the shared refusal message). Knex was refactored onto them (no one-off). Each adapter keeps its own
+error class and, critically, passes `databaseEnforced` as an explicit boolean set `true` ONLY at its
+`connectionCache.lease(...)` call site (never derived from strategy/mode — that derivation was the
+central-mode leak from T1).
+
+- **TypeORM / Sequelize / Mongoose**: `client.unrestricted()` returns the leased raw resource
+  (EntityManager / Sequelize instance / Connection); per-strategy caps via the core helper. Adversarial
+  two-tenant colliding-id tests (raw query + join / `$lookup`) + gate tests (facade scope + db-per-tenant
+  central mode).
+- **Prisma**: no code change — the db-per-tenant router already returns the raw leased `PrismaClient`
+  and throws for non-tenant context (stronger than the facade adapters; central-mode leak impossible).
+  A capabilities flip would have no consumer (the router isn't a `TenancyAdapter`) — skipped (YAGNI).
+
+Independent adversarial review: no CRITICAL/HIGH — the `databaseEnforced`-at-lease-site invariant holds
+across all four adapters and Prisma; DRY helpers shared with no over-abstraction; tests adversarial.
+One NIT fixed (tightened `unrestrictedRefusedMessage` `mode` type). See LESSONS.md / ADR-0033.
+
+## T2b: Drizzle (binding plumbing) + Lucid (hook/ALS accessor)
+
+Status: Todo — both need real design, not copy-paste. Drizzle hides the raw db behind its binding
+abstraction (`binding.ts`); Lucid's `run()` passes no client (hook + AsyncLocalStorage). Handle as a
+separate reviewed slice.
 
 ## T3: PostgreSQL row-level + forced RLS full freedom
 

@@ -1,9 +1,18 @@
 import { TenancyManager } from "tenancyjs-core";
 import knex, { type Knex } from "knex";
-import { DataTypes, type Model, type ModelStatic, Sequelize } from "sequelize";
+import {
+  DataTypes,
+  type Model,
+  type ModelStatic,
+  QueryTypes,
+  Sequelize,
+} from "sequelize";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { createSequelizeTenancy } from "../src/index.js";
+import {
+  SequelizeTenancyConfigurationError,
+  createSequelizeTenancy,
+} from "../src/index.js";
 
 const databaseUrl = process.env.TEST_DATABASE_URL;
 const describePostgres = databaseUrl === undefined ? describe.skip : describe;
@@ -136,6 +145,14 @@ describePostgres("Sequelize PostgreSQL schema-per-tenant isolation", () => {
       ),
     ).rejects.toBeDefined();
   });
+
+  it("refuses unrestricted() in schema-per-tenant scope (facade-enforced)", async () => {
+    // ADR-0033: schema-per-tenant without a per-tenant role is facade-enforced,
+    // so the raw Sequelize instance must not be exposed.
+    await expect(
+      run(tenantA, async (client) => client.unrestricted()),
+    ).rejects.toBeInstanceOf(SequelizeTenancyConfigurationError);
+  });
 });
 
 describePostgres("Sequelize PostgreSQL database-per-tenant isolation", () => {
@@ -219,5 +236,52 @@ describePostgres("Sequelize PostgreSQL database-per-tenant isolation", () => {
         client.model(post).count(),
       ),
     ).rejects.toMatchObject({ code: "TENANCY_RESOURCE_CACHE_COLLISION" });
+  });
+
+  // ADR-0033: the leased Sequelize instance connects only to the tenant's own
+  // database, so raw SQL and joins can't reach another tenant.
+  it("unrestricted() Sequelize instance stays inside the tenant's own database", async () => {
+    await run(tenantA, (client) =>
+      client.model(post).create({ id: "u", title: "A" }),
+    );
+    await run(tenantB, (client) =>
+      client.model(post).create({ id: "u", title: "B" }),
+    );
+    const titlesA = await run(tenantA, async (client) => {
+      const rows = (await client
+        .unrestricted()
+        .query("select title from posts where id = :id", {
+          replacements: { id: "u" },
+          type: QueryTypes.SELECT,
+        })) as { title: string }[];
+      return rows.map((row) => row.title);
+    });
+    expect(titlesA).toEqual(["A"]); // never tenant B's colliding row
+    const joinB = await run(tenantB, async (client) => {
+      const rows = (await client
+        .unrestricted()
+        .query(
+          "select p1.title from posts p1 join posts p2 on p1.id = p2.id where p1.id = :id",
+          { replacements: { id: "u" }, type: QueryTypes.SELECT },
+        )) as { title: string }[];
+      return rows.map((row) => row.title);
+    });
+    expect(joinB).toEqual(["B"]);
+  });
+
+  it("reports database-enforced capabilities for database-per-tenant", () => {
+    expect(tenancy.capabilities.nestedReads).toBe("supported");
+    expect(tenancy.capabilities.nestedWrites).toBe("supported");
+    expect(tenancy.capabilities.rawQueries).toBe("supported");
+  });
+
+  it("refuses unrestricted() in central mode — it runs on the shared base instance", async () => {
+    // Central mode uses the shared base Sequelize instance, not a leased tenant
+    // database, so the raw handle must stay fail-closed (ADR-0033).
+    await expect(
+      manager.runInCentralContext(() =>
+        tenancy.run(async (client) => client.unrestricted()),
+      ),
+    ).rejects.toBeInstanceOf(SequelizeTenancyConfigurationError);
   });
 });

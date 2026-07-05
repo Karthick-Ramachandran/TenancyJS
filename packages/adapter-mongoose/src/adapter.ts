@@ -5,7 +5,7 @@ import type {
   TenantContext,
   TenantRecord,
 } from "tenancyjs-core";
-import { TenantContextError } from "tenancyjs-core";
+import { TenantContextError, unrestrictedRefusedMessage } from "tenancyjs-core";
 import {
   createTenantResourceCache,
   decideTenantDiscriminator,
@@ -19,7 +19,7 @@ import {
   type Model,
 } from "mongoose";
 
-import { MONGOOSE_ADAPTER_CAPABILITIES } from "./capabilities.js";
+import { mongooseCapabilities } from "./capabilities.js";
 import {
   defineMongooseTenancyConfig,
   type MongooseModelPolicy,
@@ -105,7 +105,7 @@ export function createMongooseTenancy<
     }
     const context = config.manager.getContext();
     if (context === undefined) throw new TenantContextError("missing");
-    const runScope = (connection: Connection) =>
+    const runScope = (connection: Connection, databaseEnforced: boolean) =>
       connection.transaction(async (session) =>
         callback(
           createProtectedClient(
@@ -114,6 +114,7 @@ export function createMongooseTenancy<
             session,
             context,
             config.strategy,
+            databaseEnforced,
           ),
         ),
       );
@@ -130,16 +131,18 @@ export function createMongooseTenancy<
           }
           return connection;
         },
-        runScope,
+        // Only the leased per-tenant connection is database-enforced (ADR-0033).
+        (connection) => runScope(connection, true),
       );
     }
-    return runScope(config.connection);
+    // Shared base connection (central mode / facade-enforced row-level).
+    return runScope(config.connection, false);
   }
 
   return Object.freeze({
     name: "mongoose" as const,
     strategy: config.strategy,
-    capabilities: MONGOOSE_ADAPTER_CAPABILITIES,
+    capabilities: mongooseCapabilities(config.strategy),
     config,
     validate,
     run,
@@ -166,8 +169,28 @@ function createProtectedClient<TTenant extends TenantRecord>(
   session: ClientSession,
   context: TenantContext<TTenant>,
   strategy: "rowLevel" | "databasePerTenant",
+  databaseEnforced: boolean,
 ): ProtectedMongooseClient {
   return Object.freeze({
+    unrestricted(): Connection {
+      // ADR-0033: the raw, tenant-scoped Mongoose Connection — full query
+      // freedom (aggregation, populate, native collection access). Available
+      // only in a database-enforced scope (database-per-tenant, tenant mode),
+      // where this connection is the tenant's own leased database. This is the
+      // one place the "never expose the native connection" rule is safe to lift,
+      // because here the connection IS the isolation boundary. Fail closed
+      // everywhere else — MongoDB has no row-level backstop.
+      if (!databaseEnforced) {
+        throw new MongooseTenancyConfigurationError(
+          unrestrictedRefusedMessage({
+            adapter: "mongoose",
+            strategy,
+            mode: context.mode,
+          }),
+        );
+      }
+      return connection;
+    },
     model(model: Model<unknown>) {
       const policy = config.classify(model);
       if (policy === undefined) throw new MongooseModelUnregisteredError();

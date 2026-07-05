@@ -1,5 +1,10 @@
 import type { MaybePromise, TenantRecord } from "tenancyjs-core";
-import type { DataSource, EntityTarget, ObjectLiteral } from "typeorm";
+import type {
+  DataSource,
+  EntityManager,
+  EntityTarget,
+  ObjectLiteral,
+} from "typeorm";
 
 export type TypeOrmScalar = string | number | boolean | Date | null;
 export type TypeOrmCriteria = Readonly<Record<string, TypeOrmScalar>>;
@@ -39,6 +44,14 @@ export interface ProtectedTypeOrmClient {
   repository<TEntity extends ObjectLiteral>(
     entity: EntityTarget<TEntity>,
   ): ProtectedTypeOrmRepository<TEntity>;
+  /**
+   * The raw, tenant-scoped TypeORM `EntityManager` — full query freedom
+   * (relations, query builder, raw SQL). Available **only** in a
+   * database-enforced scope (database-per-tenant, tenant mode), where the leased
+   * DataSource *is* the tenant's own database. Throws in any facade-enforced
+   * scope (ADR-0033).
+   */
+  unrestricted(): EntityManager;
 }
 
 export interface TypeOrmTenancyRunner {

@@ -5,7 +5,7 @@ import type {
   TenantContext,
   TenantRecord,
 } from "tenancyjs-core";
-import { TenantContextError } from "tenancyjs-core";
+import { TenantContextError, unrestrictedRefusedMessage } from "tenancyjs-core";
 import {
   adapterEnforcedRowValidationResult,
   applyPostgresRowContext,
@@ -26,7 +26,7 @@ import {
   type Transaction,
 } from "sequelize";
 
-import { SEQUELIZE_ADAPTER_CAPABILITIES } from "./capabilities.js";
+import { sequelizeCapabilities } from "./capabilities.js";
 import {
   defineSequelizeTenancyConfig,
   matchesSequelizeDialect,
@@ -132,7 +132,7 @@ export function createSequelizeTenancy<
     }
     const context = config.manager.getContext();
     if (context === undefined) throw new TenantContextError("missing");
-    const runScope = (sequelize: Sequelize) => {
+    const runScope = (sequelize: Sequelize, databaseEnforced: boolean) => {
       if (!matchesSequelizeDialect(sequelize.getDialect(), config.dialect))
         throw new SequelizeTenancyConfigurationError(
           "Sequelize tenant instance dialect does not match the base configuration.",
@@ -156,6 +156,7 @@ export function createSequelizeTenancy<
             transaction,
             context,
             config.strategy,
+            databaseEnforced,
           ),
         );
       });
@@ -166,16 +167,18 @@ export function createSequelizeTenancy<
         context.tenant.id,
         placement.key,
         placement.create,
-        runScope,
+        // Only the leased per-tenant instance is database-enforced (ADR-0033).
+        (sequelize) => runScope(sequelize, true),
       );
     }
-    return runScope(config.sequelize);
+    // Shared base instance (central mode / facade-enforced strategies).
+    return runScope(config.sequelize, false);
   }
 
   return Object.freeze({
     name: "sequelize" as const,
     strategy: config.strategy,
-    capabilities: SEQUELIZE_ADAPTER_CAPABILITIES,
+    capabilities: sequelizeCapabilities(config.strategy),
     config,
     validate,
     run,
@@ -191,8 +194,25 @@ function createProtectedClient<TTenant extends TenantRecord>(
   transaction: Transaction,
   context: TenantContext<TTenant>,
   strategy: "rowLevel" | "schemaPerTenant" | "databasePerTenant",
+  databaseEnforced: boolean,
 ): ProtectedSequelizeClient {
   return Object.freeze({
+    unrestricted(): Sequelize {
+      // ADR-0033: the raw, tenant-scoped Sequelize instance — full query freedom
+      // (raw SQL, includes, associations). Available only in a database-enforced
+      // scope (database-per-tenant, tenant mode), where this instance connects
+      // solely to the tenant's own leased database. Fail closed otherwise.
+      if (!databaseEnforced) {
+        throw new SequelizeTenancyConfigurationError(
+          unrestrictedRefusedMessage({
+            adapter: "sequelize",
+            strategy,
+            mode: context.mode,
+          }),
+        );
+      }
+      return sequelize;
+    },
     model(model: ModelStatic<Model>) {
       const policy = config.classify(model);
       if (policy === undefined) throw new SequelizeModelUnregisteredError();
