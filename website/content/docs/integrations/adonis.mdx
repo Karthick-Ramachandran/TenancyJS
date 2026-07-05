@@ -1,21 +1,24 @@
 ---
 title: AdonisJS
-description: Wire Lucid tenancy into the AdonisJS request lifecycle via a provider and middleware.
+description: Wire Lucid tenancy into the AdonisJS request lifecycle — all three isolation strategies.
 ---
 
-`tenancyjs-integration-adonis` connects [Lucid tenancy](/docs/adapters/lucid) to the AdonisJS 7 request
-lifecycle. Because Lucid supports **all three isolation strategies**, AdonisJS gets the full range —
-row-level, schema-per-tenant, and database-per-tenant — out of the box.
+`tenancyjs-integration-adonis` connects tenancy to the AdonisJS 7 request lifecycle. AdonisJS uses its
+own ORM, so this pairs with the [Lucid adapter](/docs/adapters/lucid) — and because Lucid supports
+**all three isolation strategies**, AdonisJS gets the full range out of the box.
+
+> **ORM:** [Lucid](/docs/adapters/lucid) (AdonisJS's ORM). Row-level, schema-per-tenant, and
+> database-per-tenant are all supported.
 
 <Callout type="info">
-  `tenancy init` scaffolds AdonisJS + Lucid end-to-end, so the fastest path is
+  `tenancy init` scaffolds AdonisJS + Lucid end to end, so the fastest path is
   [`npx tenancy init`](/docs/getting-started/installation). This page covers the manual wiring.
 </Callout>
 
 ## Install
 
 ```bash
-npm install tenancyjs-integration-adonis
+npm install tenancyjs-core tenancyjs-integration-adonis tenancyjs-adapter-lucid
 ```
 
 ## Configure
@@ -31,9 +34,14 @@ export default defineAdonisTenancyConfig({
 });
 ```
 
-Register the provider, then add the tenancy middleware to your router (the `init` scaffold does both for
-you). Each request resolves its tenant and runs scoped, so your Lucid models are automatically isolated
-— no per-query tenant filters.
+Register the provider, then add the tenancy middleware to your router (the `init` scaffold does both).
+Each request resolves its tenant and runs scoped, so your Lucid models are automatically isolated — no
+per-query tenant filters:
+
+```ts
+// inside a controller — already tenant-scoped
+const orders = await Order.all();
+```
 
 ## How it behaves
 
@@ -45,7 +53,7 @@ you). Each request resolves its tenant and runs scoped, so your Lucid models are
 
 <Cards>
   <Card title="Lucid adapter" href="/docs/adapters/lucid">
-    All three isolation strategies with Lucid.
+    Configure row-level, schema-, or database-per-tenant.
   </Card>
   <Card title="Schema per tenant" href="/docs/strategies/schema-per-tenant">
     A strong Adonis + Lucid pairing.

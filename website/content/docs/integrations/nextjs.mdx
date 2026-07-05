@@ -1,21 +1,23 @@
 ---
 title: Next.js
-description: Tenant context across the Edge/Node boundary in the Next.js App Router.
+description: Tenant context across the Edge/Node boundary in the Next.js App Router — works with any ORM.
 ---
 
 `tenancyjs-integration-next` supports the Next.js **App Router**. Next runs middleware on the Edge and
 your handlers on Node, so identity has to cross that boundary. The integration handles the hand-off —
 your Server Components and Route Handlers see the resolved tenant.
 
+> **Works with any ORM.** [Prisma](/docs/adapters/prisma) · [Knex](/docs/adapters/knex) ·
+> [TypeORM](/docs/adapters/typeorm) · [Sequelize](/docs/adapters/sequelize) ·
+> [Mongoose](/docs/adapters/mongoose). Prisma is the common pairing; swap the adapter for yours.
+
 ## Install
 
 ```bash
-npm install tenancyjs-integration-next
+npm install tenancyjs-core tenancyjs-integration-next tenancyjs-adapter-prisma @prisma/client
 ```
 
 ## Set up the runtime
-
-Create the tenancy with your `manager` and a resolver:
 
 ```ts title="lib/tenancy.ts"
 import { createNextTenancy } from "tenancyjs-integration-next";
@@ -40,10 +42,11 @@ export const config = {
 };
 ```
 
-Then, inside a Server Component or Route Handler, run scoped work — the tenant is already in context:
+Then run scoped work inside a Route Handler or Server Component — the tenant is already in context:
 
 ```ts title="app/orders/route.ts"
 import { tenancy } from "@/lib/tenancy";
+import { db } from "@/lib/db"; // your adapter-extended client
 
 export async function GET() {
   const orders = await tenancy.run(() => db.order.findMany());
@@ -56,8 +59,15 @@ export async function GET() {
   for how the Edge → Node identity hand-off is implemented and why it's safe.
 </Callout>
 
-## Notes
+## Use a different ORM
 
-- Prisma is the common ORM pairing with Next.js — see the [Prisma adapter](/docs/adapters/prisma).
-- Static routes with no tenant should not call scoped adapters; guard them, or open a
-  [central scope](/docs/concepts/tenant-context#central-context) explicitly.
+<Cards>
+  <Card title="Prisma" href="/docs/adapters/prisma" />
+  <Card title="Knex" href="/docs/adapters/knex" />
+  <Card title="TypeORM" href="/docs/adapters/typeorm" />
+  <Card title="Sequelize" href="/docs/adapters/sequelize" />
+  <Card title="Mongoose" href="/docs/adapters/mongoose" />
+</Cards>
+
+Static routes with no tenant should not call scoped adapters — guard them, or open a
+[central scope](/docs/concepts/tenant-context#central-context) explicitly.

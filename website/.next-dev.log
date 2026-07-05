@@ -240,3 +240,59 @@ https://react.dev/link/hydration-mismatch
 ✓ Compiled in 106ms
  GET /docs/getting-started/installation 200 in 50ms (next.js: 9ms, generate-params: 1791µs, application-code: 41ms)
  GET /docs/getting-started/installation 200 in 75ms (next.js: 6ms, generate-params: 1242µs, application-code: 69ms)
+ GET /docs/getting-started/installation 200 in 123ms (next.js: 19ms, generate-params: 2ms, application-code: 103ms)
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <HotReload globalError={[...]} webSocket={WebSocket} staticIndicatorState={{pathname:null, ...}}>
+      <AppDevOverlayErrorBoundary globalError={[...]}>
+        <ReplaySsrOnlyErrors>
+        <DevRootHTTPAccessFallbackBoundary>
+          <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>
+            <HTTPAccessFallbackErrorBoundary pathname="/docs/gett..." notFound={<NotAllowedRootHTTPFallbackError>} ...>
+              <RedirectBoundary>
+                <RedirectErrorBoundary router={{...}}>
+                  <Head>
+                  <__next_root_layout_boundary__>
+                    <SegmentViewNode type="layout" pagePath="layout.tsx">
+                      <SegmentTrieNode>
+                      <link>
+                      <script>
+                      <script>
+                      <script>
+                      <Layout>
+                        <html lang="en" className="geist_9c6c..." suppressHydrationWarning={true}>
+                          <body
+                            className="flex min-h-screen flex-col"
+-                           cz-shortcut-listen="true"
+                          >
+                  ...
+ 
+ GET /docs/adapters 200 in 545ms (next.js: 3ms, generate-params: 1157µs, application-code: 542ms)
+ GET /docs/adapters/prisma 200 in 713ms (next.js: 3ms, generate-params: 1683µs, application-code: 710ms)
+ GET /docs/adapters/knex 200 in 1115ms (next.js: 16ms, generate-params: 10ms, application-code: 1099ms)
+ GET /docs/integrations/express 200 in 448ms (next.js: 6ms, generate-params: 3ms, application-code: 441ms)
+ GET /docs/integrations/nextjs 200 in 722ms (next.js: 4ms, generate-params: 1833µs, application-code: 718ms)
+ GET /docs/integrations/nestjs 200 in 617ms (next.js: 4ms, generate-params: 1933µs, application-code: 613ms)
+ GET /docs/integrations/adonis 200 in 93ms (next.js: 6ms, generate-params: 1625µs, application-code: 87ms)
+ GET /docs/integrations/nestjs 200 in 156ms (next.js: 6ms, generate-params: 2ms, application-code: 150ms)
+ GET /docs/integrations/express 200 in 99ms (next.js: 4ms, generate-params: 1821µs, application-code: 95ms)
+ GET /docs/integrations/express 200 in 75ms (next.js: 38ms, generate-params: 2ms, application-code: 38ms)
+ GET /docs/integrations/express 200 in 94ms (next.js: 16ms, generate-params: 2ms, application-code: 79ms)
+[browser] Uncaught TypeError: (intermediate value)(intermediate value)(intermediate value) is not iterable
+✓ Compiled in 143ms
+ GET /docs/integrations/express 200 in 57ms (next.js: 10ms, generate-params: 2ms, application-code: 47ms)
+ GET /docs/integrations/express 200 in 710ms (next.js: 18ms, generate-params: 1395µs, application-code: 692ms)
+ GET /docs/integrations/express 200 in 651ms (next.js: 276ms, generate-params: 25µs, application-code: 375ms)
+ GET /docs/integrations/express 200 in 157ms (next.js: 2ms, generate-params: 23µs, application-code: 154ms)
+ GET /docs/integrations/express 200 in 48ms (next.js: 5ms, generate-params: 1946µs, application-code: 43ms)

@@ -1,27 +1,31 @@
 ---
 title: NestJS
-description: Scope every request with a module and interceptor, on Express or Fastify.
+description: Scope every NestJS request with a module and interceptor — Express or Fastify, any ORM.
 ---
 
 `tenancyjs-integration-nest` brings tenant scoping to NestJS 11. Register the tenancy module and an
 interceptor opens a tenant scope for the lifetime of each request; your controllers and providers run
 inside it. It works on both the **Express** and **Fastify** platforms.
 
+> **Works with any ORM.** [Prisma](/docs/adapters/prisma) · [Knex](/docs/adapters/knex) ·
+> [TypeORM](/docs/adapters/typeorm) · [Sequelize](/docs/adapters/sequelize) ·
+> [Mongoose](/docs/adapters/mongoose).
+
 <Callout type="info">
-  NestJS is fully supported, but `tenancy init` doesn't scaffold it yet — this page is the manual setup
-  (a few lines). See [Installation](/docs/getting-started/installation) for what `init` covers.
+  NestJS is fully supported, but `tenancy init` doesn't scaffold it yet — this is the manual setup (a
+  few lines). See [Installation](/docs/getting-started/installation).
 </Callout>
 
 ## Install
 
 ```bash
-npm install tenancyjs-integration-nest
+npm install tenancyjs-core tenancyjs-integration-nest tenancyjs-adapter-prisma @prisma/client
 ```
 
 ## Wire it up
 
-Provide your `manager` and a resolver to the tenancy module, and register the interceptor globally so
-every request is scoped. Then pair it with the [adapter](/docs/adapters) for your ORM.
+Provide your `manager` and a resolver to the tenancy module, register the interceptor globally, and pair
+it with your ORM's [adapter](/docs/adapters).
 
 ```ts title="app.module.ts"
 import { Module } from "@nestjs/common";
@@ -44,13 +48,18 @@ export class AppModule {}
 
 ## How it behaves
 
-- Each request resolves its tenant and runs inside the scope; your ORM queries (through the adapter) are
-  scoped automatically.
+- Each request resolves its tenant and runs inside the scope; ORM queries through the adapter are scoped.
 - A resolution failure fails closed with the correct HTTP status **before** your controller runs.
-- Injectables resolved per-request see the active tenant.
 
-## Notes
+## Use a different ORM
 
-- Works with any [adapter](/docs/adapters) — Prisma, Knex, TypeORM, etc.
-- For the exact provider/interceptor registration for your Nest version, see the
-  [package README](https://github.com/Karthick-Ramachandran/TenancyJS/tree/main/packages/integration-nest).
+<Cards>
+  <Card title="Prisma" href="/docs/adapters/prisma" />
+  <Card title="Knex" href="/docs/adapters/knex" />
+  <Card title="TypeORM" href="/docs/adapters/typeorm" />
+  <Card title="Sequelize" href="/docs/adapters/sequelize" />
+  <Card title="Mongoose" href="/docs/adapters/mongoose" />
+</Cards>
+
+For the exact provider/interceptor registration for your Nest version, see the
+[package README](https://github.com/Karthick-Ramachandran/TenancyJS/tree/main/packages/integration-nest).
