@@ -232,6 +232,63 @@ describe("PostgreSQL schema-per-tenant strategy engine", () => {
     );
   });
 
+  it("rejects tenant-to-schema collisions and tenant remapping", async () => {
+    let schema = "tenant_shared";
+    const engine = createPostgresStrategyEngine({
+      ...options,
+      resolveSchema: () => schema,
+    });
+    const execute = schemaExecutor();
+
+    await engine.applyContext(execute, {
+      mode: "tenant",
+      tenant: { id: "tenant-a" },
+    });
+    await expect(
+      engine.applyContext(execute, {
+        mode: "tenant",
+        tenant: { id: "tenant-b" },
+      }),
+    ).rejects.toEqual(new PostgresStrategyValidationError());
+
+    schema = "tenant_changed";
+    await expect(
+      engine.applyContext(execute, {
+        mode: "tenant",
+        tenant: { id: "tenant-a" },
+      }),
+    ).rejects.toEqual(new PostgresStrategyValidationError());
+  });
+
+  it("does not retain a schema claim when applying database context fails", async () => {
+    let failSet = true;
+    const base = schemaExecutor();
+    const execute: PostgresExecutor = async (sql, bindings) => {
+      if (failSet && sql.includes("set_config('search_path'")) {
+        failSet = false;
+        throw new Error("transient failure");
+      }
+      return base(sql, bindings);
+    };
+    const engine = createPostgresStrategyEngine({
+      ...options,
+      resolveSchema: () => "tenant_shared",
+    });
+
+    await expect(
+      engine.applyContext(execute, {
+        mode: "tenant",
+        tenant: { id: "tenant-a" },
+      }),
+    ).rejects.toEqual(new PostgresStrategyValidationError());
+    await expect(
+      engine.applyContext(execute, {
+        mode: "tenant",
+        tenant: { id: "tenant-b" },
+      }),
+    ).resolves.toBeUndefined();
+  });
+
   it("reports privileged, inaccessible, shadowing, and missing-central-table boundaries", async () => {
     const engine = createPostgresStrategyEngine(options);
     const result = await engine.validate(

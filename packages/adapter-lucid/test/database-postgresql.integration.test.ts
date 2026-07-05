@@ -114,7 +114,13 @@ describePostgres("Lucid PostgreSQL database-per-tenant isolation", () => {
     });
     await expect(tenancy.validate()).resolves.toEqual({
       valid: true,
-      issues: [],
+      issues: [
+        {
+          code: "TENANCY_LUCID_TENANT_DATABASE_VALIDATION_DEFERRED",
+          severity: "warning",
+          message: expect.stringContaining("first used"),
+        },
+      ],
     });
   });
 
@@ -152,8 +158,8 @@ describePostgres("Lucid PostgreSQL database-per-tenant isolation", () => {
   }
 
   it("routes each tenant to its own database and never crosses", async () => {
-    await runInTenant(tenantA, () => createPost("post-a", "A"));
-    await runInTenant(tenantB, () => createPost("post-b", "B"));
+    await runInTenant(tenantA, () => createPost("same-id", "A"));
+    await runInTenant(tenantB, () => createPost("same-id", "B"));
 
     const rowsA = await runInTenant(tenantA, async () =>
       Post.query().orderBy("id"),
@@ -161,19 +167,20 @@ describePostgres("Lucid PostgreSQL database-per-tenant isolation", () => {
     const rowsB = await runInTenant(tenantB, async () =>
       Post.query().orderBy("id"),
     );
-    expect(rowsA.map((row) => row.id)).toEqual(["post-a"]);
-    expect(rowsB.map((row) => row.id)).toEqual(["post-b"]);
+    expect(rowsA.map((row) => [row.id, row.title])).toEqual([["same-id", "A"]]);
+    expect(rowsB.map((row) => [row.id, row.title])).toEqual([["same-id", "B"]]);
 
-    // Adversarial: tenant A cannot see tenant B's post — it lives in a
-    // physically separate database.
-    const aSeesB = await runInTenant(tenantA, async () =>
-      Post.findBy("id", "post-b"),
-    );
-    expect(aSeesB).toBeNull();
+    // Adversarial: mutate the colliding primary key through tenant A and
+    // prove tenant B's copy is unchanged.
+    await runInTenant(tenantA, async () => {
+      const post = await Post.findByOrFail("id", "same-id");
+      post.title = "A2";
+      await post.save();
+    });
 
     await expect(
       withConnection(databaseB, async (client) =>
-        client("posts").where("id", "post-b").first(),
+        client("posts").where("id", "same-id").first(),
       ),
     ).resolves.toMatchObject({ title: "B" });
   });

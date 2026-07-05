@@ -80,10 +80,37 @@ field receive the active tenant ID automatically.
 | raw operations                                | rejected                                                                 |
 | nested relations and relation traversal       | rejected                                                                 |
 | unknown models or operations                  | rejected                                                                 |
-| database-per-tenant                           | unsupported in this package version                                      |
+| database-per-tenant                           | separate callback-scoped router with bounded client cache                |
 
 Host schemas should use a non-null tenant discriminator and indexes appropriate for their access
 patterns. TenancyJS does not generate or migrate the Prisma schema.
+
+## Database per tenant
+
+`createPrismaDatabaseTenancy` routes an active tenant to a host-created Prisma client through the
+shared bounded cache. The opaque key must identify the intended separate database without containing a
+URL or credentials; tenant/key collisions fail before callback execution.
+
+```ts
+const databases = createPrismaDatabaseTenancy({
+  manager,
+  connection: (tenant) => ({
+    key: tenant.databaseKey,
+    create: () => createPrismaClient(connectionFor(tenant)),
+  }),
+  disconnect: (client) => client.$disconnect(),
+  maxConnections: 25,
+});
+
+await manager.runWithTenant(tenant, () =>
+  databases.run((client) => client.post.findMany()),
+);
+```
+
+The client is valid only while the `run` callback is active. Do not return it, store it, or use it after
+the callback settles: the cache lease has ended and eviction may disconnect the client. Call `close()`
+during shutdown. The host resolver/factory remains responsible for mapping each key to the correct
+database.
 
 See [MIGRATION.md](MIGRATION.md) for greenfield/existing-application adoption and
 [BENCHMARK.md](BENCHMARK.md) for the repeatable policy-overhead baseline.

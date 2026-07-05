@@ -235,6 +235,10 @@ export function createPostgresStrategyEngine<
     options.centralTables === undefined ? [] : options.centralTables,
     "Central table",
   );
+  // Retain the observed mapping for the engine lifetime. Forgetting an idle
+  // mapping would allow a later tenant to reuse the same schema undetected.
+  const tenantSchemas = new Map<string, string>();
+  const schemaTenants = new Map<string, string>();
 
   return Object.freeze({
     strategy: "schemaPerTenant" as const,
@@ -326,12 +330,30 @@ export function createPostgresStrategyEngine<
           // access even for a raw or schema-qualified query.
           await execute(SET_ROLE_SQL, [role]);
         }
+        if (context.mode === "tenant") {
+          // Claim only after every database operation succeeds. A transient
+          // SET failure must not poison the lifetime placement registry.
+          claimTenantSchema(context.tenant.id, schema);
+        }
       } catch (error) {
         if (error instanceof PostgresStrategyValidationError) throw error;
         throw new PostgresStrategyValidationError();
       }
     },
   });
+
+  function claimTenantSchema(tenantId: string, schema: string): void {
+    const existingSchema = tenantSchemas.get(tenantId);
+    const existingTenant = schemaTenants.get(schema);
+    if (
+      (existingSchema !== undefined && existingSchema !== schema) ||
+      (existingTenant !== undefined && existingTenant !== tenantId)
+    ) {
+      throw new PostgresStrategyValidationError();
+    }
+    tenantSchemas.set(tenantId, schema);
+    schemaTenants.set(schema, tenantId);
+  }
 }
 
 async function validateRole(

@@ -22,7 +22,8 @@ preferences.
   hooks for normal operations while forced PostgreSQL RLS denies hook-skipping paths.
 - `createPostgresStrategyEngine`: canonical shared PostgreSQL schema-placement engine in
   `@tenancyjs/adapter-shared`; Knex/Lucid bind their raw executor shapes to it and never duplicate its
-  RLS/context/`search_path` SQL.
+  RLS/context/`search_path` SQL. It owns the lifetime tenant-to-schema collision guard; adapters do not
+  implement their own placement maps.
 - `createTenantResourceCache`: canonical bounded database-per-tenant resource lifecycle; adapters use
   its single-flight leases and never create an unbounded per-tenant client map.
 - `createExpressTenancyMiddleware`: canonical Express 5 request-lifecycle bridge; it composes an

@@ -27,9 +27,10 @@ F-009 adds `@tenancyjs/adapter-shared` under ADR-0019 as the database-dialect st
 Knex and Lucid now reuse one PostgreSQL implementation for RLS validation, transaction context, SQL
 identifiers, tenant-discriminator decisions, and adapter-enforced schema-per-tenant `search_path`.
 ADR-0020 additionally rejects tenant-table shadowing across PostgreSQL's effective default search path.
-ADR-0021 defines the bounded shared resource-cache lifecycle for database-per-tenant adapters; the
-cache foundation is implemented but no ORM database-per-tenant capability is promoted yet. Core
-remains database-neutral.
+ADR-0021 defines the bounded shared resource-cache lifecycle for database-per-tenant adapters, and
+ADR-0022 binds it to Knex, Lucid, and Prisma. All three adapters have separate-database adversarial
+evidence and advertise the strategy. The optional per-tenant PostgreSQL role from ADR-0018 is also
+implemented for database-enforced schema isolation. Core remains database-neutral.
 
 ## Architecture
 

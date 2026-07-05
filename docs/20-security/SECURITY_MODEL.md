@@ -5,10 +5,9 @@
 Active and incremental. Core async context, fail-closed tenant access, explicit central scope,
 lifecycle cleanup, tenant resolution, Prisma/Knex/Lucid row-level isolation, PostgreSQL
 schema-per-tenant isolation for Knex/Lucid, Express and Next.js request lifecycle boundaries, and the
-reference safe CLI foundation are implemented and tested. Other adapters, database-per-tenant,
-database-enforced schema roles, provisioning, and operational CLI commands remain later tasks.
-The bounded database-per-tenant resource-cache foundation is implemented under ADR-0021, but no
-database-per-tenant adapter binding is implemented or advertised yet.
+reference safe CLI foundation are implemented and tested. Database-per-tenant routing is implemented
+for Knex, Lucid, and Prisma, and database-enforced schema roles are implemented for Knex. Other
+adapters, provisioning, and operational CLI commands remain later tasks.
 
 ## Baseline Rules
 
@@ -106,7 +105,9 @@ only to locally installed, allowlisted ORM executables using argument arrays rat
   installs schema or policies automatically.
 - Schema-per-tenant is adapter-enforced: the shared engine validates a host-resolved schema, rejects
   central collisions and qualified table names, verifies runtime-role access/table presence, and sets
-  transaction-local `search_path`. The protected client exposes no raw or cross-placement surface.
+  transaction-local `search_path`. Tenant identity and schema are retained as a one-to-one mapping for
+  the engine lifetime; remapping or assigning one schema to two tenants fails closed. The protected
+  client exposes no raw or cross-placement surface.
 
 ## Implemented Lucid Adapter Controls
 
@@ -125,7 +126,8 @@ only to locally installed, allowlisted ORM executables using argument arrays rat
 - In schema-per-tenant mode registered models use unqualified tables and the shared managed
   transaction's local `search_path`; no discriminator is injected. The central schema must not contain
   tenant-table names; validation also checks every effective default-search-path schema. Therefore
-  `.pojo()`, quiet, bulk, and direct unqualified hook-bypass paths fail closed.
+  `.pojo()`, quiet, bulk, and direct unqualified hook-bypass paths fail closed. The shared engine also
+  rejects tenant/schema mapping collisions for the adapter lifetime.
 
 ## Isolation Enforcement Tiers
 
@@ -133,8 +135,10 @@ only to locally installed, allowlisted ORM executables using argument arrays rat
   reviewed runtime-role conditions hold.
 - Prisma query rewriting and default schema-per-tenant `search_path` are **adapter-enforced**. Retaining
   a base/raw client bypasses those guarantees. They must not be presented as equivalent to forced RLS.
-- Per-tenant PostgreSQL roles are the planned database-enforced schema-per-tenant tier under ADR-0018;
-  they are not implemented or implied by current `schemaPerTenant: "supported"` capability metadata.
+- A configured per-tenant PostgreSQL role makes schema-per-tenant database-enforced for that scope:
+  transaction-local role and search path state revert before a pooled connection is reused.
+- Database-per-tenant is database-enforced when the host placement resolver connects each opaque key
+  to the intended separate database. The host-owned resolver/factory remains part of that boundary.
 
 ## Database-Per-Tenant Resource Lifecycle
 
@@ -144,8 +148,12 @@ only to locally installed, allowlisted ORM executables using argument arrays rat
   resource creation or callback execution. Placement keys reject URL/credential-shaped values.
 - Creation/destruction failures are sanitized. Failed creation is not cached; failed destruction is
   retained for retry rather than losing ownership of a possibly live pool.
-- ORM bindings must verify connected database identity before caching a client. Host factories own
-  credentials; placement metadata and cache diagnostics never contain connection URLs.
+- Knex/Lucid `validate()` verifies database-per-tenant configuration but reports a warning that the
+  open-ended set of tenant factories and connections is checked only when each tenant is first used.
+- Host factories own credentials and the correctness of key-to-database placement; placement metadata
+  and cache diagnostics never contain connection URLs.
+- A Prisma routed client is callback-scoped. Returning, storing, or using it after the callback settles
+  is unsupported because its cache lease has ended and eviction may disconnect it.
 
 ## Implemented Express Integration Controls
 

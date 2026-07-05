@@ -6,6 +6,7 @@ export type {
   SqlIdentifierOptions,
 } from "./identifiers.js";
 export { decideTenantDiscriminator } from "./discriminator.js";
+export { deferredDatabaseValidationResult } from "./validation.js";
 export type { TenantDiscriminatorDecision } from "./discriminator.js";
 export {
   POSTGRES_CENTRAL_SETTING,

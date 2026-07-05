@@ -178,6 +178,17 @@ describePostgres("Knex PostgreSQL schema-per-tenant isolation", () => {
     );
   });
 
+  it("rejects two tenant identities resolving to the same schema", async () => {
+    await withTenant("tenant-a", tenantASchema, (db) =>
+      db.table("posts").select("id"),
+    );
+    await expect(
+      withTenant("tenant-collision", tenantASchema, (db) =>
+        db.table("posts").select("id"),
+      ),
+    ).rejects.toBeDefined();
+  });
+
   it("rolls back failures and clears transaction-local search_path", async () => {
     const failure = new Error("rollback");
     await expect(

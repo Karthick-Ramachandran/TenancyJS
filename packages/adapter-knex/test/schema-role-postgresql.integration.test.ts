@@ -30,6 +30,21 @@ function executor(client: Pick<Knex, "raw">): PostgresExecutor {
     bindings === undefined ? client.raw(sql) : client.raw(sql, [...bindings]);
 }
 
+interface ConnectionState {
+  readonly pid: number;
+  readonly role_name: string;
+  readonly search_path: string;
+}
+
+async function connectionState(
+  client: Pick<Knex, "raw">,
+): Promise<ConnectionState> {
+  const result = await client.raw(
+    "select pg_backend_pid() as pid, current_user as role_name, current_setting('search_path') as search_path",
+  );
+  return result.rows[0] as ConnectionState;
+}
+
 describePostgres(
   "Knex database-enforced schema-per-tenant (per-tenant role)",
   () => {
@@ -81,7 +96,9 @@ describePostgres(
       runtime = knex({
         client: "pg",
         connection: runtimeUrl.toString(),
-        pool: { min: 0, max: 4 },
+        // A single physical connection makes transaction-local state
+        // reversion observable instead of merely likely.
+        pool: { min: 0, max: 1 },
       });
       manager = new TenancyManager<RoleTenant>();
     });
@@ -103,6 +120,11 @@ describePostgres(
       id: "tenant-a",
       schema: schemaA,
       role: roleA,
+    };
+    const tenantB: RoleTenant = {
+      id: "tenant-b",
+      schema: schemaB,
+      role: roleB,
     };
 
     it("runs the protected adapter under the tenant's restricted role", async () => {
@@ -159,6 +181,38 @@ describePostgres(
         ).rejects.toThrow();
       } finally {
         await trx.rollback();
+      }
+    });
+
+    it("reverts role and search_path before the pooled connection is reused", async () => {
+      const engine = createPostgresStrategyEngine<RoleTenant>({
+        codePrefix: "TENANCY_KNEX",
+        adapterName: "Knex",
+        resolveSchema: (tenant) => tenant.schema,
+        resolveRole: (tenant) => tenant.role,
+        centralSchema,
+        tenantTables: ["posts"],
+        centralTables: ["tenants"],
+      });
+      const baseline = await connectionState(runtime);
+
+      for (const tenant of [tenantA, tenantB]) {
+        let inside: ConnectionState | undefined;
+        await runtime.transaction(async (transaction) => {
+          await engine.applyContext(executor(transaction), {
+            mode: "tenant",
+            tenant,
+          });
+          inside = await connectionState(transaction);
+        });
+        expect(inside).toMatchObject({
+          pid: baseline.pid,
+          role_name: tenant.role,
+          search_path: tenant.schema,
+        });
+
+        const after = await connectionState(runtime);
+        expect(after).toEqual(baseline);
       }
     });
   },

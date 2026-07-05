@@ -14,6 +14,7 @@ import {
   createPostgresStrategyEngine,
   createTenantResourceCache,
   decideTenantDiscriminator,
+  deferredDatabaseValidationResult,
   type PostgresExecutor,
   type PostgresSchemaStrategyEngine,
 } from "@tenancyjs/adapter-shared";
@@ -99,11 +100,12 @@ export function createLucidTenancy<TTenant extends TenantRecord = TenantRecord>(
     capabilities: LUCID_ADAPTER_CAPABILITIES,
     config,
     async validate() {
-      // Database-per-tenant isolation is structural (separate databases); the
-      // strategy is valid once configured and fails closed at first lease.
+      // There is no finite tenant-database set to inspect at startup. Report
+      // configuration validity without implying every tenant placement was
+      // connected or inspected.
       if (config.strategy === "databasePerTenant") {
         validated = true;
-        return Object.freeze({ valid: true, issues: Object.freeze([]) });
+        return deferredDatabaseValidationResult("TENANCY_LUCID", "Lucid");
       }
       try {
         const result =

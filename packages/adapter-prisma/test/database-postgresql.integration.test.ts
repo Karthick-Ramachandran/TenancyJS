@@ -96,12 +96,12 @@ describePostgres("Prisma PostgreSQL database-per-tenant isolation", () => {
   it("routes each tenant to its own database and never crosses", async () => {
     await runInTenant(tenantA, (client) =>
       client.post.create({
-        data: { id: "post-a", tenantId: "tenant-a", title: "A" },
+        data: { id: "same-id", tenantId: "tenant-a", title: "A" },
       }),
     );
     await runInTenant(tenantB, (client) =>
       client.post.create({
-        data: { id: "post-b", tenantId: "tenant-b", title: "B" },
+        data: { id: "same-id", tenantId: "tenant-b", title: "B" },
       }),
     );
 
@@ -113,18 +113,18 @@ describePostgres("Prisma PostgreSQL database-per-tenant isolation", () => {
         client.post.findMany({ orderBy: { id: "asc" } }),
       ),
     ]);
-    expect(rowsA.map((row) => row.id)).toEqual(["post-a"]);
-    expect(rowsB.map((row) => row.id)).toEqual(["post-b"]);
+    expect(rowsA.map((row) => [row.id, row.title])).toEqual([["same-id", "A"]]);
+    expect(rowsB.map((row) => [row.id, row.title])).toEqual([["same-id", "B"]]);
 
-    // Adversarial: tenant A cannot read tenant B's post — separate database.
-    const aSeesB = await runInTenant(tenantA, (client) =>
-      client.post.findUnique({ where: { id: "post-b" } }),
+    // Adversarial: mutate the colliding primary key through tenant A and
+    // prove tenant B's copy is unchanged.
+    await runInTenant(tenantA, (client) =>
+      client.post.update({ where: { id: "same-id" }, data: { title: "A2" } }),
     );
-    expect(aSeesB).toBeNull();
 
     await expect(
       withConnection(databaseB, (client) =>
-        client("Post").where("id", "post-b").first(),
+        client("Post").where("id", "same-id").first(),
       ),
     ).resolves.toMatchObject({ title: "B" });
   });

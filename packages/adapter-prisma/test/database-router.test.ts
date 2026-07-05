@@ -1,4 +1,5 @@
 import { TenantContextError, TenancyManager } from "@tenancyjs/core";
+import { TenantResourceCacheError } from "@tenancyjs/adapter-shared";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -87,6 +88,26 @@ describe("createPrismaDatabaseTenancy", () => {
         router.run(undefined as never),
       ),
     ).rejects.toBeInstanceOf(PrismaTenancyConfigurationError);
+    await router.close();
+  });
+
+  it("rejects a placement collision through the public router", async () => {
+    const { manager, router, created } = harness();
+    const tenantA: Tenant = { id: "tenant-a", database: "shared-db" };
+    const tenantB: Tenant = { id: "tenant-b", database: "shared-db" };
+
+    await manager.runWithTenant(tenantA, () =>
+      router.run((client) => client.database),
+    );
+    await expect(
+      manager.runWithTenant(tenantB, () =>
+        router.run((client) => client.database),
+      ),
+    ).rejects.toMatchObject({
+      name: TenantResourceCacheError.name,
+      code: "TENANCY_RESOURCE_CACHE_COLLISION",
+    });
+    expect(created).toEqual(["shared-db"]);
     await router.close();
   });
 });
