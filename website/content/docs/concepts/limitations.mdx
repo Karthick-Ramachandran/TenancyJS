@@ -1,33 +1,33 @@
 ---
 title: Limitations
-description: What TenancyJS deliberately rejects to keep the fail-closed guarantee — read this before you build.
+description: What TenancyJS deliberately rejects to keep the fail-closed guarantee - read this before you build.
 ---
 
 To guarantee isolation, TenancyJS routes your tenant-scoped access through a **protected facade**. The
-facade can only stay fail-closed for operations it can *prove* are scoped — so anything it can't safely
+facade can only stay fail-closed for operations it can *prove* are scoped - so anything it can't safely
 scope is **rejected** (it throws), rather than allowed through unscoped. This page is the complete,
 honest list of those restrictions, so nothing surprises you mid-build.
 
 <Callout type="warn">
-  These aren't bugs — they're the price of the guarantee. An operation the facade can't scope is refused
+  These aren't bugs - they're the price of the guarantee. An operation the facade can't scope is refused
   on purpose. Where there's a workaround, it's noted.
 </Callout>
 
-## Two enforcement tiers — and when the restrictions lift
+## Two enforcement tiers - and when the restrictions lift
 
 The restrictions below exist **only where the facade is the sole thing keeping tenants apart**. That is
 not always the case, so TenancyJS classifies every active scope into one of two tiers ([ADR-0033](https://github.com/Karthick-Ramachandran/TenancyJS)):
 
-- **Facade-enforced** — the adapter facade is the *only* guard. Everything on this page applies: raw,
+- **Facade-enforced** - the adapter facade is the *only* guard. Everything on this page applies: raw,
   nested, and complex operations are rejected because the facade can't prove they're tenant-safe. This
   is the tier for MySQL/MongoDB row-level, and for schema-per-tenant without a per-tenant role.
-- **Database-enforced** — the **database or connection itself** isolates every query, so the same raw /
+- **Database-enforced** - the **database or connection itself** isolates every query, so the same raw /
   nested / join operations are safe *by construction* and the facade doesn't need to reject them. A
   database-enforced scope can hand you the **real, tenant-scoped client** for full query freedom.
 
 <Callout type="info">
   **Available today on every adapter:** in a **database-per-tenant** scope, `client.unrestricted()`
-  returns the raw tenant-scoped client — full joins, raw SQL, and nested queries — safe because the
+  returns the raw tenant-scoped client - full joins, raw SQL, and nested queries - safe because the
   connection *is* the tenant's own database. It works on Knex, TypeORM, Sequelize, Drizzle, and Mongoose;
   on [Lucid](/docs/adapters/lucid) it's `scope.unrestricted()`; **Prisma** database-per-tenant already
   hands you the raw leased client directly. This is fail-closed: it **throws** in any facade-enforced
@@ -38,32 +38,32 @@ not always the case, so TenancyJS classifies every active scope into one of two 
 Everything below describes the **facade-enforced** tier. Read each restriction as "…unless the scope is
 database-enforced, where the database isolates it anyway."
 
-## Raw queries — not supported (facade-enforced scopes)
+## Raw queries - not supported (facade-enforced scopes)
 
 In a facade-enforced scope, raw SQL and native query methods are **rejected** by every adapter: Prisma's
 `$queryRaw`/`$executeRaw`, Knex's `.raw()`, Drizzle's `sql`-template execution, native `execute`, and
 equivalents. The facade can't guarantee a hand-written query is filtered to the tenant, so it refuses
-rather than run it unscoped. (In a database-enforced scope the database isolates raw SQL anyway — every
+rather than run it unscoped. (In a database-enforced scope the database isolates raw SQL anyway - every
 adapter's database-per-tenant scope gives you `client.unrestricted()` for exactly this.)
 
 - **Workaround:** use the scoped query builder / model API the adapter gives you. If you genuinely need
-  arbitrary raw access, use [database-per-tenant](/docs/strategies/database-per-tenant) — a physically
+  arbitrary raw access, use [database-per-tenant](/docs/strategies/database-per-tenant) - a physically
   separate connection per tenant means raw queries are isolated by construction, and that scope hands you
   the raw client via [`unrestricted()`](/docs/strategies/database-per-tenant#full-query-freedom).
 
-## Nested writes — not supported (facade-enforced scopes)
+## Nested writes - not supported (facade-enforced scopes)
 
 Nested / relational **writes** (e.g. Prisma nested `create`/`connect`, cascading relation mutations)
 are **rejected** in facade-enforced scopes. The facade scopes the top-level operation, but can't
 guarantee every nested branch lands in the right tenant.
 
 - **Workaround:** split the mutation into separate scoped writes inside the same tenant scope (they all
-  run in one tenant transaction) — or use a database-per-tenant scope, where nested writes are isolated by
+  run in one tenant transaction) - or use a database-per-tenant scope, where nested writes are isolated by
   the database and `client.unrestricted()` gives you the raw client.
 
-## Nested reads — not supported (facade-enforced scopes; Lucid excepted)
+## Nested reads - not supported (facade-enforced scopes; Lucid excepted)
 
-Nested / relational **reads** — includes, joins, `with`/`populate`, relation loaders — are **rejected**
+Nested / relational **reads** - includes, joins, `with`/`populate`, relation loaders - are **rejected**
 in facade-enforced scopes on Prisma, Knex, TypeORM, Sequelize, Mongoose, and Drizzle. **Lucid is the
 exception** and supports nested reads on its facade.
 
@@ -74,8 +74,8 @@ exception** and supports nested reads on its facade.
 ## Native handles bypass isolation
 
 The isolation guarantee holds **only** for access that goes through the adapter facade. Reaching for the
-**native client, model, collection, or transaction** — the underlying Prisma client, Mongoose model,
-raw Knex/Drizzle connection — skips the facade entirely, and on MySQL/MongoDB (which have no database
+**native client, model, collection, or transaction** - the underlying Prisma client, Mongoose model,
+raw Knex/Drizzle connection - skips the facade entirely, and on MySQL/MongoDB (which have no database
 backstop) that is a direct path to a cross-tenant leak.
 
 - **Rule:** never use a native handle inside a tenant scope. Keep them out of request-path code.
@@ -83,14 +83,14 @@ backstop) that is a direct path to a cross-tenant leak.
 ## Only registered models/tables
 
 An adapter scopes exactly the tenant models/tables you registered with it. Querying an **unregistered**
-model/table through the scoped client is rejected — the facade won't guess whether something is
+model/table through the scoped client is rejected - the facade won't guess whether something is
 tenant-scoped.
 
 ## Simple criteria only
 
 Filter criteria must be **plain scalars** (string/number/boolean/date/id). Complex or operator-laden
-criteria — raw operator objects, MongoDB `$where`/`$`-operators and dotted keys, Sequelize `Op.*`
-Symbol keys — are **rejected as unsafe**, because they can smuggle logic the facade can't verify is
+criteria - raw operator objects, MongoDB `$where`/`$`-operators and dotted keys, Sequelize `Op.*`
+Symbol keys - are **rejected as unsafe**, because they can smuggle logic the facade can't verify is
 tenant-safe.
 
 ## Cross-placement access is rejected
@@ -103,7 +103,7 @@ tenant↔placement guard.
 ## Facade-only databases (MySQL, MongoDB)
 
 **MySQL and MongoDB have no row-level security.** On those databases isolation is enforced *only* by the
-adapter facade — there's no database backstop like PostgreSQL's forced RLS. MySQL row-level is
+adapter facade - there's no database backstop like PostgreSQL's forced RLS. MySQL row-level is
 [experimental](/docs/concepts/capability-matrix#by-database) for this reason. Combined with the
 native-handle rule above: on MySQL/Mongo, the facade is the *entire* guarantee.
 
@@ -111,13 +111,13 @@ native-handle rule above: on MySQL/Mongo, the facade is the *entire* guarantee.
 
 For [Prisma schema-per-tenant](/docs/adapters/prisma#postgresql-schema-per-tenant), the actual schema
 binding lives in **your** `create()` callback (`new PrismaPg(conn, { schema })`). The adapter guarantees
-one tenant maps to one cached client, but it does **not** verify your factory bound the correct schema —
+one tenant maps to one cached client, but it does **not** verify your factory bound the correct schema -
 unlike the SQL adapters, which validate and set the `search_path` server-side. Bind carefully, and
 prefer a schema-restricted database role so the database itself denies sibling-schema access.
 
 ## Also out of scope
 
-- **Built-in migrations / DDL.** TenancyJS doesn't create tables or run migrations — provisioning and
+- **Built-in migrations / DDL.** TenancyJS doesn't create tables or run migrations - provisioning and
   migration delegate to [your hooks](/docs/cli#provision--migrate).
 - **Drizzle 1.0 (prerelease)** is intentionally outside the supported peer range; the adapter targets
   Drizzle 0.45.

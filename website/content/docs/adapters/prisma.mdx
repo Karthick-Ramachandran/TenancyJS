@@ -99,7 +99,7 @@ const tenancy = createPrismaDatabaseTenancy({
 The client is valid only inside the `run` callback; do not store or return it after the lease ends.
 
 <Callout type="info">
-  **Full query freedom is inherent here — no `unrestricted()` needed.** The database-per-tenant router
+  **Full query freedom is inherent here - no `unrestricted()` needed.** The database-per-tenant router
   hands your callback the raw leased `PrismaClient` directly; there's no restricted facade to escape, so
   raw queries, relations, and `$queryRaw` all work. The client you get *is* the tenant's own database,
   so any query is isolated by construction, and it still fails closed in central mode

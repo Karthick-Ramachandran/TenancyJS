@@ -72,10 +72,10 @@ and updates cannot move a row to another tenant.
 ## Full query freedom: `unrestricted()`
 
 In every other strategy the protected client rejects native databases, joins, relations, and raw SQL
-expressions — it's the only guard, so it can't let through what it can't prove is tenant-safe (see
+expressions - it's the only guard, so it can't let through what it can't prove is tenant-safe (see
 [Limitations](/docs/concepts/limitations)). **Database-per-tenant is different:** the leased connection
 *is* the tenant's own database, so any query is isolated by construction. There, the client gives you an
-escape hatch that returns the native Drizzle transaction. It's **generic** — the binding erases the
+escape hatch that returns the native Drizzle transaction. It's **generic** - the binding erases the
 concrete Drizzle type, so you supply it at the call site:
 
 ```ts
@@ -83,7 +83,7 @@ import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import * as schema from "./schema";
 
 const report = await tenancy.run(async (client) => {
-  // The native Drizzle transaction — pass your own db type; full joins, relations, raw SQL.
+  // The native Drizzle transaction - pass your own db type; full joins, relations, raw SQL.
   const trx = client.unrestricted<NodePgDatabase<typeof schema>>();
 
   return trx
@@ -96,7 +96,7 @@ const report = await tenancy.run(async (client) => {
 
 <Callout type="warn">
   `unrestricted()` is **fail-closed**. It returns the real transaction **only** in a genuinely
-  database-enforced scope — a database-per-tenant config running in tenant mode, where a per-tenant
+  database-enforced scope - a database-per-tenant config running in tenant mode, where a per-tenant
   connection was actually leased. It **throws** in row-level and schema-per-tenant scopes, and even in a
   database-per-tenant config used in central mode (which runs on the shared admin connection, not a
   tenant's database). The freedom comes from the connection boundary, never from the config name

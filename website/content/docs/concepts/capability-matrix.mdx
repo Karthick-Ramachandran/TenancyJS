@@ -9,7 +9,7 @@ row. This page is the honest source of truth for what has actually been proven.
 
 <Callout type="info">
   This page covers *which databases and strategies* are supported. For the operations the scoped facade
-  deliberately **rejects** — raw queries, nested reads/writes, native handles, complex criteria — see
+  deliberately **rejects** - raw queries, nested reads/writes, native handles, complex criteria - see
   **[Limitations](/docs/concepts/limitations)**.
 </Callout>
 
@@ -22,7 +22,7 @@ Start here - it decides which strategies are even available to you.
 | **PostgreSQL** | ✅ | ✅ | ✅ | Knex · Lucid · Prisma · TypeORM · Sequelize · Drizzle |
 | **MySQL** | 🧪 | - | ✅ | Prisma · TypeORM · Sequelize · Drizzle |
 | **MongoDB** | ✅ ¹ | - | ✅ ² | Mongoose |
-| **SQL Server** | 📋 | 📋 | 📋 | _planned — see [roadmap](#roadmap)_ |
+| **SQL Server** | 📋 | 📋 | 📋 | _planned - see [roadmap](#roadmap)_ |
 
 ✅ tested-supported · 🧪 experimental · 📋 planned (not yet available) · - not available
 
@@ -74,7 +74,7 @@ which combination you picked ([ADR-0033](/docs/concepts/limitations#two-enforcem
 
 In a **database-per-tenant** scope the leased connection *is* the tenant's own database, so raw SQL,
 joins, and nested reads/writes are safe by construction. Every adapter exposes the raw tenant-scoped
-client there via `client.unrestricted()` — Knex, TypeORM, Sequelize, Drizzle, Mongoose, and Lucid (as
+client there via `client.unrestricted()` - Knex, TypeORM, Sequelize, Drizzle, Mongoose, and Lucid (as
 `scope.unrestricted()`). **Prisma** database-per-tenant already hands your callback the raw leased
 `PrismaClient` directly, so it has full freedom without a separate accessor.
 
@@ -85,14 +85,14 @@ though raw queries and nested writes are still rejected. See
 Database-enforced freedom is **fail-closed**: the raw client is handed over only when a per-tenant
 connection was genuinely leased (database-per-tenant, tenant mode), and throws in row-level,
 schema-per-tenant, and central scopes. Row-level (forced RLS) and schema-per-tenant (restricted role)
-are *also* database-enforced in principle, but freeing raw queries there is not implemented — see the
+are *also* database-enforced in principle, but freeing raw queries there is not implemented - see the
 [roadmap](#roadmap).
 
 ## How each is enforced
 
 - **PostgreSQL, row-level** - **Knex, Lucid, TypeORM, Sequelize, and Drizzle** use forced Postgres
   **RLS** (the database rejects cross-tenant rows even under raw SQL) *plus* the adapter's facade.
-  **Prisma is the exception**: it has no RLS layer — its PostgreSQL (and MySQL) row-level isolation is
+  **Prisma is the exception**: it has no RLS layer - its PostgreSQL (and MySQL) row-level isolation is
   the adapter's query-rewriting facade only, with no database backstop. See
   [Security](/docs/concepts/security).
 - **PostgreSQL, schema-per-tenant** - Knex, Lucid, TypeORM, Sequelize, and Drizzle use a
@@ -123,24 +123,24 @@ are *also* database-enforced in principle, but freeing raw queries there is not 
 
 ## Roadmap
 
-Planned work, in rough order. None of this is available yet — this section is honest about what's coming
+Planned work, in rough order. None of this is available yet - this section is honest about what's coming
 so you can plan around it.
 
 | Item | What it adds | Status |
 | --- | --- | --- |
 | **Full query freedom → PostgreSQL forced-RLS** | database-enforced freedom in row-level scopes where forced RLS + a non-bypass role isolate every query | 📋 Planned |
 | **Full query freedom → schema + role** | database-enforced freedom in schema-per-tenant scopes with a restricted per-tenant role | 📋 Planned |
-| **Microsoft SQL Server** | a SQL Server adapter (row-level via `SESSION_CONTEXT` + security policies, and database-per-tenant) | 📋 Planned — later in the pipeline |
+| **Microsoft SQL Server** | a SQL Server adapter (row-level via `SESSION_CONTEXT` + security policies, and database-per-tenant) | 📋 Planned - later in the pipeline |
 
 📋 planned
 
-Full query freedom in **database-per-tenant is shipped on every adapter** — the roadmap items above
+Full query freedom in **database-per-tenant is shipped on every adapter** - the roadmap items above
 would extend it to the shared-connection tiers (row-level with forced RLS, schema-per-tenant with a
 restricted role), which are lower priority: those scopes already isolate every query, so this is
 ergonomics rather than a capability gap.
 
 <Callout type="info">
-  **Microsoft SQL Server** is on the roadmap but **not yet available** — there is no SQL Server adapter
+  **Microsoft SQL Server** is on the roadmap but **not yet available** - there is no SQL Server adapter
   today. It sits later in the pipeline behind the PostgreSQL, MySQL, and MongoDB work. Track it on the
   [repository](https://github.com/Karthick-Ramachandran/TenancyJS).
 </Callout>

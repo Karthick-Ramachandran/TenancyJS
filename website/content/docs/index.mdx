@@ -14,36 +14,36 @@ And the guarantee that matters:
 
 ## How it fits together
 
-You compose **three independent choices** — they don't need to know about each other, so mix and match:
+You compose **three independent choices** - they don't need to know about each other, so mix and match:
 
-1. **A strategy** — _how_ tenants are kept apart: [row-level](/docs/strategies/row-level),
+1. **A strategy** - _how_ tenants are kept apart: [row-level](/docs/strategies/row-level),
    [schema-per-tenant](/docs/strategies/schema-per-tenant), or
    [database-per-tenant](/docs/strategies/database-per-tenant). Pick one per app.
-2. **An adapter** — _your ORM_ (Prisma, Knex, Lucid, TypeORM, Sequelize, Drizzle, Mongoose). It enforces
+2. **An adapter** - _your ORM_ (Prisma, Knex, Lucid, TypeORM, Sequelize, Drizzle, Mongoose). It enforces
    the strategy on every query.
-3. **An integration** — _your framework_ (Express, Next.js, NestJS, AdonisJS). It sets the current tenant
+3. **An integration** - _your framework_ (Express, Next.js, NestJS, AdonisJS). It sets the current tenant
    for each request.
 
 At runtime it's one loop: **the integration** resolves the tenant and opens a scope → your code queries
 through **the adapter**'s scoped client → **the strategy** isolates every query → the scope tears down on
 the way out. Miss the scope and access **throws** instead of leaking. That's the whole model.
 
-## The rules — what to do, what to avoid
+## The rules - what to do, what to avoid
 
-The guarantee only holds for access that goes **through the scoped client**. So there are a few rules —
+The guarantee only holds for access that goes **through the scoped client**. So there are a few rules -
 follow these and you can't leak:
 
 - ✅ **Do** run every tenant query through the client you get inside `tenancy.run(...)` (or your models,
   on Lucid/AdonisJS), within an open tenant scope.
-- ✅ **Do** let it throw. A `TenantContextError` outside a scope is the safety net doing its job — don't
+- ✅ **Do** let it throw. A `TenantContextError` outside a scope is the safety net doing its job - don't
   catch-and-ignore it.
-- ❌ **Don't** reach for the **native** client, model, connection, or collection inside a scope — that
+- ❌ **Don't** reach for the **native** client, model, connection, or collection inside a scope - that
   sidesteps the facade, and on MySQL/MongoDB (no database backstop) it's a direct cross-tenant leak.
-- ❌ **Don't** expect raw SQL or nested/relational writes from the facade — they're **rejected** unless
+- ❌ **Don't** expect raw SQL or nested/relational writes from the facade - they're **rejected** unless
   you're in a [database-per-tenant](/docs/strategies/database-per-tenant) scope, where
   `unrestricted()` hands you the real client safely.
 
-The full, honest list is on the [Limitations](/docs/concepts/limitations) page — read it before you build.
+The full, honest list is on the [Limitations](/docs/concepts/limitations) page - read it before you build.
 
 ## New here? Start with these
 
@@ -77,7 +77,7 @@ the safe path the default: **no valid tenant context, no data.**
     What TenancyJS guarantees, what it doesn't, and where the boundaries are.
   </Card>
   <Card title="Limitations" href="/docs/concepts/limitations">
-    What the scoped facade rejects — no raw queries, no nested reads/writes —
+    What the scoped facade rejects - no raw queries, no nested reads/writes -
     and why.
   </Card>
 </Cards>

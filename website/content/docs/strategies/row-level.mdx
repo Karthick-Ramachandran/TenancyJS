@@ -28,7 +28,7 @@ There are two enforcement layers, depending on your database:
   tenant field into every write through a whitelist facade.
 
 The **RLS-backed adapters (Knex, Lucid, TypeORM, Sequelize, Drizzle on PostgreSQL)** use *both* layers
-(facade + forced RLS), so a bug in one is caught by the other. **Prisma is facade-only** — it has no RLS
+(facade + forced RLS), so a bug in one is caught by the other. **Prisma is facade-only** - it has no RLS
 layer on either PostgreSQL or MySQL, so on Prisma the adapter facade is the entire guarantee (like MySQL
 and Mongoose above). Keep all tenant access going through it.
 

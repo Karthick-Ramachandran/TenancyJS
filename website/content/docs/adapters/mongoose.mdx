@@ -121,16 +121,16 @@ server-side authorization. Call `close()` during shutdown.
 
 ## Full query freedom: `unrestricted()`
 
-In row-level mode the facade is the *only* guard — there is no database backstop (see the warning above)
-— so it rejects native handles, `$`-operators, and dotted keys; it can't let through what it can't prove
+In row-level mode the facade is the *only* guard - there is no database backstop (see the warning above)
+- so it rejects native handles, `$`-operators, and dotted keys; it can't let through what it can't prove
 is tenant-safe (see [Limitations](/docs/concepts/limitations)). **Database-per-tenant is different:** the
 leased connection *is* the tenant's own database, so any operation is isolated by construction. There,
-the client gives you an escape hatch that returns the leased `Connection` — aggregation, populate, and
+the client gives you an escape hatch that returns the leased `Connection` - aggregation, populate, and
 the native collection:
 
 ```ts
 const report = await tenancy.run(async (client) => {
-  // The raw, tenant-scoped Connection — aggregation, populate, native collection.
+  // The raw, tenant-scoped Connection - aggregation, populate, native collection.
   const connection = client.unrestricted();
 
   return connection
@@ -144,7 +144,7 @@ const report = await tenancy.run(async (client) => {
 
 <Callout type="warn">
   `unrestricted()` is **fail-closed**. It returns the real `Connection` **only** in a genuinely
-  database-enforced scope — a database-per-tenant config running in tenant mode, where a per-tenant
+  database-enforced scope - a database-per-tenant config running in tenant mode, where a per-tenant
   connection was actually leased. Because MongoDB has no row-level backstop, it **throws** in row-level
   scope, and even in a database-per-tenant config used in central mode (which runs on the shared admin
   connection, not a tenant's database). The freedom comes from the connection boundary, never from the

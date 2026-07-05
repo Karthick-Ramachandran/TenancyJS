@@ -57,13 +57,13 @@ leases tenant-bound replica-set connections. See each adapter guide:
 
 ## Full query freedom
 
-Because each tenant scope runs on its **own** connection, any query is isolated by construction — so this
+Because each tenant scope runs on its **own** connection, any query is isolated by construction - so this
 is the one strategy where the facade's raw/nested/join restrictions don't buy any safety. In a
 database-per-tenant scope you can reach for the real, tenant-scoped client and write completely normal
 queries (joins, nested reads/writes, raw SQL). **Every adapter** supports this: `client.unrestricted()`
 on Knex, TypeORM, Sequelize, Drizzle, and Mongoose; `scope.unrestricted()` on
 [Lucid](/docs/adapters/lucid); and Prisma database-per-tenant already hands you the raw leased client
-directly. It stays **fail-closed** — it throws unless a per-tenant connection was actually leased (so it
+directly. It stays **fail-closed** - it throws unless a per-tenant connection was actually leased (so it
 throws in central mode and in the facade-enforced strategies). See
 [Limitations → two enforcement tiers](/docs/concepts/limitations#two-enforcement-tiers--and-when-the-restrictions-lift).
 
