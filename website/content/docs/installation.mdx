@@ -1,18 +1,48 @@
 ---
 title: Installation
-description: Install the core plus the adapter and integration for your stack.
+description: Start with the CLI — it scaffolds your tenancy for your stack. Or wire it up by hand.
 ---
-
-TenancyJS is a set of small, composable `tenancyjs-*` packages. Install the core, then add the adapter
-for your ORM and the integration for your framework.
 
 ## Requirements
 
-- **Node.js 24+** (the toolkit and CLI use modern Node features; the CLI loads your TypeScript config
-  via Node's native type-stripping — no transpiler needed).
+- **Node.js 24+** — the toolkit and CLI use modern Node features, and the CLI loads your TypeScript
+  config via Node's native type-stripping (no transpiler needed).
 - TypeScript is recommended but not required.
 
-## Install
+## Recommended: scaffold with the CLI
+
+The fastest way to get set up. `tenancy init` detects your framework and ORM, then writes a working
+`tenancy.config.ts`, your tenant registration, and the request middleware — correctly wired for your
+stack. No copy-pasting boilerplate.
+
+```bash
+npx tenancy init
+```
+
+It currently scaffolds these stacks end-to-end:
+
+- **Express + Prisma**
+- **AdonisJS + Lucid**
+- **Next.js + Prisma**
+
+`init` writes the wiring; add the packages it uses for your stack (for example, Express + Prisma):
+
+```bash
+npm install tenancyjs-core tenancyjs-adapter-prisma tenancyjs-integration-express
+```
+
+Then jump to the [Quickstart](/docs/quickstart) to see it working.
+
+<Callout type="info">
+  On a different stack (NestJS, Knex, TypeORM, Sequelize, Mongoose…)? Install the packages below and
+  follow the [adapter](/docs/adapters) and [integration](/docs/integrations) guides — the wiring is a
+  few lines.
+</Callout>
+
+## Manual setup
+
+TenancyJS is a set of small, composable `tenancyjs-*` packages. Install the core, then add the adapter
+for your ORM and the integration for your framework.
 
 <Tabs items={["npm", "pnpm", "yarn", "bun"]}>
   <Tab value="npm">```bash npm install tenancyjs-core ```</Tab>
@@ -21,26 +51,16 @@ for your ORM and the integration for your framework.
   <Tab value="bun">```bash bun add tenancyjs-core ```</Tab>
 </Tabs>
 
-Then add the pieces for your stack — for example, Prisma on Express:
-
-```bash
-npm install tenancyjs-adapter-prisma tenancyjs-integration-express
-```
+| Package | Role |
+| --- | --- |
+| `tenancyjs-core` | Framework-neutral tenant context, lifecycle, and the runtime contract |
+| `tenancyjs-identifiers` | Resolve a tenant from a request (subdomain, header, path…) |
+| `tenancyjs-adapter-prisma` · `-knex` · `-lucid` · `-typeorm` · `-sequelize` · `-mongoose` | Enforce isolation inside your ORM ([guides](/docs/adapters)) |
+| `tenancyjs-integration-express` · `-next` · `-adonis` · `-nest` | Bind context to the request lifecycle ([guides](/docs/integrations)) |
+| `tenancyjs-cli` | The operational CLI (`tenancy …`) |
+| `tenancyjs-testing` | Fixtures and conformance helpers for your own tests |
 
 <Callout type="warn">
   During the beta the packages are published under the `beta` dist-tag. A plain `npm install
   tenancyjs-core` resolves the latest published beta; pin an exact version for reproducibility.
 </Callout>
-
-## The packages
-
-| Package | Role |
-| --- | --- |
-| `tenancyjs-core` | Framework-neutral tenant context, lifecycle, and the runtime contract |
-| `tenancyjs-identifiers` | Resolve a tenant from a request (subdomain, header, path…) |
-| `tenancyjs-adapter-prisma` · `-knex` · `-lucid` · `-typeorm` · `-sequelize` · `-mongoose` | Enforce isolation inside your ORM |
-| `tenancyjs-integration-express` · `-next` · `-adonis` · `-nest` | Bind context to the request lifecycle |
-| `tenancyjs-cli` | The operational CLI (`tenancy …`) |
-| `tenancyjs-testing` | Fixtures and conformance helpers for your own tests |
-
-Next: the [Quickstart](/docs/quickstart).
