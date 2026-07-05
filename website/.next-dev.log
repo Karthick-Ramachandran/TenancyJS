@@ -108,3 +108,135 @@ https://react.dev/link/hydration-mismatch
  
  GET /docs/adapters/sequelize 200 in 419ms (next.js: 5ms, generate-params: 1669µs, application-code: 414ms)
  GET /docs/adapters/sequelize 200 in 62ms (next.js: 13ms, generate-params: 2ms, application-code: 50ms)
+ GET /docs/adapters/sequelize 200 in 112ms (next.js: 9ms, generate-params: 2ms, application-code: 103ms)
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <HotReload globalError={[...]} webSocket={WebSocket} staticIndicatorState={{pathname:null, ...}}>
+      <AppDevOverlayErrorBoundary globalError={[...]}>
+        <ReplaySsrOnlyErrors>
+        <DevRootHTTPAccessFallbackBoundary>
+          <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>
+            <HTTPAccessFallbackErrorBoundary pathname="/docs/adap..." notFound={<NotAllowedRootHTTPFallbackError>} ...>
+              <RedirectBoundary>
+                <RedirectErrorBoundary router={{...}}>
+                  <Head>
+                  <__next_root_layout_boundary__>
+                    <SegmentViewNode type="layout" pagePath="layout.tsx">
+                      <SegmentTrieNode>
+                      <link>
+                      <script>
+                      <script>
+                      <script>
+                      <Layout>
+                        <html lang="en" className="geist_9c6c..." suppressHydrationWarning={true}>
+                          <body
+                            className="flex min-h-screen flex-col"
+-                           cz-shortcut-listen="true"
+                          >
+                  ...
+ 
+ GET /docs 200 in 83ms (next.js: 7ms, generate-params: 3ms, application-code: 77ms)
+ GET /docs/getting-started/installation 200 in 303ms (next.js: 3ms, generate-params: 1901µs, application-code: 300ms)
+ GET /docs/cli 200 in 86ms (next.js: 3ms, generate-params: 1330µs, application-code: 83ms)
+ GET /docs/guides/resolving-tenants 200 in 958ms (next.js: 5ms, generate-params: 1519µs, application-code: 953ms)
+ GET /docs/guides/onboarding-tenants 200 in 458ms (next.js: 6ms, generate-params: 3ms, application-code: 452ms)
+ GET /docs/getting-started/installation 200 in 124ms (next.js: 21ms, generate-params: 5ms, application-code: 103ms)
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <HotReload globalError={[...]} webSocket={WebSocket} staticIndicatorState={{pathname:null, ...}}>
+      <AppDevOverlayErrorBoundary globalError={[...]}>
+        <ReplaySsrOnlyErrors>
+        <DevRootHTTPAccessFallbackBoundary>
+          <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>
+            <HTTPAccessFallbackErrorBoundary pathname="/docs/gett..." notFound={<NotAllowedRootHTTPFallbackError>} ...>
+              <RedirectBoundary>
+                <RedirectErrorBoundary router={{...}}>
+                  <Head>
+                  <__next_root_layout_boundary__>
+                    <SegmentViewNode type="layout" pagePath="layout.tsx">
+                      <SegmentTrieNode>
+                      <link>
+                      <script>
+                      <script>
+                      <script>
+                      <Layout>
+                        <html lang="en" className="geist_9c6c..." suppressHydrationWarning={true}>
+                          <body
+                            className="flex min-h-screen flex-col"
+-                           cz-shortcut-listen="true"
+                          >
+                  ...
+ 
+ GET /docs/adapters/prisma 200 in 84ms (next.js: 4ms, generate-params: 1606µs, application-code: 80ms)
+ GET /docs/adapters/prisma 200 in 103ms (next.js: 18ms, generate-params: 5ms, application-code: 85ms)
+[browser] A tree hydrated but some attributes of the server rendered HTML didn't match the client properties. This won't be patched up. This can happen if a SSR-ed Client Component used:
+
+- A server/client branch `if (typeof window !== 'undefined')`.
+- Variable input such as `Date.now()` or `Math.random()` which changes each time it's called.
+- Date formatting in a user's locale which doesn't match the server.
+- External changing data without sending a snapshot of it along with the HTML.
+- Invalid HTML tag nesting.
+
+It can also happen if the client has a browser extension installed which messes with the HTML before React loaded.
+
+https://react.dev/link/hydration-mismatch
+
+  ...
+    <HotReload globalError={[...]} webSocket={WebSocket} staticIndicatorState={{pathname:null, ...}}>
+      <AppDevOverlayErrorBoundary globalError={[...]}>
+        <ReplaySsrOnlyErrors>
+        <DevRootHTTPAccessFallbackBoundary>
+          <HTTPAccessFallbackBoundary notFound={<NotAllowedRootHTTPFallbackError>}>
+            <HTTPAccessFallbackErrorBoundary pathname="/docs/adap..." notFound={<NotAllowedRootHTTPFallbackError>} ...>
+              <RedirectBoundary>
+                <RedirectErrorBoundary router={{...}}>
+                  <Head>
+                  <__next_root_layout_boundary__>
+                    <SegmentViewNode type="layout" pagePath="layout.tsx">
+                      <SegmentTrieNode>
+                      <link>
+                      <script>
+                      <script>
+                      <script>
+                      <Layout>
+                        <html lang="en" className="geist_9c6c..." suppressHydrationWarning={true}>
+                          <body
+                            className="flex min-h-screen flex-col"
+-                           cz-shortcut-listen="true"
+                          >
+                  ...
+ 
+ GET /docs/adapters/lucid 200 in 668ms (next.js: 4ms, generate-params: 1469µs, application-code: 663ms)
+ GET /docs/adapters/lucid 200 in 47ms (next.js: 14ms, generate-params: 2ms, application-code: 32ms)
+ GET /docs/adapters/lucid 200 in 36ms (next.js: 10ms, generate-params: 1633µs, application-code: 26ms)
+ GET /docs/getting-started/installation 200 in 129ms (next.js: 6ms, generate-params: 1817µs, application-code: 123ms)
+✓ Compiled in 103ms
+ GET /docs/getting-started/installation 200 in 60ms (next.js: 23ms, generate-params: 6ms, application-code: 37ms)
+ GET /docs/getting-started/installation 200 in 37ms (next.js: 7ms, generate-params: 1483µs, application-code: 31ms)
+ GET /docs/getting-started/installation 200 in 40ms (next.js: 7ms, generate-params: 2ms, application-code: 34ms)
+ GET /docs/getting-started/installation 200 in 32ms (next.js: 6ms, generate-params: 1770µs, application-code: 26ms)
+✓ Compiled in 106ms
+ GET /docs/getting-started/installation 200 in 50ms (next.js: 9ms, generate-params: 1791µs, application-code: 41ms)
+ GET /docs/getting-started/installation 200 in 75ms (next.js: 6ms, generate-params: 1242µs, application-code: 69ms)

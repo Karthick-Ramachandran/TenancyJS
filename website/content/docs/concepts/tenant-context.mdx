@@ -29,7 +29,7 @@ unscoped data — it throws.
 
 ```ts
 // No active scope:
-await tenancy.client.order.findMany();
+await db.order.findMany();
 // ✗ TenantContextError — refuses to run unscoped
 ```
 

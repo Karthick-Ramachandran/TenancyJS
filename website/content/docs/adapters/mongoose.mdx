@@ -1,9 +1,11 @@
 ---
 title: Mongoose
-description: Facade-enforced tenant isolation for MongoDB with Mongoose.
+description: Facade-enforced tenant isolation for MongoDB with Mongoose — wired end to end into any framework.
 ---
 
-`tenancyjs-adapter-mongoose` scopes MongoDB access per tenant with **row-level**-style query scoping.
+`tenancyjs-adapter-mongoose` scopes MongoDB access per tenant. This page shows it wired **end to end
+with Express**; using a different framework? Swap only the integration (see
+[the swap note](#use-a-different-framework)).
 
 <Callout type="warn">
   **MongoDB has no row-level security.** Mongoose isolation is enforced entirely by the adapter's query
@@ -14,27 +16,93 @@ description: Facade-enforced tenant isolation for MongoDB with Mongoose.
 
 ## Install
 
+Three pieces: the core, this adapter (your ORM), and an integration (your framework).
+
 ```bash
-npm install tenancyjs-adapter-mongoose
+npm install tenancyjs-core tenancyjs-adapter-mongoose tenancyjs-integration-express mongoose
 ```
 
-## Setup
+## Wire it into your app
 
-Requires a MongoDB replica set (for managed transactions).
+<Steps>
 
-```ts
+<Step>
+### Create the manager + adapter
+
+Mongoose needs a connection to a **replica set** (for managed transactions). Register your
+tenant-scoped models with the adapter.
+
+```ts title="tenancy.ts"
+import { TenancyManager } from "tenancyjs-core";
 import { createMongooseTenancy } from "tenancyjs-adapter-mongoose";
+import { createConnection } from "mongoose";
+import { OrderModel } from "./models";
+
+export interface Tenant {
+  readonly id: string;
+}
+
+export const manager = new TenancyManager<Tenant>();
+
+const connection = await createConnection(process.env.MONGODB_URL!).asPromise();
 
 export const tenancy = createMongooseTenancy({
   manager,
-  connection, // a mongoose Connection to a replica set
-  tenantModels: [{ model: Post }, { model: Order }],
+  connection,
+  tenantModels: [{ model: OrderModel }],
 });
 
-await manager.runWithTenant({ id: "acme" }, (client) =>
-  client.model(Order).find({ status: "open" }),
-);
+await tenancy.validate(); // verify the setup before serving
 ```
+</Step>
 
-The facade injects the tenant filter on reads and the tenant field on writes, rejects `$`-operator and
-dotted keys, and runs everything inside a session-bound transaction.
+<Step>
+### Bind it to requests
+
+Add the Express middleware. It resolves the tenant per request and opens the scope for its lifetime.
+
+```ts title="server.ts"
+import express from "express";
+import { createExpressTenancyMiddleware } from "tenancyjs-integration-express";
+import { manager, tenancy } from "./tenancy";
+import { OrderModel } from "./models";
+
+const app = express();
+
+app.use(
+  createExpressTenancyMiddleware({
+    manager,
+    resolver: (req) => ({ id: req.subdomains.at(-1) ?? "" }),
+  }),
+);
+
+app.get("/orders", async (_req, res) => {
+  const orders = await tenancy.run((client) =>
+    client.model(OrderModel).find({ status: "open" }),
+  );
+  res.json(orders); // only the current tenant's orders
+});
+```
+</Step>
+
+</Steps>
+
+That's the whole thing: the adapter injects the tenant filter on reads and the tenant field on writes,
+rejects `$`-operator and dotted keys, and runs everything inside a session-bound transaction. Outside a
+tenant scope, it fails closed.
+
+## Use a different framework
+
+The adapter half stays identical — only swap the **integration** import for your framework:
+
+<Cards>
+  <Card title="Express" href="/docs/integrations/express" />
+  <Card title="Next.js" href="/docs/integrations/nextjs" />
+  <Card title="NestJS" href="/docs/integrations/nestjs" />
+  <Card title="AdonisJS" href="/docs/integrations/adonis" />
+</Cards>
+
+## Strategy support
+
+Mongoose supports **row-level** (facade) isolation on MongoDB. Schema- and database-per-tenant are SQL
+concepts and don't apply. See the [capability matrix](/docs/concepts/capability-matrix).

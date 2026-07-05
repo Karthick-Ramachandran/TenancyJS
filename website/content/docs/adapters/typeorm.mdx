@@ -1,33 +1,88 @@
 ---
 title: TypeORM
-description: Row-level tenant isolation on PostgreSQL with TypeORM.
+description: Row-level tenant isolation on PostgreSQL with TypeORM — wired end to end into any framework.
 ---
 
-`tenancyjs-adapter-typeorm` provides **row-level** isolation on PostgreSQL today, using forced Postgres
-**RLS** plus a query facade. Schema- and database-per-tenant are on the roadmap — they aren't yet
-adversarially proven, so they aren't marked supported.
+`tenancyjs-adapter-typeorm` provides **row-level** isolation on PostgreSQL, using forced Postgres
+**RLS** plus a query facade. Schema- and database-per-tenant are on the roadmap. This page shows it wired
+**end to end with Express**; for another framework, swap only the integration
+([see below](#use-a-different-framework)).
 
 ## Install
 
 ```bash
-npm install tenancyjs-adapter-typeorm
+npm install tenancyjs-core tenancyjs-adapter-typeorm tenancyjs-integration-express typeorm
 ```
 
-## Setup
+## Wire it into your app
 
-```ts
+<Steps>
+
+<Step>
+### Create the manager + adapter
+
+```ts title="tenancy.ts"
+import { TenancyManager } from "tenancyjs-core";
 import { createTypeOrmTenancy } from "tenancyjs-adapter-typeorm";
+import { dataSource, Order } from "./data-source";
+
+export interface Tenant {
+  readonly id: string;
+}
+
+export const manager = new TenancyManager<Tenant>();
 
 export const tenancy = createTypeOrmTenancy({
   manager,
   dataSource,
-  tenantEntities: [Post, Order],
+  tenantEntities: [Order],
 });
 
-await manager.runWithTenant({ id: "acme" }, (em) => em.find(Order));
+await tenancy.validate();
 ```
+</Step>
+
+<Step>
+### Bind it to requests
+
+`tenancy.run` gives you a tenant-scoped EntityManager.
+
+```ts title="server.ts"
+import express from "express";
+import { createExpressTenancyMiddleware } from "tenancyjs-integration-express";
+import { manager, tenancy } from "./tenancy";
+import { Order } from "./data-source";
+
+const app = express();
+
+app.use(
+  createExpressTenancyMiddleware({
+    manager,
+    resolver: (req) => ({ id: req.subdomains.at(-1) ?? "" }),
+  }),
+);
+
+app.get("/orders", async (_req, res) => {
+  const orders = await tenancy.run((em) => em.find(Order));
+  res.json(orders); // only the current tenant's rows
+});
+```
+</Step>
+
+</Steps>
 
 <Callout type="warn">
   Only row-level is tested-supported for TypeORM. `tenant check` warns if you configure an untested
   strategy — see the [capability matrix](/docs/concepts/capability-matrix).
 </Callout>
+
+## Use a different framework
+
+Keep the adapter half; only swap the **integration** import:
+
+<Cards>
+  <Card title="Express" href="/docs/integrations/express" />
+  <Card title="Next.js" href="/docs/integrations/nextjs" />
+  <Card title="NestJS" href="/docs/integrations/nestjs" />
+  <Card title="AdonisJS" href="/docs/integrations/adonis" />
+</Cards>

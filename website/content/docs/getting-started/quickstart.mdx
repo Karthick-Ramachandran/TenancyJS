@@ -38,20 +38,21 @@ export const manager = new TenancyManager<Tenant>();
 
 ### Attach an adapter
 
-An adapter enforces isolation inside your ORM. Register the models that are tenant-scoped, and it
-filters every read and stamps every write for you.
+An adapter enforces isolation inside your ORM. For Prisma, register the tenant-scoped models and apply
+the adapter's **extension** to your client — the extended `db` is what you query with. (Using a
+different ORM? See its [adapter guide](/docs/adapters); the shape is the same.)
 
 ```ts title="tenancy.ts"
 import { createPrismaAdapter } from "tenancyjs-adapter-prisma";
 import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient();
-
-export const tenancy = createPrismaAdapter({
+const adapter = createPrismaAdapter({
   manager,
-  client: prisma,
   tenantModels: { Post: {}, Order: {} },
 });
+
+// `db` is your tenant-scoped Prisma client.
+export const db = new PrismaClient().$extends(adapter.extension);
 ```
 
 </Step>
@@ -60,16 +61,16 @@ export const tenancy = createPrismaAdapter({
 
 ### Run inside a tenant scope
 
-Everything the adapter touches inside `runWithTenant` is scoped to that tenant. Outside a scope, it
+Everything you do through `db` inside `runWithTenant` is scoped to that tenant. Outside a scope, it
 **fails closed** — a loud error, never unscoped data.
 
 ```ts
 await manager.runWithTenant({ id: "acme" }, async () => {
-  const orders = await tenancy.client.order.findMany(); // only acme's orders
+  const orders = await db.order.findMany(); // only acme's orders
 });
 
 // Outside a scope:
-await tenancy.client.order.findMany();
+await db.order.findMany();
 // ✗ TenantContextError — refuses to run unscoped
 ```
 
@@ -85,7 +86,7 @@ your route handlers are automatically scoped.
 ```ts title="server.ts"
 import express from "express";
 import { createExpressTenancyMiddleware } from "tenancyjs-integration-express";
-import { manager } from "./tenancy";
+import { manager, db } from "./tenancy";
 
 const app = express();
 
@@ -97,7 +98,7 @@ app.use(
 );
 
 app.get("/orders", async (_req, res) => {
-  res.json(await tenancy.client.order.findMany()); // already scoped
+  res.json(await db.order.findMany()); // already scoped
 });
 ```
 

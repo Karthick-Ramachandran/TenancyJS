@@ -1,42 +1,83 @@
 ---
 title: Knex
-description: All three isolation strategies on PostgreSQL with Knex.
+description: All three isolation strategies on PostgreSQL with Knex — wired end to end into any framework.
 ---
 
 `tenancyjs-adapter-knex` is the most complete adapter — it supports **all three strategies** on
-PostgreSQL. Row-level and schema-per-tenant use forced Postgres **RLS** and a transaction-local
-`search_path`; database-per-tenant leases a per-tenant connection from a bounded cache.
+PostgreSQL. This page shows **row-level with Express** end to end, then the other strategies. Different
+framework? Swap only the integration ([see below](#use-a-different-framework)).
 
 ## Install
 
 ```bash
-npm install tenancyjs-adapter-knex
+npm install tenancyjs-core tenancyjs-adapter-knex tenancyjs-integration-express knex
 ```
 
-## Row-level
+## Wire it into your app (row-level)
 
-```ts
+<Steps>
+
+<Step>
+### Create the manager + adapter
+
+```ts title="tenancy.ts"
+import { TenancyManager } from "tenancyjs-core";
 import { createKnexTenancy } from "tenancyjs-adapter-knex";
+import Knex from "knex";
+
+export interface Tenant {
+  readonly id: string;
+}
+
+export const manager = new TenancyManager<Tenant>();
+const knex = Knex({ client: "pg", connection: process.env.DATABASE_URL });
 
 export const tenancy = createKnexTenancy({
   manager,
   knex,
   strategy: "rowLevel",
-  tenantTables: ["posts", "orders"],
+  tenantTables: ["orders", "posts"],
 });
-
-await manager.runWithTenant({ id: "acme" }, (db) => db("orders").select("*"));
 ```
 
-The database enforces isolation with forced RLS, so even raw SQL can't cross tenants.
+On PostgreSQL, add a forced RLS policy to each tenant table (the database backstop).
+</Step>
+
+<Step>
+### Bind it to requests
+
+Inside a request, run your queries through `tenancy.run` — it hands you a tenant-scoped Knex.
+
+```ts title="server.ts"
+import express from "express";
+import { createExpressTenancyMiddleware } from "tenancyjs-integration-express";
+import { manager, tenancy } from "./tenancy";
+
+const app = express();
+
+app.use(
+  createExpressTenancyMiddleware({
+    manager,
+    resolver: (req) => ({ id: req.subdomains.at(-1) ?? "" }),
+  }),
+);
+
+app.get("/orders", async (_req, res) => {
+  const orders = await tenancy.run((db) => db("orders").select("*"));
+  res.json(orders); // only the current tenant's rows
+});
+```
+</Step>
+
+</Steps>
 
 ## Schema per tenant
 
-Each tenant gets its own Postgres schema, selected per transaction via `search_path`. Optionally supply
-a per-tenant role for **database-enforced** isolation.
+Each tenant gets its own Postgres schema, selected per transaction via `search_path`. Add a per-tenant
+role for **database-enforced** isolation.
 
 ```ts
-const tenancy = createKnexTenancy({
+export const tenancy = createKnexTenancy({
   manager,
   knex,
   strategy: "schemaPerTenant",
@@ -47,22 +88,32 @@ const tenancy = createKnexTenancy({
 
 ## Database per tenant
 
-Route a dedicated connection per tenant. You provide how to create it; connections are pooled and
-reused through a bounded, single-flight cache.
+Route a dedicated connection per tenant, pooled and reused through a bounded, single-flight cache.
 
 ```ts
-const tenancy = createKnexTenancy({
+export const tenancy = createKnexTenancy({
   manager,
   knex,
   strategy: "databasePerTenant",
   connection: (tenant) => ({
     key: tenant.database,
-    create: () => knexFactory(tenant.databaseUrl),
+    create: () => Knex({ client: "pg", connection: tenant.databaseUrl }),
   }),
 });
 ```
 
 <Callout type="info">
   Cross-placement access is rejected, central scope uses the base connection, and every leased
-  connection is disposed on teardown.
+  connection is disposed on teardown. See [Database per tenant](/docs/strategies/database-per-tenant).
 </Callout>
+
+## Use a different framework
+
+Keep the adapter half; only swap the **integration** import:
+
+<Cards>
+  <Card title="Express" href="/docs/integrations/express" />
+  <Card title="Next.js" href="/docs/integrations/nextjs" />
+  <Card title="NestJS" href="/docs/integrations/nestjs" />
+  <Card title="AdonisJS" href="/docs/integrations/adonis" />
+</Cards>

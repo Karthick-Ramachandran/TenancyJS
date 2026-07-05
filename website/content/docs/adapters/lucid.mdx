@@ -4,42 +4,80 @@ description: All three isolation strategies on PostgreSQL with AdonisJS Lucid.
 ---
 
 `tenancyjs-adapter-lucid` brings the full strategy set — **row-level**, **schema-per-tenant**, and
-**database-per-tenant** — to AdonisJS Lucid on PostgreSQL. Pair it with the
-[AdonisJS integration](/docs/integrations/adonis) to scope requests automatically.
+**database-per-tenant** — to AdonisJS Lucid on PostgreSQL. It pairs with the
+[AdonisJS integration](/docs/integrations/adonis), which scopes every request for you.
+
+<Callout type="info">
+  The fastest path is [`npx tenancy init`](/docs/getting-started/installation) — it scaffolds AdonisJS +
+  Lucid end to end. This page covers the manual wiring and the strategy options.
+</Callout>
 
 ## Install
 
 ```bash
-npm install tenancyjs-adapter-lucid
+npm install tenancyjs-core tenancyjs-adapter-lucid tenancyjs-integration-adonis
 ```
 
-## Setup
+## Configure the adapter
 
-```ts
+```ts title="config/tenancy.ts"
+import { TenancyManager } from "tenancyjs-core";
 import { createLucidTenancy } from "tenancyjs-adapter-lucid";
+import db from "@adonisjs/lucid/services/db";
+
+export interface Tenant {
+  readonly id: string;
+}
+
+export const manager = new TenancyManager<Tenant>();
 
 export const tenancy = createLucidTenancy({
   manager,
-  database, // the Lucid Database service
+  database: db,
   strategy: "rowLevel", // "schemaPerTenant" | "databasePerTenant"
-  tenantTables: ["posts", "orders"],
+  tenantTables: ["orders", "posts"],
+});
+```
+
+Register the [AdonisJS integration](/docs/integrations/adonis) provider + middleware (the `init`
+scaffold does both). Each request then resolves its tenant and runs scoped, so your Lucid models are
+isolated automatically — no per-query tenant filters:
+
+```ts
+// inside a controller — already tenant-scoped by the middleware
+const orders = await Order.all();
+```
+
+## Schema per tenant
+
+Each tenant gets its own Postgres schema via a transaction-local `search_path`, with an optional
+per-tenant role for database-enforced isolation.
+
+```ts
+export const tenancy = createLucidTenancy({
+  manager,
+  database: db,
+  strategy: "schemaPerTenant",
+  schema: (tenant) => `tenant_${tenant.id}`,
 });
 ```
 
 ## Database per tenant
 
+Lucid leases a `{ transaction, destroy }` connection per tenant from a bounded cache; model queries run
+through it via `useTransaction`.
+
 ```ts
-const tenancy = createLucidTenancy({
+export const tenancy = createLucidTenancy({
   manager,
-  database,
+  database: db,
   strategy: "databasePerTenant",
   connection: (tenant) => ({
     key: tenant.connection,
-    create: () => ({ /* { transaction, destroy } for this tenant */ }),
+    create: () => openConnectionFor(tenant),
   }),
 });
 ```
 
-Model queries run through the leased connection via `useTransaction`, so your Lucid models stay
-tenant-scoped without change. Row-level uses forced RLS; schema-per-tenant uses a transaction-local
-`search_path` with an optional per-tenant role.
+See [Database per tenant](/docs/strategies/database-per-tenant) and
+[Schema per tenant](/docs/strategies/schema-per-tenant) for how each is enforced.

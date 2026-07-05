@@ -14,15 +14,15 @@ and that the test would _fail_ if isolation leaked.
 ```ts
 // Given tenant A and tenant B each have an Order with id "same-id":
 await manager.runWithTenant({ id: "a" }, () =>
-  tenancy.client.order.create({ data: { id: "same-id", total: 10 } }),
+  db.order.create({ data: { id: "same-id", total: 10 } }),
 );
 await manager.runWithTenant({ id: "b" }, () =>
-  tenancy.client.order.create({ data: { id: "same-id", total: 99 } }),
+  db.order.create({ data: { id: "same-id", total: 99 } }),
 );
 
 // A must see only A's row:
 const seen = await manager.runWithTenant({ id: "a" }, () =>
-  tenancy.client.order.findMany(),
+  db.order.findMany(),
 );
 expect(seen).toEqual([{ id: "same-id", total: 10 }]);
 ```
@@ -36,7 +36,7 @@ Assert that using an adapter with **no** active scope throws — so a missing co
 return unscoped data:
 
 ```ts
-await expect(tenancy.client.order.findMany()).rejects.toThrow(TenantContextError);
+await expect(db.order.findMany()).rejects.toThrow(TenantContextError);
 ```
 
 ## Conformance helpers

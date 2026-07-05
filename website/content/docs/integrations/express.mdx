@@ -34,7 +34,7 @@ app.use(
 
 app.get("/orders", async (_req, res) => {
   // already inside the resolved tenant scope
-  res.json(await tenancy.client.order.findMany());
+  res.json(await db.order.findMany());
 });
 ```
 

@@ -1,60 +1,111 @@
 ---
 title: Prisma
-description: Row-level and database-per-tenant isolation for Prisma (PostgreSQL + MySQL).
+description: Row-level and database-per-tenant isolation for Prisma (PostgreSQL + MySQL) — wired end to end.
 ---
 
-`tenancyjs-adapter-prisma` scopes Prisma queries to the active tenant. It supports **row-level** (on
-PostgreSQL and MySQL) and **database-per-tenant**. Schema-per-tenant is intentionally unsupported —
-Prisma resolves tables from the datasource, not the session `search_path`.
+`tenancyjs-adapter-prisma` scopes Prisma queries to the active tenant via a **Prisma Client extension**.
+It supports **row-level** (PostgreSQL + MySQL) and **database-per-tenant**. Schema-per-tenant is
+intentionally unsupported — Prisma resolves tables from the datasource, not the session `search_path`.
+
+This page shows it wired **end to end with Express**; for another framework, swap only the integration
+([see below](#use-a-different-framework)).
 
 ## Install
 
 ```bash
-npm install tenancyjs-adapter-prisma
+npm install tenancyjs-core tenancyjs-adapter-prisma tenancyjs-integration-express @prisma/client
 ```
 
-## Row-level
+## Wire it into your app (row-level)
 
-Declare the tenant-scoped models. Inside a tenant scope, reads and writes are filtered to that tenant;
-outside a scope, they fail closed.
+<Steps>
 
-```ts
+<Step>
+### Create the manager + extended client
+
+Register your tenant-scoped models, then apply the adapter's **extension** to your Prisma client. The
+extended client is what you query with.
+
+```ts title="tenancy.ts"
+import { TenancyManager } from "tenancyjs-core";
 import { createPrismaAdapter } from "tenancyjs-adapter-prisma";
 import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient();
+export interface Tenant {
+  readonly id: string;
+}
 
-export const tenancy = createPrismaAdapter({
+export const manager = new TenancyManager<Tenant>();
+
+const adapter = createPrismaAdapter({
   manager,
-  client: prisma,
-  tenantModels: { Post: {}, Order: {} },
+  tenantModels: { Order: {}, Post: {} },
 });
 
-await manager.runWithTenant({ id: "acme" }, async () => {
-  await tenancy.client.order.findMany(); // only acme's orders
+// Apply the tenancy extension — `db` is your tenant-scoped Prisma client.
+export const db = new PrismaClient().$extends(adapter.extension);
+```
+</Step>
+
+<Step>
+### Bind it to requests
+
+```ts title="server.ts"
+import express from "express";
+import { createExpressTenancyMiddleware } from "tenancyjs-integration-express";
+import { manager, db } from "./tenancy";
+
+const app = express();
+
+app.use(
+  createExpressTenancyMiddleware({
+    manager,
+    resolver: (req) => ({ id: req.subdomains.at(-1) ?? "" }),
+  }),
+);
+
+app.get("/orders", async (_req, res) => {
+  res.json(await db.order.findMany()); // only the current tenant's orders
 });
 ```
+</Step>
 
-On PostgreSQL the adapter also relies on forced **RLS** as a database-level backstop; on MySQL,
-isolation is enforced by query-scoping.
+</Steps>
+
+Inside a tenant scope the extension injects the tenant filter on reads and the tenant field on writes;
+outside a scope it fails closed. On PostgreSQL, forced **RLS** is a second, database-level backstop; on
+MySQL, isolation is enforced by the extension's query-scoping.
 
 ## Database per tenant
 
-For hard isolation, route a dedicated Prisma client per tenant with `createPrismaDatabaseTenancy`. The
-host supplies how to create and dispose a client for a given tenant; clients are pooled in a bounded
-cache and reused.
+For hard isolation, route a dedicated Prisma client per tenant with `createPrismaDatabaseTenancy`. You
+supply how to create and dispose a client for a given tenant; clients are pooled in a bounded cache and
+reused.
 
 ```ts
 import { createPrismaDatabaseTenancy } from "tenancyjs-adapter-prisma";
 
 const tenancy = createPrismaDatabaseTenancy({
   manager,
-  create: (tenant) => new PrismaClient({ datasources: { db: { url: tenant.databaseUrl } } }),
+  create: (tenant) =>
+    new PrismaClient({ datasources: { db: { url: tenant.databaseUrl } } }),
   disconnect: (client) => client.$disconnect(),
 });
 ```
 
 <Callout type="warn">
-  Prisma **schema-per-tenant** is not supported. Use database-per-tenant for hard isolation, or
-  row-level for a shared database. `tenant check` will warn you if a config claims otherwise.
+  Prisma **schema-per-tenant** is not supported (Prisma resolves tables from its datasource, not
+  `search_path`). Use database-per-tenant for hard isolation. `tenant check` warns if a config claims
+  otherwise.
 </Callout>
+
+## Use a different framework
+
+Keep the adapter half; only swap the **integration** import:
+
+<Cards>
+  <Card title="Express" href="/docs/integrations/express" />
+  <Card title="Next.js" href="/docs/integrations/nextjs" />
+  <Card title="NestJS" href="/docs/integrations/nestjs" />
+  <Card title="AdonisJS" href="/docs/integrations/adonis" />
+</Cards>

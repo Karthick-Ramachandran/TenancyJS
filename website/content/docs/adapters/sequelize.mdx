@@ -1,30 +1,90 @@
 ---
 title: Sequelize
-description: Row-level tenant isolation on PostgreSQL with Sequelize.
+description: Row-level tenant isolation on PostgreSQL with Sequelize — wired end to end into any framework.
 ---
 
 `tenancyjs-adapter-sequelize` provides **row-level** isolation on PostgreSQL using forced Postgres
-**RLS** plus a query facade. Schema- and database-per-tenant are on the roadmap.
+**RLS** plus a query facade. This page shows it wired **end to end with Express**; for another
+framework, swap only the integration ([see below](#use-a-different-framework)).
+
+Schema- and database-per-tenant for Sequelize are on the roadmap — see the
+[capability matrix](/docs/concepts/capability-matrix).
 
 ## Install
 
 ```bash
-npm install tenancyjs-adapter-sequelize
+npm install tenancyjs-core tenancyjs-adapter-sequelize tenancyjs-integration-express sequelize
 ```
 
-## Setup
+## Wire it into your app
 
-```ts
+<Steps>
+
+<Step>
+### Create the manager + adapter
+
+Register your tenant-scoped models. On PostgreSQL, set up a forced RLS policy on each tenant table (the
+database backstop) — the adapter's `validate()` checks the contract is in place.
+
+```ts title="tenancy.ts"
+import { TenancyManager } from "tenancyjs-core";
 import { createSequelizeTenancy } from "tenancyjs-adapter-sequelize";
+import { sequelize, Order } from "./models";
+
+export interface Tenant {
+  readonly id: string;
+}
+
+export const manager = new TenancyManager<Tenant>();
 
 export const tenancy = createSequelizeTenancy({
   manager,
   sequelize,
-  tenantModels: [Post, Order],
+  tenantModels: [Order],
 });
 
-await manager.runWithTenant({ id: "acme" }, () => Order.findAll());
+await tenancy.validate();
 ```
+</Step>
+
+<Step>
+### Bind it to requests
+
+```ts title="server.ts"
+import express from "express";
+import { createExpressTenancyMiddleware } from "tenancyjs-integration-express";
+import { manager, tenancy } from "./tenancy";
+import { Order } from "./models";
+
+const app = express();
+
+app.use(
+  createExpressTenancyMiddleware({
+    manager,
+    resolver: (req) => ({ id: req.subdomains.at(-1) ?? "" }),
+  }),
+);
+
+app.get("/orders", async (_req, res) => {
+  const orders = await tenancy.run((client) => client.model(Order).findAll());
+  res.json(orders); // only the current tenant's rows
+});
+```
+</Step>
+
+</Steps>
 
 The facade rejects unsafe criteria — including Symbol-keyed operators (`Op.*`) that would otherwise slip
-past a plain-object guard — so a query can't accidentally escape its tenant scope.
+past a plain-object guard — and forced Postgres RLS is a second backstop, so a query can't escape its
+tenant scope. Outside a tenant scope, it fails closed.
+
+## Use a different framework
+
+Keep everything above; only swap the **integration** import:
+
+<Cards>
+  <Card title="Express" href="/docs/integrations/express" />
+  <Card title="Next.js" href="/docs/integrations/nextjs" />
+  <Card title="NestJS" href="/docs/integrations/nestjs" />
+  <Card title="AdonisJS" href="/docs/integrations/adonis" />
+</Cards>

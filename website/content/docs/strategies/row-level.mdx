@@ -38,7 +38,7 @@ call depends on your ORM — see the adapter guide:
 
 ```ts
 await manager.runWithTenant({ id: "acme" }, async () => {
-  await tenancy.client.order.findMany(); // WHERE tenant_id = 'acme', injected for you
+  await db.order.findMany(); // WHERE tenant_id = 'acme', injected for you
 });
 ```
 
