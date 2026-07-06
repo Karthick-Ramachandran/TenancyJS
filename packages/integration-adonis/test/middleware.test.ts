@@ -45,6 +45,40 @@ function tenantId(manager: TenancyManager<TestTenant>): string | undefined {
 }
 
 describe("TenancyMiddleware", () => {
+  it("passes the request principal into resolution and maps forbidden to 404", async () => {
+    let seen: unknown;
+    let errored: AdonisTenancyResolutionError | undefined;
+    const config = defineAdonisTenancyConfig({
+      manager: new TenancyManager<TestTenant>(),
+      resolver: {
+        resolve: (_input, ctx) => {
+          seen = ctx;
+          return Promise.resolve({
+            status: "forbidden",
+            identifier: {
+              resolverId: "header:x-tenant-id",
+              kind: "header",
+              value: "t",
+            },
+          } as TenantResolutionOutcome<TestTenant>);
+        },
+      },
+      tenancy: recordingTenancy(),
+      principal: (ctx) => (ctx as { user?: unknown }).user,
+      onError: (error) => {
+        errored = error;
+      },
+    });
+    const ctx = fakeContext();
+    (ctx as { user?: unknown }).user = { id: "u1" };
+
+    await new TenancyMiddleware(config).handle(ctx, nextSpy());
+
+    expect(seen).toEqual({ principal: { id: "u1" } });
+    expect(errored?.status).toBe(404);
+    expect(errored?.reason).toBe("forbidden");
+  });
+
   it("resolves once and runs next inside tenant context and the Lucid transaction", async () => {
     const { manager, resolver, tenancy, middleware } = build(
       resolvedOutcome({ id: "tenant-a", name: "A" }),

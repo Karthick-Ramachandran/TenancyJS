@@ -30,6 +30,33 @@ interface Tenant {
 }
 
 describe("Nest tenancy lifecycle", () => {
+  it("passes the request principal into resolution and maps forbidden to 404", async () => {
+    let seen: unknown;
+    const request = { headers: { "x-tenant-id": "t" }, user: { id: "u1" } };
+    const guard = new NestTenantResolutionGuard<Tenant>(
+      reflector(true),
+      {
+        resolve: (_input, ctx) => {
+          seen = ctx;
+          return Promise.resolve({
+            status: "forbidden",
+            identifier: {
+              resolverId: "header:x-tenant-id",
+              kind: "header",
+              value: "t",
+            },
+          } as never);
+        },
+      },
+      new NestTenantResolutionStore<Tenant>(),
+      (req) => (req as { user: unknown }).user,
+    );
+
+    const failure = guard.canActivate(context(request));
+    await expect(failure).rejects.toMatchObject({ status: 404 });
+    expect(seen).toEqual({ principal: { id: "u1" } });
+  });
+
   it("snapshots safe structural request metadata", () => {
     const input = createNestResolverInput({
       hostname: "acme.example.test",

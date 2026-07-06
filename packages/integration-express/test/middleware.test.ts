@@ -30,6 +30,32 @@ const tenantA: TestTenant = { id: "tenant-a", name: "Tenant A" };
 const tenantB: TestTenant = { id: "tenant-b", name: "Tenant B" };
 
 describe("createExpressTenancyMiddleware", () => {
+  it("passes the request principal into resolution and maps forbidden to 404", async () => {
+    let seen: unknown;
+    const request = fakeRequest({ "x-tenant-id": "t" });
+    Object.assign(request, { user: { id: "u1" } });
+    const onError = vi.fn();
+    const middleware = createExpressTenancyMiddleware({
+      manager: new TenancyManager(),
+      resolver: {
+        resolve: (_input, context) => {
+          seen = context;
+          return { status: "forbidden", identifier: identifier("t") };
+        },
+      },
+      principal: (req) => (req as { user?: unknown }).user,
+      onError,
+    });
+
+    await invoke(middleware, request, fakeResponse(), vi.fn());
+
+    expect(seen).toEqual({ principal: { id: "u1" } });
+    expect(onError.mock.calls[0]?.[0]).toMatchObject({
+      reason: "forbidden",
+      statusCode: 404,
+    });
+  });
+
   it("validates application-owned dependencies at startup", () => {
     const manager = new TenancyManager();
     const resolver = fixedResolver({ status: "no-identifier" });

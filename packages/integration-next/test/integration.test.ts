@@ -60,6 +60,34 @@ beforeEach(() => {
 });
 
 describe("createNextTenancy", () => {
+  it("passes the request principal into resolution and maps forbidden to 404", async () => {
+    let seen: unknown;
+    const tenancy = createNextTenancy({
+      manager: new TenancyManager<Tenant>(),
+      resolver: {
+        resolve: (_input, ctx) => {
+          seen = ctx;
+          return {
+            status: "forbidden",
+            identifier: {
+              resolverId: "header:x-tenant-id",
+              kind: "header",
+              value: "t",
+            },
+          } as TenantResolutionOutcome<Tenant>;
+        },
+      },
+      principal: async () => ({ id: "u1" }),
+    });
+
+    const rejection = tenancy.runWithRequest(
+      new Headers({ "x-tenant-id": "t" }),
+      vi.fn(),
+    );
+    await expect(rejection).rejects.toMatchObject({ statusCode: 404 });
+    expect(seen).toEqual({ principal: { id: "u1" } });
+  });
+
   it("isolates concurrent Route Handler contexts and restores them at settlement", async () => {
     const { manager, tenancy } = createFixture();
     const release = deferred();
