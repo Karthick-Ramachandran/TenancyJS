@@ -1,6 +1,6 @@
 {
   "name": "tenancyjs-integration-adonis",
-  "version": "0.1.0-beta.0",
+  "version": "0.1.0-beta.1",
   "description": "Fail-closed AdonisJS 7 request lifecycle integration for TenancyJS Lucid tenancy.",
   "type": "module",
   "license": "MIT",
