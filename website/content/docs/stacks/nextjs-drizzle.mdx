@@ -1,0 +1,304 @@
+---
+title: Next.js + Drizzle setup
+description: Wire fail-closed multi-tenancy into a Next.js 16 App Router + Drizzle app — a copy-pasteable setup-agent prompt, plus the manual walkthrough.
+---
+
+`tenancy init` doesn't scaffold Next.js yet, so this stack is a manual wire-up — a few files. This page
+gives you two ways to do it: hand the **setup-agent prompt** to your AI assistant, or follow the
+**manual walkthrough**. Either way, finish by running the two-tenant test — with fail-closed isolation
+you verify, you don't trust.
+
+This is **row-level** on PostgreSQL, backed by **forced RLS**. The Drizzle adapter is a _callback
+facade_ — you never touch the native Drizzle db — and PostgreSQL forces the policy underneath, so the
+database itself rejects a cross-tenant read even if the facade were bypassed.
+
+## Setup-agent prompt
+
+Paste this into an assistant that can edit your repo and run commands (Claude Code, Cursor, …). It
+executes in order and verifies each step. It's pinned to the real API, so it won't invent factory names.
+
+````text
+# TenancyJS Setup Agent — Next.js 16 + Drizzle (row-level, PostgreSQL)
+
+You are a setup agent. Add fail-closed multi-tenancy to this Next.js App Router + Drizzle project with
+TenancyJS. Execute every step in order. After each step, verify it applied before continuing. If a step
+does not apply, say so and continue. Do NOT invent API names — if unsure, fetch the linked doc.
+
+Source of truth (fetch if a detail is missing, do not guess):
+- https://tenancyjs.pages.dev/docs/adapters/drizzle
+- https://tenancyjs.pages.dev/docs/integrations/nextjs
+- https://tenancyjs.pages.dev/docs/concepts/limitations
+- https://tenancyjs.pages.dev/docs/guides/testing-isolation
+
+## Pre-flight
+- Run `node -v`; abort if it is not >= 24.
+- Confirm `next` (v16) and `drizzle-orm` are in package.json. Abort if this is not a Next.js App Router
+  + Drizzle project.
+- Confirm the database is PostgreSQL. Row-level here REQUIRES forced RLS; MySQL is out of scope.
+
+## Step 1 — Install
+Run:
+```sh
+npm install tenancyjs-core@beta tenancyjs-adapter-drizzle@beta tenancyjs-integration-next@beta tenancyjs-identifiers@beta drizzle-orm pg
+```
+Verify all six appear in package.json dependencies.
+
+## Step 2 — Schema
+In `lib/schema.ts`, define an unqualified `pgTable` for each tenant-scoped table (e.g. `posts`) with a
+non-null `tenantId` column and an index on it, plus a `tenants` table (`id text primary key`,
+`status text not null default 'active'`). Unqualified `pgTable` is fine — row mode does not rewrite the
+table name. Verify the file compiles.
+
+## Step 3 — Forced-RLS migration (do NOT skip)
+This is the backstop that makes row-level safe. Write a migration run by an OWNER role that:
+- Creates the tenant tables (owner owns them).
+- Creates a NON-OWNER runtime role for the app connection — it must NOT be the table owner, must NOT
+  have BYPASSRLS, and must NOT be a superuser (owners and superusers ignore RLS).
+- Runs `ALTER TABLE posts ENABLE ROW LEVEL SECURITY;` and `ALTER TABLE posts FORCE ROW LEVEL SECURITY;`
+  for every tenant table.
+- Creates policy `posts_tenant_isolation` USING/WITH CHECK
+  `tenant_id = current_setting('tenancyjs.tenant_id', true) OR current_setting('tenancyjs.is_central', true) = 'true'`.
+- Grants the runtime role table privileges but not ownership.
+Point `DATABASE_URL` at the NON-OWNER runtime role. Verify the role is non-owner and RLS is FORCED.
+
+## Step 4 — The Drizzle adapter (drizzleTenancy)
+Create `lib/db.ts`. It must:
+- Construct ONE `TenancyManager<Tenant>` and export it.
+- Build a `pg` Pool from `DATABASE_URL` (the runtime role), then `drizzle({ client: pool })`.
+- Create the adapter with `createDrizzleTenancy({ manager, database:
+  createPostgresDrizzleBinding(drizzle(...)), tenantTables: [{ table: posts, policyName:
+  "posts_tenant_isolation" }] })` and export it as `drizzleTenancy`.
+- Do NOT export the native Drizzle db. The app queries ONLY through `drizzleTenancy.run(...)`.
+
+## Step 5 — Resolver + Next runtime (nextTenancy)
+In `lib/tenancy.ts`:
+- Build a `TenantResolutionChain` with `new HeaderTenantResolver({ headerName: "x-tenant-id" })` and a
+  store whose `find(identifier)` looks the tenant up and returns `[{ tenant: { id }, status }]` (or `[]`).
+- Create `createNextTenancy({ manager, resolver })` and export it as `nextTenancy`. Name it distinctly
+  from `drizzleTenancy` — they are different objects.
+
+## Step 6 — Scope the routes (Node runtime)
+For every Route Handler / Server Action that touches tenant data:
+- Wrap it: `export const GET = nextTenancy.withRouteHandler(async () =>
+  drizzleTenancy.run((db) => db.table(posts).findMany()))`. Server Actions use
+  `nextTenancy.withServerAction`.
+- Add `export const runtime = "nodejs"` — the adapter runs on Node, not the Edge.
+- REMOVE any manual `where tenantId` filters; the scope + policy inject isolation.
+
+## Step 7 — Edge hint (optional)
+If you resolve identity from the host/subdomain, add `middleware.ts` using `withNextTenantHint` from
+`tenancyjs-integration-next/edge` to carry identity across the Edge→Node boundary.
+
+## Step 8 — Central (cross-tenant) work
+For admin/cross-tenant reads, wrap the work in
+`manager.runInCentralContext(() => drizzleTenancy.run((db) => db.table(posts).findMany()))`. This sets
+`tenancyjs.is_central`, which the policy honours. Unscoped tenant access must throw.
+
+## Step 9 — Cache safety
+Any Next cache (`fetch` cache, `unstable_cache`, route segment cache) that wraps tenant data MUST be
+keyed by tenant id, or left uncached. A shared cache entry across tenants is a leak the policy cannot
+catch.
+
+## Step 10 — Validate + prove it
+- Call `await drizzleTenancy.validate()` at boot; it confirms the runtime role is non-privileged and RLS
+  is enabled + forced before serving. Abort if it throws.
+- Create a two-tenant test: write a row under tenant A and tenant B with the SAME primary key, assert a
+  scoped read as A never returns B's row, AND assert a RAW query as the runtime role with NO GUC set
+  returns 0 rows (proof the policy — not just the facade — isolates). Follow
+  https://tenancyjs.pages.dev/docs/guides/testing-isolation.
+- `npm run build`, boot the app, run the test, report the result.
+
+Report a summary of every file created/changed and any issue found.
+````
+
+<Callout type="warn">
+  AI wiring is a starting point, not proof. The only thing that demonstrates isolation is the two-tenant
+  colliding-id test in Step 10 — including the raw-as-runtime-role read that must return 0 rows.
+</Callout>
+
+## Manual walkthrough
+
+Prefer to wire it yourself? The same steps, with the code.
+
+<Steps>
+
+<Step>
+### Install
+
+```bash
+npm install tenancyjs-core@beta tenancyjs-adapter-drizzle@beta tenancyjs-integration-next@beta tenancyjs-identifiers@beta drizzle-orm pg
+```
+</Step>
+
+<Step>
+### Schema — unqualified `pgTable`
+
+Row mode does not rewrite the table name, so a plain `pgTable` is fine. Keep a non-null `tenantId`.
+
+```ts title="lib/schema.ts"
+import { pgTable, text, index } from "drizzle-orm/pg-core";
+
+export const tenants = pgTable("tenants", {
+  id: text("id").primaryKey(),
+  status: text("status").notNull().default("active"),
+});
+
+export const posts = pgTable(
+  "posts",
+  {
+    id: text("id").primaryKey(),
+    tenantId: text("tenant_id").notNull(),
+    title: text("title").notNull(),
+  },
+  (t) => [index("posts_tenant_id_idx").on(t.tenantId)],
+);
+```
+</Step>
+
+<Step>
+### Force RLS in a migration (the backstop)
+
+An **owner** role installs the tables and policy; the app connects as a **non-owner** runtime role that
+cannot bypass RLS. This is what makes the facade safe.
+
+```sql title="migrations/0001_force_rls.sql"
+-- Run as the OWNER role.
+CREATE ROLE app_runtime LOGIN PASSWORD '...'; -- NOT owner, NOT superuser, NOT BYPASSRLS
+GRANT SELECT, INSERT, UPDATE, DELETE ON posts TO app_runtime;
+
+ALTER TABLE posts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE posts FORCE  ROW LEVEL SECURITY;
+
+CREATE POLICY posts_tenant_isolation ON posts
+  USING (
+    tenant_id = current_setting('tenancyjs.tenant_id', true)
+    OR current_setting('tenancyjs.is_central', true) = 'true'
+  )
+  WITH CHECK (
+    tenant_id = current_setting('tenancyjs.tenant_id', true)
+    OR current_setting('tenancyjs.is_central', true) = 'true'
+  );
+```
+
+Point `DATABASE_URL` at `app_runtime`, never the owner.
+</Step>
+
+<Step>
+### The Drizzle adapter — `drizzleTenancy`
+
+The manager and the callback-facade adapter live here. The app never sees the native Drizzle db.
+
+```ts title="lib/db.ts"
+import { Pool } from "pg";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { TenancyManager, type TenantRecord } from "tenancyjs-core";
+import {
+  createDrizzleTenancy,
+  createPostgresDrizzleBinding,
+} from "tenancyjs-adapter-drizzle";
+import { posts } from "./schema";
+
+interface Tenant extends TenantRecord {
+  readonly id: string;
+}
+
+export const manager = new TenancyManager<Tenant>();
+
+// Runtime role only. Keep the native db private to this module.
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+
+export const drizzleTenancy = createDrizzleTenancy({
+  manager,
+  database: createPostgresDrizzleBinding(drizzle({ client: pool })),
+  tenantTables: [{ table: posts, policyName: "posts_tenant_isolation" }],
+});
+
+// Fail closed at boot: proves non-privileged role + enabled & forced RLS + policy.
+await drizzleTenancy.validate();
+```
+</Step>
+
+<Step>
+### Resolver + Next runtime — `nextTenancy`
+
+```ts title="lib/tenancy.ts"
+import { createNextTenancy } from "tenancyjs-integration-next";
+import { HeaderTenantResolver, TenantResolutionChain } from "tenancyjs-identifiers";
+import { manager } from "./db";
+import { lookupTenant } from "./tenants";
+
+const resolver = new TenantResolutionChain({
+  resolvers: [new HeaderTenantResolver({ headerName: "x-tenant-id" })],
+  store: {
+    async find(identifier) {
+      const tenant = await lookupTenant(identifier.value);
+      return tenant ? [{ tenant: { id: tenant.id }, status: tenant.status }] : [];
+    },
+  },
+});
+
+// Distinct from drizzleTenancy — different object, different job.
+export const nextTenancy = createNextTenancy({ manager, resolver });
+```
+</Step>
+
+<Step>
+### Scope your routes (Node runtime)
+
+`nextTenancy.withRouteHandler` opens the scope; `drizzleTenancy.run` queries through the facade. No
+manual `tenantId` filter — the scope sets the GUC and the policy enforces it.
+
+```ts title="app/posts/route.ts"
+import { nextTenancy } from "@/lib/tenancy";
+import { drizzleTenancy } from "@/lib/db";
+import { posts } from "@/lib/schema";
+
+export const runtime = "nodejs"; // the adapter runs on Node, not the Edge
+
+export const GET = nextTenancy.withRouteHandler(async () =>
+  Response.json(await drizzleTenancy.run((db) => db.table(posts).findMany())),
+);
+```
+
+Server Actions wrap the same way with `nextTenancy.withServerAction`.
+</Step>
+
+<Step>
+### Edge hint (optional)
+
+Resolving identity from the host/subdomain? Carry it across the Edge→Node boundary:
+
+```ts title="middleware.ts"
+import { NextResponse } from "next/server";
+import { withNextTenantHint } from "tenancyjs-integration-next/edge";
+
+export function middleware(request: Request) {
+  const headers = withNextTenantHint(request);
+  return NextResponse.next({ request: { headers } });
+}
+
+export const config = {
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+};
+```
+</Step>
+
+<Step>
+### Prove isolation
+
+Write the [two-tenant colliding-id test](/docs/guides/testing-isolation): same primary key under A and
+B, assert a scoped read as A never returns B's row, **and** assert a raw query as the runtime role with
+no GUC set returns 0 rows — that last one proves the policy, not just the facade, isolates.
+</Step>
+
+</Steps>
+
+<Callout type="info">
+  Cross-tenant admin work runs in an explicit central scope —
+  `manager.runInCentralContext(() => drizzleTenancy.run((db) => db.table(posts).findMany()))`. Next
+  caches around tenant data must be tenant-keyed or uncached; a shared entry is a leak the policy can't
+  catch.
+</Callout>
+
+Full lifecycle and the security boundary: [Next.js integration](/docs/integrations/nextjs) ·
+[Drizzle adapter](/docs/adapters/drizzle) · [Limitations](/docs/concepts/limitations).

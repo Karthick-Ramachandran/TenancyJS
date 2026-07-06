@@ -1,1 +1,9 @@
-{ "title": "Guides", "pages": ["resolving-tenants", "testing-isolation", "onboarding-tenants"] }
+{
+  "title": "Guides",
+  "pages": [
+    "resolving-tenants",
+    "testing-isolation",
+    "onboarding-tenants",
+    "provisioning"
+  ]
+}

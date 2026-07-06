@@ -1,0 +1,127 @@
+---
+title: Drizzle — provisioning
+description: Create and migrate each tenant's schema or database with Drizzle, driven by the tenancy CLI.
+---
+
+This recipe implements the [provisioner hooks](/docs/getting-started/configuration) for **Drizzle** so
+`tenancy tenant provision | migrate | deprovision` create, migrate, and drop each tenant's placement.
+Routing (leasing the tenant's client at request time) is on the [Drizzle adapter page](/docs/adapters/drizzle);
+this page is only the setup seam TenancyJS leaves to you.
+
+Drizzle's migrator is programmatic, so the `migrate` hook builds a Drizzle client pointed at the
+tenant's placement and calls `migrate(...)`. DDL runs on a privileged `pg` pool, never your
+fail-closed runtime role.
+
+```ts title="provisioning.ts"
+import { Pool } from "pg";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { migrate } from "drizzle-orm/node-postgres/migrator";
+
+// Admin/maintenance connection allowed to create schemas and databases.
+const admin = new Pool({ connectionString: process.env.ADMIN_DATABASE_URL });
+
+const schemaOf = (id: string) => `tenant_${id}`; // your placement naming
+const dbOf = (id: string) => `tenant_${id}`;
+
+// Apply committed migrations against one placement, then release its pool.
+async function migrateWith(pool: Pool): Promise<void> {
+  try {
+    await migrate(drizzle(pool), { migrationsFolder: "./drizzle" });
+  } finally {
+    await pool.end();
+  }
+}
+```
+
+## Schema-per-tenant (PostgreSQL)
+
+One Postgres schema per tenant in a shared database. The adapter routes reads/writes with a
+transaction-local search path; migrations set the same search path on their own connection so the
+migrator emits DDL into the tenant schema.
+
+```ts title="tenancy.config.ts"
+import { defineTenancyRuntime } from "tenancyjs-core";
+
+const baseUrl = process.env.DATABASE_URL!; // e.g. postgres://…/app
+
+export default defineTenancyRuntime({
+  manager,
+  store,
+  adapters: [tenancy], // createDrizzleTenancy({ strategy: "schemaPerTenant", schema }) — see the adapter page
+  provisioner: {
+    provision: async (tenant) => {
+      await admin.query(`create schema if not exists "${schemaOf(tenant.id)}"`);
+    },
+    migrate: async (tenant) => {
+      // `search_path` scopes the migrator's DDL to the tenant schema.
+      const pool = new Pool({
+        connectionString: baseUrl,
+        options: `-c search_path=${schemaOf(tenant.id)}`,
+      });
+      await migrateWith(pool);
+    },
+    deprovision: async (tenant) => {
+      await admin.query(`drop schema if exists "${schemaOf(tenant.id)}" cascade`);
+    },
+  },
+  dispose: () => admin.end(),
+});
+```
+
+The migration journal defaults to the `drizzle` schema in the search path. If you want one shared
+journal instead of a per-tenant copy, set `migrationsSchema` on the `migrate(...)` options to a fixed
+schema — verify against your Drizzle version rather than assuming the default placement.
+
+## Database-per-tenant
+
+A separate database per tenant. `CREATE DATABASE` cannot run inside a transaction and must target a
+maintenance database (e.g. `postgres`), which is what the `admin` pool connects to.
+
+```ts
+provisioner: {
+  provision: async (tenant) => {
+    // Identifier is quoted; the id is validated by the store, but keep placement
+    // names to [a-z0-9_] so quoting is the only escaping you rely on.
+    await admin.query(`create database "${dbOf(tenant.id)}"`);
+  },
+  migrate: async (tenant) => {
+    // A pool pointed at the tenant's own database.
+    await migrateWith(new Pool({ connectionString: connectionStringFor(dbOf(tenant.id)) }));
+  },
+  deprovision: async (tenant) => {
+    await admin.query(`drop database if exists "${dbOf(tenant.id)}" with (force)`);
+  },
+},
+```
+
+Routing leases the per-tenant binding from `connection: (tenant) => ({ key, create })`, where `create`
+builds a `createPostgresDrizzleBinding(drizzle(pool))` with a `close` callback so the cache can retire
+the pool. On **MySQL**, `` CREATE DATABASE `tenant_x` `` / `DROP DATABASE` is the same shape — swap the
+`pg` pool for a `mysql2` admin connection, use `` `tenant_x` `` backtick quoting, and build the tenant
+binding with `createMySqlDrizzleBinding`. MySQL has no schema-per-tenant (its schemas *are* databases),
+so database-per-tenant is the only placement strategy there.
+
+## Run the flow
+
+```bash
+npx tenancy tenant create acme --set plan=pro   # 1. record + placement
+npx tenancy tenant provision acme               # 2. create schema/database
+npx tenancy tenant migrate acme                 # 3. run drizzle migrator
+npx tenancy test:leak --test-file ./leak.mjs    # 4. prove isolation before trusting it
+```
+
+Roll a new migration out to everyone with `npx tenancy tenant migrate --all` — it reports each
+tenant's outcome and exits non-zero if any fail, so it's safe in CI.
+
+## Notes
+
+- Keep `provision` **idempotent** (`if not exists`) — the CLI may retry, and a half-onboarded tenant
+  should be safe to re-provision.
+- Routing validates the schema/database **already exists**; a tenant that hasn't been provisioned +
+  migrated fails closed on its first request rather than lazily creating storage. Provision before you
+  flip the tenant to `active`.
+- Always supply a **`close` callback** to `createPostgresDrizzleBinding` / `createMySqlDrizzleBinding`
+  when the binding owns a tenant pool — the adapter cache calls it to retire the connection, so an
+  omitted `close` leaks pools per tenant.
+- **MySQL row-level has no RLS backstop.** Isolation there is adapter-enforced only, so reaching for the
+  native Drizzle database bypasses TenancyJS; database-per-tenant is the isolated-by-construction choice.

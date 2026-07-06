@@ -1,0 +1,279 @@
+---
+title: NestJS + TypeORM setup
+description: Wire fail-closed multi-tenancy into a NestJS 11 + TypeORM app on PostgreSQL, backed by forced row-level security — a copy-pasteable setup-agent prompt, plus the manual walkthrough.
+---
+
+`tenancy init` doesn't scaffold NestJS yet, so this stack is a manual wire-up — a few files. This page
+gives you two ways to do it: hand the **setup-agent prompt** to your AI assistant, or follow the
+**manual walkthrough**. Either way, finish by running the two-tenant test — with fail-closed isolation
+you verify, you don't trust.
+
+This is **row-level** on PostgreSQL. The TypeORM adapter is a _callback facade_ — you only ever touch a
+narrow protected repository — but on Postgres it is backed by **forced RLS**: a database policy is the
+real backstop, so even a raw query as the runtime role sees nothing without the tenant GUC set. The one
+rule that matters most: only ever call through `tenancy.run(...)` — never the native `DataSource`.
+
+## Setup-agent prompt
+
+Paste this into an assistant that can edit your repo and run commands (Claude Code, Cursor, …). It
+executes in order and verifies each step. It's pinned to the real API, so it won't invent factory names.
+
+````text
+# TenancyJS Setup Agent — NestJS 11 + TypeORM (row-level, PostgreSQL)
+
+You are a setup agent. Add fail-closed multi-tenancy to this NestJS + TypeORM project with TenancyJS,
+backed by forced Postgres RLS. Execute every step in order. After each step, verify it applied before
+continuing. If a step does not apply, say so and continue. Do NOT invent API names — if unsure, fetch
+the linked doc.
+
+Source of truth (fetch if a detail is missing, do not guess):
+- https://tenancyjs.pages.dev/docs/adapters/typeorm
+- https://tenancyjs.pages.dev/docs/integrations/nestjs
+- https://tenancyjs.pages.dev/docs/concepts/limitations
+- https://tenancyjs.pages.dev/docs/guides/testing-isolation
+
+## Pre-flight
+- Run `node -v`; abort if it is not >= 24.
+- Confirm `@nestjs/core` (v11) and `typeorm` are in package.json. Abort if this is not a NestJS +
+  TypeORM project.
+- Confirm the database is PostgreSQL (the forced-RLS backstop is Postgres-only).
+
+## Step 1 — Install
+Run:
+```sh
+npm install tenancyjs-core@beta tenancyjs-adapter-typeorm@beta tenancyjs-integration-nest@beta tenancyjs-identifiers@beta typeorm pg
+```
+Verify all six appear in package.json dependencies.
+
+## Step 2 — Entities
+Ensure a tenant-scoped entity (e.g. `Post`) has a non-null `tenantId` property mapped to a `tenant_id`
+column, and an index on it. Add `tenantId` to every tenant-owned entity. Keep a plain `Tenant` entity
+(id + status) for the resolver store. Verify the mapping compiles.
+
+## Step 3 — Forced-RLS migration (the backstop — do NOT skip)
+Create a migration, run as the table OWNER, that:
+- Creates the tenant tables with a `tenant_id` column.
+- Creates a distinct RUNTIME role the app connects as. It MUST be non-owner, NOT `BYPASSRLS`, NOT
+  `SUPERUSER`. (RLS does not apply to the owner or to BYPASSRLS/superuser roles — the policy would be
+  silently inert.)
+- For each tenant table: `ALTER TABLE posts ENABLE ROW LEVEL SECURITY;` then
+  `ALTER TABLE posts FORCE ROW LEVEL SECURITY;`
+- Adds a policy named `posts_tenant_isolation` that admits a row when the tenant GUC matches, or when
+  the central flag is set:
+  ```sql
+  CREATE POLICY posts_tenant_isolation ON posts
+    USING (
+      tenant_id = current_setting('tenancyjs.tenant_id', true)
+      OR current_setting('tenancyjs.is_central', true) = 'on'
+    );
+  ```
+- Grants the runtime role SELECT/INSERT/UPDATE/DELETE on the tenant tables (no ownership).
+Verify the migration runs and the runtime role has none of owner/BYPASSRLS/superuser.
+
+## Step 4 — data-source.ts
+Configure the TypeORM `DataSource` to connect as the RUNTIME role (not the owner). Export the
+initialized `dataSource`, its `manager`, and your entities. Verify it initializes.
+
+## Step 5 — tenancy.ts (the single source of truth)
+Create `src/tenancy.ts`. It must:
+- Construct ONE `TenancyManager<Tenant>` and export it.
+- Build the adapter with `createTypeOrmTenancy({ manager, dataSource, tenantEntities: [...] })`, listing
+  every tenant entity as `{ entity, table, tenantProperty: "tenantId", tenantColumn: "tenant_id" }`.
+- Build a `TenantResolutionChain` with `new HeaderTenantResolver()` and a store whose `find(identifier)`
+  looks the tenant up and returns `[{ tenant: { id }, status }]` (or `[]`).
+- Export `manager`, `resolver`, and the `tenancy` facade. Never export the raw `dataSource` for app use.
+- Call `await tenancy.validate()` at boot (before serving traffic) — it checks the entity/table/GUC
+  wiring and fails fast on a misconfigured policy.
+
+## Step 6 — Register TenancyModule
+In `app.module.ts`, add `TenancyModule.forRoot({ manager, resolver })` to imports (import both from
+`./tenancy`). Do not register a second guard/interceptor. Do NOT pass the facade as `executor` — the
+callback facade is called directly in handlers.
+
+## Step 7 — Scope the routes
+For every controller handler that touches tenant data:
+- Add `@TenantRoute()` (from `tenancyjs-integration-nest`).
+- Query through the facade: `tenancy.run((client) => client.repository(Post).findBy({ status: "open" }))`.
+  Use ONLY the protected `client.repository(...)`; never the native `DataSource`, manager, or query
+  builder. REMOVE any manual `where: { tenantId }` filters — the scope + policy enforce it. Leave
+  non-tenant/public routes unmarked.
+
+## Step 8 — Central (cross-tenant) work
+For admin/cross-tenant handlers, do NOT leave them unscoped. Wrap the work in
+`manager.runInCentralContext(() => tenancy.run((client) => ...))`. This sets `tenancyjs.is_central`, so
+the policy admits all rows. Unscoped tenant access must throw.
+
+## Step 9 — Prove it
+Create a two-tenant test (Vitest or Jest): create tenant A and tenant B, write a row under EACH with the
+SAME primary key, assert querying as A never returns B's row, and assert a tenant query with no active
+scope THROWS. Then add the RLS backstop check: run a RAW query as the runtime role with NO tenant GUC
+set and assert it returns 0 rows. Follow https://tenancyjs.pages.dev/docs/guides/testing-isolation.
+
+## Step 10 — Verify
+- `npx nest build` (or `npm run build`) — report errors.
+- Boot the app (`npm run start`); confirm `tenancy.validate()` passes and it serves.
+- Run the two-tenant test and report the result.
+
+Report a summary of every file created/changed and any issue found.
+````
+
+<Callout type="warn">
+  AI wiring is a starting point, not proof. The only thing that demonstrates isolation is the two-tenant
+  colliding-id test in Step 9 — including the raw-as-runtime-role check — run it before you trust the
+  result.
+</Callout>
+
+## Manual walkthrough
+
+Prefer to wire it yourself? The same steps, with the code.
+
+<Steps>
+
+<Step>
+### Install
+
+```bash
+npm install tenancyjs-core@beta tenancyjs-adapter-typeorm@beta tenancyjs-integration-nest@beta tenancyjs-identifiers@beta typeorm pg
+```
+</Step>
+
+<Step>
+### Install the forced-RLS backstop
+
+Run this **as the table owner** in a migration. The app then connects as a separate runtime role that is
+non-owner, non-`BYPASSRLS`, non-superuser — otherwise the policy is silently inert.
+
+```sql title="migrations/0001_forced_rls.sql"
+-- Runtime role the app connects as (RLS applies to it).
+CREATE ROLE app_runtime LOGIN PASSWORD '...' NOBYPASSRLS NOSUPERUSER;
+
+CREATE TABLE posts (
+  id        text PRIMARY KEY,
+  tenant_id text NOT NULL,
+  status    text NOT NULL
+);
+CREATE INDEX posts_tenant_id_idx ON posts (tenant_id);
+
+ALTER TABLE posts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE posts FORCE  ROW LEVEL SECURITY;
+
+CREATE POLICY posts_tenant_isolation ON posts
+  USING (
+    tenant_id = current_setting('tenancyjs.tenant_id', true)
+    OR current_setting('tenancyjs.is_central', true) = 'on'
+  );
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON posts TO app_runtime;
+```
+</Step>
+
+<Step>
+### One `tenancy.ts`
+
+The manager, the TypeORM facade, and the resolver all live here — one source of truth. The `DataSource`
+connects as `app_runtime`; never export it for app use.
+
+```ts title="src/tenancy.ts"
+import { TenancyManager, type TenantRecord } from "tenancyjs-core";
+import { createTypeOrmTenancy } from "tenancyjs-adapter-typeorm";
+import { HeaderTenantResolver, TenantResolutionChain } from "tenancyjs-identifiers";
+import { dataSource, manager as entityManager, Post, TenantEntity } from "./data-source";
+
+interface Tenant extends TenantRecord {
+  readonly id: string;
+}
+
+export const manager = new TenancyManager<Tenant>();
+
+// The ONLY tenant-data entry point. Never expose the raw dataSource.
+export const tenancy = createTypeOrmTenancy({
+  manager,
+  dataSource,
+  tenantEntities: [
+    {
+      entity: Post,
+      table: "posts",
+      tenantProperty: "tenantId",
+      tenantColumn: "tenant_id",
+    },
+  ],
+});
+
+export const resolver = new TenantResolutionChain({
+  resolvers: [new HeaderTenantResolver()], // X-Tenant-Id
+  store: {
+    async find(identifier) {
+      const tenant = await entityManager
+        .getRepository(TenantEntity)
+        .findOneBy({ id: identifier.value });
+      return tenant ? [{ tenant: { id: tenant.id }, status: tenant.status }] : [];
+    },
+  },
+});
+
+// Fail fast on a misconfigured entity/table/policy before serving traffic.
+await tenancy.validate();
+```
+</Step>
+
+<Step>
+### Register the module
+
+```ts title="src/app.module.ts"
+import { Module } from "@nestjs/common";
+import { TenancyModule } from "tenancyjs-integration-nest";
+import { manager, resolver } from "./tenancy";
+
+@Module({
+  imports: [TenancyModule.forRoot({ manager, resolver })],
+})
+export class AppModule {}
+```
+
+Do **not** pass `tenancy` as `executor` — a callback facade is called directly in the handler.
+</Step>
+
+<Step>
+### Scope your routes
+
+Mark tenant routes; the interceptor opens the scope, and `tenancy.run` hands you the protected
+repository — no manual `tenantId` filter.
+
+```ts title="src/posts.controller.ts"
+import { Controller, Get } from "@nestjs/common";
+import { TenantRoute } from "tenancyjs-integration-nest";
+import { tenancy } from "./tenancy";
+import { Post } from "./data-source";
+
+@Controller("posts")
+export class PostsController {
+  @Get()
+  @TenantRoute()
+  list() {
+    return tenancy.run((client) =>
+      client.repository(Post).findBy({ status: "open" }),
+    ); // scoped to the request's tenant, and RLS-enforced
+  }
+}
+```
+</Step>
+
+<Step>
+### Prove isolation
+
+Write the [two-tenant colliding-id test](/docs/guides/testing-isolation): same primary key under A and
+B, assert A never reads B's row, and assert an unscoped tenant query throws. Then prove the backstop —
+a **raw** query as the runtime role with no tenant GUC set returns **0 rows**.
+</Step>
+
+</Steps>
+
+<Callout type="info">
+  Cross-tenant admin work runs in an explicit central scope —
+  `manager.runInCentralContext(() => tenancy.run((client) => …))` — which sets `tenancyjs.is_central` so
+  the policy admits all rows. There is no request-controlled central mode; a resolution failure fails
+  closed, never central.
+</Callout>
+
+Full lifecycle and the security boundary: [NestJS integration](/docs/integrations/nestjs) ·
+[TypeORM adapter](/docs/adapters/typeorm) · [Limitations](/docs/concepts/limitations).

@@ -1,0 +1,310 @@
+---
+title: Next.js + TypeORM setup
+description: Wire fail-closed multi-tenancy into a Next.js 16 App Router + TypeORM app — a copy-pasteable setup-agent prompt, plus the manual walkthrough.
+---
+
+`tenancy init` doesn't scaffold Next.js yet, so this stack is a manual wire-up — a few files. This page
+gives you two ways to do it: hand the **setup-agent prompt** to your AI assistant, or follow the
+**manual walkthrough**. Either way, finish by running the two-tenant test — with fail-closed isolation
+you verify, you don't trust.
+
+This is **row-level** on PostgreSQL, backed by **forced RLS**. The TypeORM adapter is a _callback
+facade_ — you get a protected repository, never the native `DataSource` — and PostgreSQL forces the
+policy underneath, so the database itself rejects a cross-tenant read even if the facade were bypassed.
+
+## Setup-agent prompt
+
+Paste this into an assistant that can edit your repo and run commands (Claude Code, Cursor, …). It
+executes in order and verifies each step. It's pinned to the real API, so it won't invent factory names.
+
+````text
+# TenancyJS Setup Agent — Next.js 16 + TypeORM (row-level, PostgreSQL)
+
+You are a setup agent. Add fail-closed multi-tenancy to this Next.js App Router + TypeORM project with
+TenancyJS. Execute every step in order. After each step, verify it applied before continuing. If a step
+does not apply, say so and continue. Do NOT invent API names — if unsure, fetch the linked doc.
+
+Source of truth (fetch if a detail is missing, do not guess):
+- https://tenancyjs.pages.dev/docs/adapters/typeorm
+- https://tenancyjs.pages.dev/docs/integrations/nextjs
+- https://tenancyjs.pages.dev/docs/concepts/limitations
+- https://tenancyjs.pages.dev/docs/guides/testing-isolation
+
+## Pre-flight
+- Run `node -v`; abort if it is not >= 24.
+- Confirm `next` (v16) and `typeorm` are in package.json. Abort if this is not a Next.js App Router
+  + TypeORM project.
+- Confirm the database is PostgreSQL. Row-level here REQUIRES forced RLS; MySQL is out of scope.
+
+## Step 1 — Install
+Run:
+```sh
+npm install tenancyjs-core@beta tenancyjs-adapter-typeorm@beta tenancyjs-integration-next@beta tenancyjs-identifiers@beta typeorm pg
+```
+Verify all six appear in package.json dependencies.
+
+## Step 2 — Entities + DataSource
+Define a `Post` entity mapped to table `posts` with a non-null `tenantId` property on the `tenant_id`
+column (and an index on it), plus a `Tenant` entity (`id` primary key, `status` not-null default
+`'active'`). Build ONE `DataSource` from `DATABASE_URL`. Verify the file compiles and entities register.
+
+## Step 3 — Forced-RLS migration (do NOT skip)
+This is the backstop that makes row-level safe. Write a migration run by an OWNER role that:
+- Creates the tenant tables (owner owns them).
+- Creates a NON-OWNER runtime role for the app connection — it must NOT be the table owner, must NOT
+  have BYPASSRLS, and must NOT be a superuser (owners and superusers ignore RLS).
+- Runs `ALTER TABLE posts ENABLE ROW LEVEL SECURITY;` and `ALTER TABLE posts FORCE ROW LEVEL SECURITY;`
+  for every tenant table.
+- Creates policy `posts_tenant_isolation` USING/WITH CHECK
+  `tenant_id = current_setting('tenancyjs.tenant_id', true) OR current_setting('tenancyjs.is_central', true) = 'true'`.
+- Grants the runtime role table privileges but not ownership.
+Point `DATABASE_URL` at the NON-OWNER runtime role. Verify the role is non-owner and RLS is FORCED.
+
+## Step 4 — The TypeORM adapter (ormTenancy)
+Create `lib/db.ts`. It must:
+- Construct ONE `TenancyManager<Tenant>` and export it.
+- Build and initialize a `DataSource` from `DATABASE_URL` (the runtime role) with `manager: dataSource.manager`.
+- Create the adapter with `createTypeOrmTenancy({ manager, dataSource, tenantEntities: [{ entity: Post,
+  table: "posts", tenantProperty: "tenantId", tenantColumn: "tenant_id" }] })` and export it as
+  `ormTenancy`.
+- Do NOT export the native DataSource or EntityManager. The app queries ONLY through
+  `ormTenancy.run((client) => client.repository(Post)...)` — the protected repository, never the native manager.
+
+## Step 5 — Resolver + Next runtime (nextTenancy)
+In `lib/tenancy.ts`:
+- Build a `TenantResolutionChain` with `new HeaderTenantResolver({ headerName: "x-tenant-id" })` and a
+  store whose `find(identifier)` looks the tenant up and returns `[{ tenant: { id }, status }]` (or `[]`).
+- Create `createNextTenancy({ manager, resolver })` and export it as `nextTenancy`. Name it distinctly
+  from `ormTenancy` — they are different objects.
+
+## Step 6 — Scope the routes (Node runtime)
+For every Route Handler / Server Action that touches tenant data:
+- Wrap it: `export const GET = nextTenancy.withRouteHandler(async () =>
+  ormTenancy.run((c) => c.repository(Post).findBy({})))`. Server Actions use
+  `nextTenancy.withServerAction`.
+- Add `export const runtime = "nodejs"` — the adapter runs on Node, not the Edge.
+- REMOVE any manual `where tenantId` filters; the scope + policy inject isolation.
+
+## Step 7 — Edge hint (optional)
+If you resolve identity from the host/subdomain, add `middleware.ts` using `withNextTenantHint` from
+`tenancyjs-integration-next/edge` to carry identity across the Edge→Node boundary.
+
+## Step 8 — Central (cross-tenant) work
+For admin/cross-tenant reads, wrap the work in
+`manager.runInCentralContext(() => ormTenancy.run((c) => c.repository(Post).findBy({})))`. This sets
+`tenancyjs.is_central`, which the policy honours. Unscoped tenant access must throw.
+
+## Step 9 — Cache safety
+Any Next cache (`fetch` cache, `unstable_cache`, route segment cache) that wraps tenant data MUST be
+keyed by tenant id, or left uncached. A shared cache entry across tenants is a leak the policy cannot
+catch.
+
+## Step 10 — Validate + prove it
+- Call `await ormTenancy.validate()` at boot; it confirms the runtime role is non-privileged and RLS
+  is enabled + forced before serving. Abort if it throws.
+- Create a two-tenant test: write a row under tenant A and tenant B with the SAME primary key, assert a
+  scoped read as A never returns B's row, AND assert a RAW query as the runtime role with NO GUC set
+  returns 0 rows (proof the policy — not just the facade — isolates). Follow
+  https://tenancyjs.pages.dev/docs/guides/testing-isolation.
+- `npm run build`, boot the app, run the test, report the result.
+
+Report a summary of every file created/changed and any issue found.
+````
+
+<Callout type="warn">
+  AI wiring is a starting point, not proof. The only thing that demonstrates isolation is the two-tenant
+  colliding-id test in Step 10 — including the raw-as-runtime-role read that must return 0 rows.
+</Callout>
+
+## Manual walkthrough
+
+Prefer to wire it yourself? The same steps, with the code.
+
+<Steps>
+
+<Step>
+### Install
+
+```bash
+npm install tenancyjs-core@beta tenancyjs-adapter-typeorm@beta tenancyjs-integration-next@beta tenancyjs-identifiers@beta typeorm pg
+```
+</Step>
+
+<Step>
+### Entities + DataSource
+
+Map a `Post` to the `posts` table with a non-null `tenantId`. Row mode does not rewrite the table name.
+
+```ts title="lib/data-source.ts"
+import { Column, Entity, Index, PrimaryColumn, DataSource } from "typeorm";
+
+@Entity("tenants")
+export class Tenant {
+  @PrimaryColumn("text") id!: string;
+  @Column("text", { default: "active" }) status!: string;
+}
+
+@Entity("posts")
+export class Post {
+  @PrimaryColumn("text") id!: string;
+  @Index()
+  @Column("text", { name: "tenant_id" })
+  tenantId!: string;
+  @Column("text") title!: string;
+}
+
+export const dataSource = new DataSource({
+  type: "postgres",
+  url: process.env.DATABASE_URL, // the runtime role
+  entities: [Tenant, Post],
+});
+```
+</Step>
+
+<Step>
+### Force RLS in a migration (the backstop)
+
+An **owner** role installs the tables and policy; the app connects as a **non-owner** runtime role that
+cannot bypass RLS. This is what makes the facade safe.
+
+```sql title="migrations/0001_force_rls.sql"
+-- Run as the OWNER role.
+CREATE ROLE app_runtime LOGIN PASSWORD '...'; -- NOT owner, NOT superuser, NOT BYPASSRLS
+GRANT SELECT, INSERT, UPDATE, DELETE ON posts TO app_runtime;
+
+ALTER TABLE posts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE posts FORCE  ROW LEVEL SECURITY;
+
+CREATE POLICY posts_tenant_isolation ON posts
+  USING (
+    tenant_id = current_setting('tenancyjs.tenant_id', true)
+    OR current_setting('tenancyjs.is_central', true) = 'true'
+  )
+  WITH CHECK (
+    tenant_id = current_setting('tenancyjs.tenant_id', true)
+    OR current_setting('tenancyjs.is_central', true) = 'true'
+  );
+```
+
+Point `DATABASE_URL` at `app_runtime`, never the owner.
+</Step>
+
+<Step>
+### The TypeORM adapter — `ormTenancy`
+
+The manager and the callback-facade adapter live here. The app never sees the native `DataSource`.
+
+```ts title="lib/db.ts"
+import { TenancyManager, type TenantRecord } from "tenancyjs-core";
+import { createTypeOrmTenancy } from "tenancyjs-adapter-typeorm";
+import { dataSource, Post } from "./data-source";
+
+interface Tenant extends TenantRecord {
+  readonly id: string;
+}
+
+export const manager = new TenancyManager<Tenant>();
+
+// Initialize the runtime-role connection, then keep it private to this module.
+await dataSource.initialize();
+
+export const ormTenancy = createTypeOrmTenancy({
+  manager,
+  dataSource,
+  tenantEntities: [
+    { entity: Post, table: "posts", tenantProperty: "tenantId", tenantColumn: "tenant_id" },
+  ],
+});
+
+// Fail closed at boot: proves non-privileged role + enabled & forced RLS + policy.
+await ormTenancy.validate();
+```
+</Step>
+
+<Step>
+### Resolver + Next runtime — `nextTenancy`
+
+```ts title="lib/tenancy.ts"
+import { createNextTenancy } from "tenancyjs-integration-next";
+import { HeaderTenantResolver, TenantResolutionChain } from "tenancyjs-identifiers";
+import { manager } from "./db";
+import { lookupTenant } from "./tenants";
+
+const resolver = new TenantResolutionChain({
+  resolvers: [new HeaderTenantResolver({ headerName: "x-tenant-id" })],
+  store: {
+    async find(identifier) {
+      const tenant = await lookupTenant(identifier.value);
+      return tenant ? [{ tenant: { id: tenant.id }, status: tenant.status }] : [];
+    },
+  },
+});
+
+// Distinct from ormTenancy — different object, different job.
+export const nextTenancy = createNextTenancy({ manager, resolver });
+```
+</Step>
+
+<Step>
+### Scope your routes (Node runtime)
+
+`nextTenancy.withRouteHandler` opens the scope; `ormTenancy.run` hands you the protected repository. No
+manual `tenantId` filter — the scope sets the GUC and the policy enforces it.
+
+```ts title="app/posts/route.ts"
+import { nextTenancy } from "@/lib/tenancy";
+import { ormTenancy } from "@/lib/db";
+import { Post } from "@/lib/data-source";
+
+export const runtime = "nodejs"; // the adapter runs on Node, not the Edge
+
+export const GET = nextTenancy.withRouteHandler(async () =>
+  Response.json(
+    await ormTenancy.run((client) => client.repository(Post).findBy({ status: "open" })),
+  ),
+);
+```
+
+Server Actions wrap the same way with `nextTenancy.withServerAction`. Only the protected
+`client.repository(...)` is reachable — never the native `DataSource`.
+</Step>
+
+<Step>
+### Edge hint (optional)
+
+Resolving identity from the host/subdomain? Carry it across the Edge→Node boundary:
+
+```ts title="middleware.ts"
+import { NextResponse } from "next/server";
+import { withNextTenantHint } from "tenancyjs-integration-next/edge";
+
+export function middleware(request: Request) {
+  const headers = withNextTenantHint(request);
+  return NextResponse.next({ request: { headers } });
+}
+
+export const config = {
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+};
+```
+</Step>
+
+<Step>
+### Prove isolation
+
+Write the [two-tenant colliding-id test](/docs/guides/testing-isolation): same primary key under A and
+B, assert a scoped read as A never returns B's row, **and** assert a raw query as the runtime role with
+no GUC set returns 0 rows — that last one proves the policy, not just the facade, isolates.
+</Step>
+
+</Steps>
+
+<Callout type="info">
+  Cross-tenant admin work runs in an explicit central scope —
+  `manager.runInCentralContext(() => ormTenancy.run((c) => c.repository(Post).findBy({})))`. Next
+  caches around tenant data must be tenant-keyed or uncached; a shared entry is a leak the policy can't
+  catch.
+</Callout>
+
+Full lifecycle and the security boundary: [Next.js integration](/docs/integrations/nextjs) ·
+[TypeORM adapter](/docs/adapters/typeorm) · [Limitations](/docs/concepts/limitations).

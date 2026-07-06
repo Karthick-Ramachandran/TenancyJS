@@ -1,0 +1,251 @@
+---
+title: Next.js + Mongoose setup
+description: Wire fail-closed multi-tenancy into a Next.js 16 App Router + Mongoose (MongoDB) app — a copy-pasteable setup-agent prompt, plus the manual walkthrough.
+---
+
+`tenancy init` doesn't scaffold Next.js yet, so this stack is a manual wire-up — a few files. This page
+gives you two ways to do it: hand the **setup-agent prompt** to your AI assistant, or follow the
+**manual walkthrough**. Either way, finish by running the two-tenant test — with fail-closed isolation
+you verify, you don't trust.
+
+This is **row-level** on MongoDB. Mongoose row-level is _facade-enforced_ — MongoDB has **no RLS
+backstop**, so the adapter's query facade is the entire boundary. The one rule that matters most: never
+touch the native Mongoose connection, model, or collection inside a scope — only ever query through the
+protected facade.
+
+## Setup-agent prompt
+
+Paste this into an assistant that can edit your repo and run commands (Claude Code, Cursor, …). It
+executes in order and verifies each step. It's pinned to the real API, so it won't invent factory names.
+
+````text
+# TenancyJS Setup Agent — Next.js 16 + Mongoose (row-level, MongoDB)
+
+You are a setup agent. Add fail-closed multi-tenancy to this Next.js App Router + Mongoose project with
+TenancyJS. Execute every step in order. After each step, verify it applied before continuing. If a step
+does not apply, say so and continue. Do NOT invent API names — if unsure, fetch the linked doc.
+
+Source of truth (fetch if a detail is missing, do not guess):
+- https://tenancyjs.pages.dev/docs/adapters/mongoose
+- https://tenancyjs.pages.dev/docs/integrations/nextjs
+- https://tenancyjs.pages.dev/docs/concepts/limitations
+- https://tenancyjs.pages.dev/docs/guides/testing-isolation
+
+## Pre-flight
+- Run `node -v`; abort if it is not >= 24.
+- Confirm `next` (v16) and `mongoose` are in package.json. Abort if this is not a Next.js App Router
+  + Mongoose project.
+- Confirm MongoDB is reachable AND is a REPLICA SET — Mongoose isolation runs every operation inside a
+  session-bound transaction, which requires a replica set. A standalone `mongod` will fail. Verify with
+  `rs.status()` in the mongo shell before continuing.
+
+## Step 1 — Install
+Run:
+```sh
+npm install tenancyjs-core@beta tenancyjs-adapter-mongoose@beta tenancyjs-integration-next@beta tenancyjs-identifiers@beta mongoose
+```
+Verify all five appear in package.json dependencies.
+
+## Step 2 — Models
+Ensure at least one tenant-scoped Mongoose model exists (e.g. `PostModel`) with a `tenantId` field of
+type `String`. The adapter injects `tenantId` on write and filters on read — you do NOT add manual
+`tenantId` filters to queries. Keep a plain `Tenant` collection for the resolver store lookup.
+
+## Step 3 — The Mongoose adapter (mongoTenancy)
+Create `lib/db.ts`. It must:
+- Construct ONE `TenancyManager<Tenant>` and export it.
+- Open a Mongoose connection to the REPLICA SET:
+  `await createConnection(process.env.MONGODB_URL).asPromise()`. Keep it PRIVATE to this module — never
+  query through it directly. Mongoose connections belong in the Node runtime, not the Edge.
+- Create the adapter with
+  `createMongooseTenancy({ manager, connection, tenantModels: [{ model: PostModel, tenantField: "tenantId" }] })`
+  and export it as `mongoTenancy`. Register EVERY tenant-scoped model in `tenantModels`.
+- Call `await mongoTenancy.validate()` before serving and REVIEW its return value — it reports the
+  enforcement tier (row-level = facade-only, no database backstop). Confirm you expect facade enforcement.
+- Do NOT export the native connection. The app queries ONLY through `mongoTenancy.run(...)`.
+
+## Step 4 — Resolver + Next runtime (nextTenancy)
+In `lib/tenancy.ts`:
+- Build a `TenantResolutionChain` with `new HeaderTenantResolver({ headerName: "x-tenant-id" })` and a
+  store whose `find(identifier)` looks the tenant up and returns `[{ tenant: { id }, status }]` (or `[]`).
+- Create `createNextTenancy({ manager, resolver })` and export it as `nextTenancy`. Name it distinctly
+  from `mongoTenancy` — they are different objects.
+
+## Step 5 — Scope the routes (Node runtime)
+For every Route Handler / Server Action that touches tenant data:
+- Wrap it: `export const GET = nextTenancy.withRouteHandler(async () =>
+  mongoTenancy.run((c) => c.model(PostModel).find({})))`. Server Actions use
+  `nextTenancy.withServerAction`.
+- Add `export const runtime = "nodejs"` — the Mongoose connection runs on Node, not the Edge.
+- REMOVE any manual `{ tenantId }` filters; the facade injects them.
+- NEVER call `PostModel.find(...)`, `connection.model(...)`, or a native collection inside a scope —
+  those bypass the facade, and on MongoDB there is no RLS to catch it.
+
+## Step 6 — Edge hint (optional)
+If you resolve identity from the host/subdomain, add `middleware.ts` using `withNextTenantHint` from
+`tenancyjs-integration-next/edge` to carry identity across the Edge→Node boundary. The Mongoose
+connection itself stays in the Node runtime — do NOT open it in middleware.
+
+## Step 7 — Central (cross-tenant) work
+For admin/cross-tenant reads, do NOT leave them unscoped. Wrap the work in
+`manager.runInCentralContext(() => mongoTenancy.run((c) => c.model(PostModel).find({})))` explicitly.
+Unscoped tenant access must throw.
+
+## Step 8 — Cache safety
+Any Next cache (`fetch` cache, `unstable_cache`, route segment cache) that wraps tenant data MUST be
+keyed by tenant id, or left uncached. A shared cache entry across tenants is a leak the facade cannot
+catch.
+
+## Step 9 — Prove it
+Create a two-tenant test (Vitest or Jest): create tenant A and tenant B, write a document under EACH with
+the SAME `_id`, assert querying as A never returns B's document, and assert that a tenant query with no
+active scope THROWS. Because Mongo has no RLS, this test — not the wiring — is the proof of isolation.
+Follow https://tenancyjs.pages.dev/docs/guides/testing-isolation.
+
+## Step 10 — Verify
+- `npm run build` — report errors.
+- Boot the app, confirm it serves.
+- Run the two-tenant test and report the result.
+
+Report a summary of every file created/changed and any issue found.
+````
+
+<Callout type="warn">
+  On MongoDB the facade is the *only* boundary — there is no database RLS backstop. AI wiring is a
+  starting point, not proof. The two-tenant colliding-`_id` test in Step 9 is what demonstrates
+  isolation — run it before you trust the result.
+</Callout>
+
+## Manual walkthrough
+
+Prefer to wire it yourself? The same steps, with the code.
+
+<Steps>
+
+<Step>
+### Install
+
+```bash
+npm install tenancyjs-core@beta tenancyjs-adapter-mongoose@beta tenancyjs-integration-next@beta tenancyjs-identifiers@beta mongoose
+```
+</Step>
+
+<Step>
+### The Mongoose adapter — `mongoTenancy`
+
+The manager and the callback-facade adapter live here. The connection targets a **replica set**
+(Mongoose runs every operation in a session-bound transaction). The app never sees the native connection.
+
+```ts title="lib/db.ts"
+import { TenancyManager, type TenantRecord } from "tenancyjs-core";
+import { createMongooseTenancy } from "tenancyjs-adapter-mongoose";
+import { createConnection } from "mongoose";
+import { PostModel } from "./models";
+
+interface Tenant extends TenantRecord {
+  readonly id: string;
+}
+
+export const manager = new TenancyManager<Tenant>();
+
+// Keep the native connection PRIVATE to this module — never query through it directly.
+const connection = await createConnection(process.env.MONGODB_URL!).asPromise();
+
+export const mongoTenancy = createMongooseTenancy({
+  manager,
+  connection,
+  tenantModels: [{ model: PostModel, tenantField: "tenantId" }],
+});
+
+// Review the returned enforcement tier: row-level on Mongo is facade-only (no DB backstop).
+await mongoTenancy.validate();
+```
+</Step>
+
+<Step>
+### Resolver + Next runtime — `nextTenancy`
+
+```ts title="lib/tenancy.ts"
+import { createNextTenancy } from "tenancyjs-integration-next";
+import { HeaderTenantResolver, TenantResolutionChain } from "tenancyjs-identifiers";
+import { manager } from "./db";
+import { lookupTenant } from "./tenants";
+
+const resolver = new TenantResolutionChain({
+  resolvers: [new HeaderTenantResolver({ headerName: "x-tenant-id" })],
+  store: {
+    async find(identifier) {
+      const tenant = await lookupTenant(identifier.value);
+      return tenant ? [{ tenant: { id: tenant.id }, status: tenant.status }] : [];
+    },
+  },
+});
+
+// Distinct from mongoTenancy — different object, different job.
+export const nextTenancy = createNextTenancy({ manager, resolver });
+```
+</Step>
+
+<Step>
+### Scope your routes (Node runtime)
+
+`nextTenancy.withRouteHandler` opens the scope; `mongoTenancy.run` queries through the facade. No manual
+`tenantId` filter — the facade injects it on reads and writes.
+
+```ts title="app/posts/route.ts"
+import { nextTenancy } from "@/lib/tenancy";
+import { mongoTenancy } from "@/lib/db";
+import { PostModel } from "@/lib/models";
+
+export const runtime = "nodejs"; // the Mongoose connection runs on Node, not the Edge
+
+export const GET = nextTenancy.withRouteHandler(async () =>
+  Response.json(
+    await mongoTenancy.run((client) => client.model(PostModel).find({ status: "open" })),
+  ),
+);
+```
+
+Server Actions wrap the same way with `nextTenancy.withServerAction`. Calling `PostModel.find(...)`
+directly here would bypass the facade — and on MongoDB nothing else would stop it.
+</Step>
+
+<Step>
+### Edge hint (optional)
+
+Resolving identity from the host/subdomain? Carry it across the Edge→Node boundary. The Mongoose
+connection stays in Node — the middleware only forwards identity.
+
+```ts title="middleware.ts"
+import { NextResponse } from "next/server";
+import { withNextTenantHint } from "tenancyjs-integration-next/edge";
+
+export function middleware(request: Request) {
+  const headers = withNextTenantHint(request);
+  return NextResponse.next({ request: { headers } });
+}
+
+export const config = {
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+};
+```
+</Step>
+
+<Step>
+### Prove isolation
+
+Write the [two-tenant colliding-id test](/docs/guides/testing-isolation): the same `_id` under A and B,
+assert A never reads B's document, and assert an unscoped tenant query throws. On Mongo the facade is the
+boundary — no RLS to fall back on — so this test is the only real proof.
+</Step>
+
+</Steps>
+
+<Callout type="info">
+  Cross-tenant admin work runs in an explicit central scope —
+  `manager.runInCentralContext(() => mongoTenancy.run((c) => c.model(PostModel).find({})))`. Next caches
+  around tenant data must be tenant-keyed or uncached; a shared entry is a leak the facade can't catch.
+</Callout>
+
+Full lifecycle and the security boundary: [Next.js integration](/docs/integrations/nextjs) ·
+[Mongoose adapter](/docs/adapters/mongoose) · [Limitations](/docs/concepts/limitations).

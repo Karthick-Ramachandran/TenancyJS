@@ -1,0 +1,25 @@
+{
+  "title": "Set up your stack",
+  "pages": [
+    "index",
+    "express-prisma",
+    "express-knex",
+    "express-typeorm",
+    "express-sequelize",
+    "express-drizzle",
+    "express-mongoose",
+    "nextjs-prisma",
+    "nextjs-knex",
+    "nextjs-typeorm",
+    "nextjs-sequelize",
+    "nextjs-drizzle",
+    "nextjs-mongoose",
+    "nestjs-prisma",
+    "nestjs-knex",
+    "nestjs-typeorm",
+    "nestjs-sequelize",
+    "nestjs-drizzle",
+    "nestjs-mongoose",
+    "adonis-lucid"
+  ]
+}

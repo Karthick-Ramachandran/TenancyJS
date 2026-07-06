@@ -1,0 +1,114 @@
+---
+title: Lucid — provisioning
+description: Create and migrate each tenant's schema or database with AdonisJS Lucid, driven by the tenancy CLI.
+---
+
+This recipe implements the [provisioner hooks](/docs/getting-started/configuration) for **Lucid** so
+`tenancy tenant provision | migrate | deprovision` create, migrate, and drop each tenant's placement.
+Routing (scoping the tenant's models at request time) is on the [Lucid adapter page](/docs/adapters/lucid);
+this page is only the setup seam TenancyJS leaves to you. The Lucid adapter is **PostgreSQL-only** here.
+
+AdonisJS runs migrations through the ace CLI, so the `migrate` hook shells out to
+`node ace migration:run --connection=<name>`. DDL runs on a privileged admin connection, never your
+fail-closed runtime role.
+
+```ts title="provisioning.ts"
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import db from "@adonisjs/lucid/services/db";
+
+const run = promisify(execFile);
+
+const schemaOf = (id: string) => `tenant_${id}`; // your placement naming
+const dbOf = (id: string) => `tenant_${id}`;
+const connOf = (id: string) => `tenant_${id}`; // the config/database.ts connection name
+
+// `admin` is a privileged connection (defined in config/database.ts) allowed to
+// create schemas and databases — not the fail-closed runtime role.
+const admin = () => db.connection("admin");
+
+// Runs committed migrations against a per-tenant Lucid connection.
+async function migrationRun(connection: string): Promise<void> {
+  await run("node", ["ace", "migration:run", "--connection", connection]);
+}
+```
+
+## Schema-per-tenant (PostgreSQL)
+
+One Postgres schema per tenant in a shared database. The per-tenant connection is a Lucid connection
+whose pg config sets `searchPath: ['tenant_x']`, so `migration:run` lands in that schema.
+
+```ts title="tenancy.config.ts"
+import { defineTenancyRuntime } from "tenancyjs-core";
+
+export default defineTenancyRuntime({
+  manager,
+  store,
+  adapters: [tenancy], // createLucidTenancy({ strategy: "schemaPerTenant", ... }) — see the adapter page
+  provisioner: {
+    provision: async (tenant) => {
+      await admin().rawQuery(`create schema if not exists "${schemaOf(tenant.id)}"`);
+    },
+    migrate: async (tenant) => {
+      // connOf(tenant.id) is a config/database.ts connection whose pg
+      // `searchPath` is set to [schemaOf(tenant.id)].
+      await migrationRun(connOf(tenant.id));
+    },
+    deprovision: async (tenant) => {
+      await admin().rawQuery(`drop schema if exists "${schemaOf(tenant.id)}" cascade`);
+    },
+  },
+  dispose: () => db.manager.closeAll(),
+});
+```
+
+## Database-per-tenant
+
+A separate database per tenant. `CREATE DATABASE` cannot run inside a transaction and must target a
+maintenance database (e.g. `postgres`), which is what the `admin` connection points at.
+
+```ts
+provisioner: {
+  provision: async (tenant) => {
+    // Identifier is quoted; the id is validated by the store, but keep placement
+    // names to [a-z0-9_] so quoting is the only escaping you rely on.
+    await admin().rawQuery(`create database "${dbOf(tenant.id)}"`);
+  },
+  migrate: async (tenant) => {
+    // connOf(tenant.id) is a config/database.ts connection pointed at the tenant DB.
+    await migrationRun(connOf(tenant.id));
+  },
+  deprovision: async (tenant) => {
+    await admin().rawQuery(`drop database if exists "${dbOf(tenant.id)}" with (force)`);
+  },
+},
+```
+
+## Run the flow
+
+```bash
+npx tenancy tenant create acme --set plan=pro   # 1. record + placement
+npx tenancy tenant provision acme               # 2. create schema/database
+npx tenancy tenant migrate acme                 # 3. node ace migration:run
+npx tenancy test:leak --test-file ./leak.mjs    # 4. prove isolation before trusting it
+```
+
+Roll a new migration out to everyone with `npx tenancy tenant migrate --all` — it reports each
+tenant's outcome and exits non-zero if any fail, so it's safe in CI. In Adonis the CLI and hooks run
+inside the app context, so `config/database.ts` connections and the ace command resolve as they do at
+runtime.
+
+## Notes
+
+- **Per-tenant connections are host-defined config.** Both hooks assume `connOf(tenant.id)` already
+  exists in `config/database.ts` (or was registered dynamically) — schema-per-tenant sets its pg
+  `searchPath`, database-per-tenant points at the tenant DB. TenancyJS does not create connections; you
+  do. Model routing still leases connections through the adapter's `schema`/`connection` factories.
+- Keep `provision` **idempotent** (`if not exists`) — the CLI may retry, and a half-onboarded tenant
+  should be safe to re-provision.
+- Routing validates the schema/database **already exists**; a tenant that hasn't been provisioned +
+  migrated fails closed on its first request rather than lazily creating storage. Provision before you
+  flip the tenant to `active`.
+- The **runtime role must be non-owner and non-`BYPASSRLS`** — only the `admin` connection does DDL. On
+  schema-per-tenant this is the [RLS backstop](/docs/strategies/row-level#the-rls-backstop) that keeps a
+  scoping bug from crossing tenants.

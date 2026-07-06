@@ -1,0 +1,235 @@
+---
+title: Express + Prisma setup
+description: Wire fail-closed multi-tenancy into an Express 5 + Prisma 7 app — a copy-pasteable setup-agent prompt, plus the manual walkthrough.
+---
+
+`tenancy init` doesn't scaffold Express yet, so this stack is a manual wire-up — a few files. This page
+gives you two ways to do it: hand the **setup-agent prompt** to your AI assistant, or follow the
+**manual walkthrough**. Either way, finish by running the two-tenant test — with fail-closed isolation
+you verify, you don't trust.
+
+This is **row-level** on PostgreSQL. Prisma row-level is _facade-enforced_ (the extension rewrites
+query arguments; there is no RLS backstop), so the one rule that matters most: only ever expose the
+**extended** client — never the base Prisma client.
+
+## Setup-agent prompt
+
+Paste this into an assistant that can edit your repo and run commands (Claude Code, Cursor, …). It
+executes in order and verifies each step. It's pinned to the real API, so it won't invent factory names.
+
+````text
+# TenancyJS Setup Agent — Express 5 + Prisma 7 (row-level, PostgreSQL)
+
+You are a setup agent. Add fail-closed multi-tenancy to this Express + Prisma project with TenancyJS.
+Execute every step in order. After each step, verify it applied before continuing. If a step does not
+apply, say so and continue. Do NOT invent API names — if unsure, fetch the linked doc.
+
+Source of truth (fetch if a detail is missing, do not guess):
+- https://tenancyjs.pages.dev/docs/adapters/prisma
+- https://tenancyjs.pages.dev/docs/integrations/express
+- https://tenancyjs.pages.dev/docs/concepts/limitations
+- https://tenancyjs.pages.dev/docs/guides/testing-isolation
+
+## Pre-flight
+- Run `node -v`; abort if it is not >= 24.
+- Confirm `express` (v5) and `@prisma/client` (v7) are in package.json. Abort if this is not an
+  Express + Prisma project.
+- Confirm the database is PostgreSQL.
+
+## Step 1 — Install
+Run:
+```sh
+npm install tenancyjs-core@beta tenancyjs-adapter-prisma@beta tenancyjs-integration-express@beta tenancyjs-identifiers@beta @prisma/adapter-pg
+```
+Verify all five appear in package.json dependencies.
+
+## Step 2 — Schema
+In `prisma/schema.prisma`, ensure:
+- A `Tenant` model with `id String @id` and `status String @default("active")`.
+- At least one tenant-scoped model with a non-null `tenantId String` and an index on `tenantId`
+  (e.g. `Post`). If the app already has domain models, add `tenantId` to each tenant-owned one.
+Then run `npx prisma generate` (and `npx prisma migrate dev` if you own migrations).
+
+## Step 3 — tenancy.ts (the single source of truth)
+Create `src/tenancy.ts`. It must:
+- Construct ONE `TenancyManager<Tenant>` and export it.
+- Construct the BASE Prisma client with the Postgres driver adapter:
+  `new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) })`.
+- Create the EXTENDED client:
+  `basePrisma.$extends(createPrismaTenancyExtension({ manager, tenantModels, centralModels }))`.
+  Classify EVERY model: each tenant model as `{ tenantField: "tenantId", relationFields: [...] }`,
+  `Tenant` under `centralModels`. Unknown models are rejected at runtime.
+- Build a `TenantResolutionChain` with `new HeaderTenantResolver()` and a store whose `find(identifier)`
+  looks the tenant up via the BASE client and returns `[{ tenant: { id }, status }]` (or `[]`).
+- Export `manager`, `resolver`, and the EXTENDED client as `prisma`. Do NOT export the base client for
+  app use.
+
+## Step 4 — Express wiring
+In `src/server.ts`, register `createExpressTenancyMiddleware({ manager, resolver })` EARLY, before any
+tenant route. Import `manager`, `resolver`, and the extended `prisma` from `./tenancy`.
+
+## Step 5 — Scope the routes
+For every route handler that touches tenant data, query through the extended `prisma` client. REMOVE any
+manual `where: { tenantId }` filters — the middleware opens the scope and the extension injects the
+predicate. Leave non-tenant/public routes as they are.
+
+## Step 6 — Central (cross-tenant) work
+For admin/cross-tenant handlers, do NOT leave them unscoped. Wrap the work in
+`manager.runInCentralContext(() => ...)` explicitly. Unscoped tenant access must throw.
+
+## Step 7 — Lock the boundary
+- Add an Express error handler LAST that maps `ExpressTenancyResolutionError` to a response by its
+  `.statusCode` (400 missing/invalid identifier, 404 unknown/suspended tenant, else 500). Without it a
+  resolution failure surfaces as an unhandled 500.
+- Ensure the base Prisma client is never imported by a route — only the extended client.
+- Do not use raw queries or nested relation writes on the extended client; they are rejected by the
+  facade. If you need them, that's a database-per-tenant concern (see the adapter doc), not row-level.
+
+## Step 8 — Prove it
+Create a two-tenant test (Vitest or Jest): create tenant A and tenant B, write a row under EACH with the
+SAME primary key, assert querying as A never returns B's row, and assert that a tenant query with no
+active scope THROWS. Follow https://tenancyjs.pages.dev/docs/guides/testing-isolation.
+
+## Step 9 — Verify
+- `npm run build` (or `npx tsc --noEmit`) — report errors.
+- Boot the app (`npm run start`) and confirm it serves.
+- Run the two-tenant test and report the result.
+
+Report a summary of every file created/changed and any issue found.
+````
+
+<Callout type="warn">
+  AI wiring is a starting point, not proof. The only thing that demonstrates isolation is the two-tenant
+  colliding-id test in Step 8 — run it before you trust the result.
+</Callout>
+
+## Manual walkthrough
+
+Prefer to wire it yourself? The same steps, with the code.
+
+<Steps>
+
+<Step>
+### Install
+
+```bash
+npm install tenancyjs-core@beta tenancyjs-adapter-prisma@beta tenancyjs-integration-express@beta tenancyjs-identifiers@beta @prisma/adapter-pg
+```
+</Step>
+
+<Step>
+### One `tenancy.ts`
+
+The manager, the extended Prisma client, and the resolver all live here — one source of truth.
+
+```ts title="src/tenancy.ts"
+import { TenancyManager, type TenantRecord } from "tenancyjs-core";
+import { createPrismaTenancyExtension } from "tenancyjs-adapter-prisma";
+import { HeaderTenantResolver, TenantResolutionChain } from "tenancyjs-identifiers";
+import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+
+interface Tenant extends TenantRecord {
+  readonly id: string;
+}
+
+export const manager = new TenancyManager<Tenant>();
+
+// Prisma 7 needs a driver adapter; keep the BASE client private to this module.
+const basePrisma = new PrismaClient({
+  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+});
+
+// The ONLY client the app may use. Classify every model.
+export const prisma = basePrisma.$extends(
+  createPrismaTenancyExtension({
+    manager,
+    tenantModels: { Post: { tenantField: "tenantId", relationFields: [] } },
+    centralModels: { Tenant: { relationFields: [] } },
+  }),
+);
+
+export const resolver = new TenantResolutionChain({
+  resolvers: [new HeaderTenantResolver()], // X-Tenant-Id
+  store: {
+    async find(identifier) {
+      const tenant = await basePrisma.tenant.findUnique({
+        where: { id: identifier.value },
+      });
+      return tenant ? [{ tenant: { id: tenant.id }, status: tenant.status }] : [];
+    },
+  },
+});
+```
+</Step>
+
+<Step>
+### Wire the middleware
+
+Register it early, before any tenant route. The middleware resolves the tenant and opens the scope for
+the whole request; the extended `prisma` reads it — no manual `tenantId` filter.
+
+```ts title="src/server.ts"
+import express from "express";
+import { createExpressTenancyMiddleware } from "tenancyjs-integration-express";
+import { manager, resolver, prisma } from "./tenancy";
+
+const app = express();
+
+app.use(createExpressTenancyMiddleware({ manager, resolver }));
+
+app.get("/posts", async (_req, res) => {
+  res.json(await prisma.post.findMany()); // scoped to the request's tenant
+});
+
+app.listen(3000);
+```
+</Step>
+
+<Step>
+### Handle resolution failures
+
+Add the error handler last. Without it, a missing/invalid identifier or an unknown tenant surfaces as an
+unhandled 500 instead of a 400/404.
+
+```ts title="src/server.ts"
+import { ExpressTenancyResolutionError } from "tenancyjs-integration-express";
+
+app.use((err, _req, res, next) => {
+  if (err instanceof ExpressTenancyResolutionError)
+    res.status(err.statusCode).json({ error: err.message }); // 400 / 404
+  else next(err);
+});
+```
+</Step>
+
+<Step>
+### Central (cross-tenant) work
+
+Admin routes that span tenants run in an explicit central scope — never left unscoped.
+
+```ts title="src/admin.ts"
+import { manager, prisma } from "./tenancy";
+
+// List every tenant's posts — explicit central context, not a request default.
+export const allPosts = () =>
+  manager.runInCentralContext(() => prisma.post.findMany());
+```
+</Step>
+
+<Step>
+### Prove isolation
+
+Write the [two-tenant colliding-id test](/docs/guides/testing-isolation): same primary key under A and
+B, assert A never reads B's row, and assert an unscoped tenant query throws.
+</Step>
+
+</Steps>
+
+<Callout type="info">
+  Cross-tenant admin work runs in an explicit central scope — `manager.runInCentralContext(() => …)`.
+  There is no request-controlled central mode; a resolution failure fails closed, never central.
+</Callout>
+
+Full lifecycle and the security boundary: [Express integration](/docs/integrations/express) ·
+[Prisma adapter](/docs/adapters/prisma) · [Limitations](/docs/concepts/limitations).

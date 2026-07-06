@@ -1,0 +1,143 @@
+---
+title: Sequelize — provisioning
+description: Create and migrate each tenant's schema or database with Sequelize, driven by the tenancy CLI.
+---
+
+This recipe implements the [provisioner hooks](/docs/getting-started/configuration) for **Sequelize** so
+`tenancy tenant provision | migrate | deprovision` create, migrate, and drop each tenant's placement.
+Routing (leasing the tenant's model/instance at request time) is on the [Sequelize adapter page](/docs/adapters/sequelize);
+this page is only the setup seam TenancyJS leaves to you.
+
+Sequelize has no built-in runtime migrator, so the `migrate` hook drives your migration tool — an
+[Umzug](https://github.com/sequelize/umzug) instance or the `sequelize-cli` — against a tenant-scoped
+connection. DDL runs on a privileged admin `Sequelize`, never your fail-closed runtime role.
+
+```ts title="provisioning.ts"
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import { Sequelize } from "sequelize";
+
+const run = promisify(execFile);
+
+// Admin/maintenance connection allowed to create schemas and databases.
+const admin = new Sequelize(process.env.ADMIN_DATABASE_URL!, { logging: false });
+
+const schemaOf = (id: string) => `tenant_${id}`; // your placement naming
+const dbOf = (id: string) => `tenant_${id}`;
+```
+
+## Schema-per-tenant (PostgreSQL)
+
+One Postgres schema per tenant in a shared database. The adapter selects the schema at request time via
+`strategy: "schemaPerTenant"` + `schema(tenant)`; provisioning only has to create it and migrate into it.
+
+```ts title="tenancy.config.ts"
+import { defineTenancyRuntime } from "tenancyjs-core";
+import { Umzug, SequelizeStorage } from "umzug";
+
+const baseUrl = process.env.DATABASE_URL!; // e.g. postgres://…/app
+
+export default defineTenancyRuntime({
+  manager,
+  store,
+  adapters: [tenancy], // createSequelizeTenancy({ strategy: "schemaPerTenant", … }) — see the adapter page
+  provisioner: {
+    provision: async (tenant) => {
+      // Idempotent DDL on the admin connection.
+      await admin.createSchema(schemaOf(tenant.id), {});
+      // or: await admin.query(`create schema if not exists "${schemaOf(tenant.id)}"`);
+    },
+    migrate: async (tenant) => {
+      // Bind a tenant-scoped Sequelize to the schema, then drive Umzug into it.
+      const tenantDb = new Sequelize(baseUrl, {
+        logging: false,
+        searchPath: schemaOf(tenant.id),
+        dialectOptions: { prependSearchPath: true },
+      });
+      const umzug = new Umzug({
+        migrations: { glob: "migrations/*.js" },
+        context: tenantDb.getQueryInterface(),
+        storage: new SequelizeStorage({ sequelize: tenantDb }),
+        logger: console,
+      });
+      await umzug.up();
+      await tenantDb.close();
+    },
+    deprovision: async (tenant) => {
+      await admin.dropSchema(schemaOf(tenant.id), {});
+      // or: await admin.query(`drop schema if exists "${schemaOf(tenant.id)}" cascade`);
+    },
+  },
+  dispose: () => admin.close(),
+});
+```
+
+## Database-per-tenant
+
+A separate database per tenant. `CREATE DATABASE` cannot run inside a transaction and must target a
+maintenance database (e.g. `postgres`), which is what the `admin` connection connects to.
+
+```ts
+provisioner: {
+  provision: async (tenant) => {
+    // Identifier is quoted; the id is validated by the store, but keep placement
+    // names to [a-z0-9_] so quoting is the only escaping you rely on.
+    await admin.query(`create database "${dbOf(tenant.id)}"`);
+  },
+  migrate: async (tenant) => {
+    // Point the migration run at the tenant's own database.
+    const tenantDb = createTenantSequelize(dbOf(tenant.id)); // your per-db connection
+    const umzug = new Umzug({
+      migrations: { glob: "migrations/*.js" },
+      context: tenantDb.getQueryInterface(),
+      storage: new SequelizeStorage({ sequelize: tenantDb }),
+      logger: console,
+    });
+    await umzug.up();
+    await tenantDb.close();
+  },
+  deprovision: async (tenant) => {
+    await admin.query(`drop database if exists "${dbOf(tenant.id)}" with (force)`);
+  },
+},
+```
+
+Prefer the `sequelize-cli`? Shell out instead of building Umzug, with a tenant-scoped `--env` that maps
+to the tenant connection in your `config.js`:
+
+```ts
+migrate: async (tenant) => {
+  await run("npx", ["sequelize-cli", "db:migrate", "--env", dbOf(tenant.id)]);
+},
+```
+
+On **MySQL**, ``CREATE DATABASE `tenant_x` `` / `DROP DATABASE` is the same shape — pass `dialect: "mysql"`
+to the adapter and use backtick quoting. MySQL treats schema and database as synonyms, so it supports
+**database-per-tenant** (and row-level) — not schema-per-tenant — and this is the strategy to use there.
+
+## Run the flow
+
+```bash
+npx tenancy tenant create acme --set plan=pro   # 1. record + placement
+npx tenancy tenant provision acme               # 2. create schema/database
+npx tenancy tenant migrate acme                 # 3. umzug up / sequelize-cli db:migrate
+npx tenancy test:leak --test-file ./leak.mjs    # 4. prove isolation before trusting it
+```
+
+Roll a new migration out to everyone with `npx tenancy tenant migrate --all` — it reports each
+tenant's outcome and exits non-zero if any fail, so it's safe in CI.
+
+## Notes
+
+- Sequelize ships **no `sequelize.migrate()`**. The `migrate` hook's exact call depends on your tool —
+  `umzug.up()` on a tenant-scoped instance, or `sequelize-cli db:migrate` with a per-tenant env. Keep the
+  DDL on the admin connection either way.
+- Keep `provision` **idempotent** (`if not exists` / `createSchema` on an already-created schema is safe) —
+  the CLI may retry, and a half-onboarded tenant should be safe to re-provision.
+- Routing validates the schema/database **already exists**; a tenant that hasn't been provisioned +
+  migrated fails closed on its first request rather than lazily creating storage. Provision before you
+  flip the tenant to `active`.
+- In database-per-tenant, each leased tenant `Sequelize` must register the **same model names** the
+  adapter's `tenantModels` configure, or routing can't resolve the model.
+- For the Postgres RLS backstop, keep the runtime role **non-owner and non-`BYPASSRLS`** — the admin
+  connection above owns the DDL; the request-time role only ever sees its own rows.

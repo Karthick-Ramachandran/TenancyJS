@@ -1,0 +1,259 @@
+---
+title: NestJS + Sequelize setup
+description: Wire fail-closed multi-tenancy into a NestJS 11 + Sequelize app — a copy-pasteable setup-agent prompt, plus the manual walkthrough.
+---
+
+`tenancy init` doesn't scaffold NestJS yet, so this stack is a manual wire-up — a few files. This page
+gives you two ways to do it: hand the **setup-agent prompt** to your AI assistant, or follow the
+**manual walkthrough**. Either way, finish by running the two-tenant test — with fail-closed isolation
+you verify, you don't trust.
+
+This is **row-level** on PostgreSQL. The Sequelize adapter is a _callback facade_ backed by **forced
+Postgres RLS** — the facade rejects unsafe criteria and the database policy is a hard backstop, so a
+query can't escape its tenant scope. The one rule that matters most: only ever call the protected
+`client.model(...)` facade inside `tenancy.run(...)` — never the native Sequelize model.
+
+## Setup-agent prompt
+
+Paste this into an assistant that can edit your repo and run commands (Claude Code, Cursor, …). It
+executes in order and verifies each step. It's pinned to the real API, so it won't invent factory names.
+
+````text
+# TenancyJS Setup Agent — NestJS 11 + Sequelize (row-level, PostgreSQL)
+
+You are a setup agent. Add fail-closed multi-tenancy to this NestJS + Sequelize project with TenancyJS.
+Execute every step in order. After each step, verify it applied before continuing. If a step does not
+apply, say so and continue. Do NOT invent API names — if unsure, fetch the linked doc.
+
+Source of truth (fetch if a detail is missing, do not guess):
+- https://tenancyjs.pages.dev/docs/adapters/sequelize
+- https://tenancyjs.pages.dev/docs/integrations/nestjs
+- https://tenancyjs.pages.dev/docs/concepts/limitations
+- https://tenancyjs.pages.dev/docs/guides/testing-isolation
+
+## Pre-flight
+- Run `node -v`; abort if it is not >= 24.
+- Confirm `@nestjs/core` (v11) and `sequelize` are in package.json. Abort if this is not a
+  NestJS + Sequelize project.
+- Confirm the database is PostgreSQL — this stack relies on forced RLS, which MySQL does not have.
+
+## Step 1 — Install
+Run:
+```sh
+npm install tenancyjs-core@beta tenancyjs-adapter-sequelize@beta tenancyjs-integration-nest@beta tenancyjs-identifiers@beta sequelize pg
+```
+Verify all six appear in package.json dependencies.
+
+## Step 2 — Models
+Define a `Tenant` model (`id` string PK, `status` string default "active") and at least one
+tenant-scoped model (e.g. `Post`) with a non-null `tenantId` attribute mapped to a `tenant_id` column,
+and an index on it. If the app already has domain models, add `tenantId` to each tenant-owned one.
+Verify each tenant model declares both the attribute name and the physical column name.
+
+## Step 3 — Forced-RLS migration (the database backstop)
+Row-level isolation here is enforced by the database, not just the facade. Write a migration, run by an
+OWNER role, that for every tenant table:
+- Creates the table with a `tenant_id` column.
+- Runs `ALTER TABLE posts ENABLE ROW LEVEL SECURITY` and `ALTER TABLE posts FORCE ROW LEVEL SECURITY`.
+- Creates a policy `posts_tenant_isolation` USING/WITH CHECK that the row's `tenant_id` equals
+  `current_setting('tenancyjs.tenant_id', true)` OR `current_setting('tenancyjs.is_central', true)` is
+  true.
+The application must connect as a RUNTIME role that is NOT the table owner, NOT `BYPASSRLS`, and NOT a
+superuser — otherwise FORCE RLS is skipped and the backstop is silently off. Verify the runtime role has
+none of those attributes.
+
+## Step 4 — tenancy.ts (the single source of truth)
+Create `src/tenancy.ts`. It must:
+- Construct ONE `TenancyManager<Tenant>` and export it.
+- Construct the `createSequelizeTenancy({ manager, sequelize, tenantModels: [...] })` adapter. Each entry
+  is `{ model, table, tenantAttribute: "tenantId", tenantColumn: "tenant_id" }`. Export it as `tenancy`.
+- Build a `TenantResolutionChain` with `new HeaderTenantResolver()` and a store whose `find(identifier)`
+  looks the tenant up and returns `[{ tenant: { id }, status }]` (or `[]`).
+- Export `manager`, `resolver`, and `tenancy`.
+
+## Step 5 — Register TenancyModule
+In `app.module.ts`, add `TenancyModule.forRoot({ manager, resolver })` to imports (import both from
+`./tenancy`). Do not register a second guard/interceptor. Do NOT pass `tenancy` as `executor` — a
+callback facade is called directly in the handler, not injected as an executor.
+
+## Step 6 — Scope the routes
+For every controller handler that touches tenant data:
+- Add `@TenantRoute()` (from `tenancyjs-integration-nest`).
+- Read/write ONLY through `tenancy.run((client) => client.model(Post).findAll(...))`. Never touch the
+  native Sequelize model, `.query()`, includes, or `Op.*` operators — the facade rejects them. REMOVE any
+  manual `where: { tenantId }` filters; the scope injects the predicate. Leave public routes unmarked.
+
+## Step 7 — Central (cross-tenant) work
+For admin/cross-tenant handlers, do NOT leave them unscoped. Wrap the work in
+`manager.runInCentralContext(() => tenancy.run(...))` explicitly. Unscoped tenant access must throw.
+
+## Step 8 — Validate the contract at boot
+Call `await tenancy.validate()` during bootstrap (before serving traffic). It confirms every tenant
+table has RLS enabled + forced and the isolation policy is present; it throws if the backstop is missing.
+Call `tenancy.close()` on shutdown.
+
+## Step 9 — Prove it
+Create a two-tenant test (Vitest or Jest): create tenant A and tenant B, write a row under EACH with the
+SAME primary key, and assert querying as A never returns B's row. Then, connecting as the RUNTIME role
+with NO `tenancyjs.tenant_id` GUC set, run a raw `SELECT` and assert it returns 0 rows — proving the RLS
+backstop, not just the facade. Follow https://tenancyjs.pages.dev/docs/guides/testing-isolation.
+
+## Step 10 — Verify
+- `npx nest build` (or `npm run build`) — report errors.
+- Boot the app (`npm run start`); confirm `tenancy.validate()` passes and it serves.
+- Run the two-tenant test and report the result.
+
+Report a summary of every file created/changed and any issue found.
+````
+
+<Callout type="warn">
+  AI wiring is a starting point, not proof. The only thing that demonstrates isolation is the two-tenant
+  colliding-id test in Step 9 — including the raw-query-as-runtime-role check — run it before you trust
+  the result.
+</Callout>
+
+## Manual walkthrough
+
+Prefer to wire it yourself? The same steps, with the code.
+
+<Steps>
+
+<Step>
+### Install
+
+```bash
+npm install tenancyjs-core@beta tenancyjs-adapter-sequelize@beta tenancyjs-integration-nest@beta tenancyjs-identifiers@beta sequelize pg
+```
+</Step>
+
+<Step>
+### Force RLS in a migration
+
+Row-level isolation is enforced by Postgres. Run this as the **owner** role; the app connects as a
+separate **runtime** role that is not the owner, not `BYPASSRLS`, and not a superuser — otherwise
+`FORCE` is skipped.
+
+```sql
+ALTER TABLE posts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE posts FORCE ROW LEVEL SECURITY;
+
+CREATE POLICY posts_tenant_isolation ON posts
+  USING (
+    tenant_id = current_setting('tenancyjs.tenant_id', true)
+    OR current_setting('tenancyjs.is_central', true) = 'true'
+  )
+  WITH CHECK (
+    tenant_id = current_setting('tenancyjs.tenant_id', true)
+    OR current_setting('tenancyjs.is_central', true) = 'true'
+  );
+```
+</Step>
+
+<Step>
+### One `tenancy.ts`
+
+The manager, the Sequelize adapter, and the resolver all live here — one source of truth.
+
+```ts title="src/tenancy.ts"
+import { TenancyManager } from "tenancyjs-core";
+import { createSequelizeTenancy } from "tenancyjs-adapter-sequelize";
+import { HeaderTenantResolver, TenantResolutionChain } from "tenancyjs-identifiers";
+import { sequelize, Post, Tenant as TenantModel } from "./models";
+
+export interface Tenant {
+  readonly id: string;
+}
+
+export const manager = new TenancyManager<Tenant>();
+
+// The protected facade. Only its client may touch tenant data.
+export const tenancy = createSequelizeTenancy({
+  manager,
+  sequelize,
+  tenantModels: [
+    {
+      model: Post,
+      table: "posts",
+      tenantAttribute: "tenantId",
+      tenantColumn: "tenant_id",
+    },
+  ],
+});
+
+export const resolver = new TenantResolutionChain({
+  resolvers: [new HeaderTenantResolver()], // X-Tenant-Id
+  store: {
+    async find(identifier) {
+      const tenant = await TenantModel.findByPk(identifier.value);
+      return tenant ? [{ tenant: { id: tenant.id }, status: tenant.status }] : [];
+    },
+  },
+});
+```
+</Step>
+
+<Step>
+### Register the module
+
+```ts title="src/app.module.ts"
+import { Module } from "@nestjs/common";
+import { TenancyModule } from "tenancyjs-integration-nest";
+import { manager, resolver } from "./tenancy";
+
+@Module({
+  imports: [TenancyModule.forRoot({ manager, resolver })],
+})
+export class AppModule {}
+```
+
+Validate the RLS contract at boot, before serving:
+
+```ts title="src/main.ts"
+import { tenancy } from "./tenancy";
+// ...after creating the Nest app, before app.listen():
+await tenancy.validate();
+```
+</Step>
+
+<Step>
+### Scope your routes
+
+Mark tenant routes; the interceptor opens the scope and the facade reads it. Call `tenancy.run(...)`
+directly — never as an `executor`, and never the native model.
+
+```ts title="src/posts.controller.ts"
+import { Controller, Get } from "@nestjs/common";
+import { TenantRoute } from "tenancyjs-integration-nest";
+import { tenancy } from "./tenancy";
+import { Post } from "./models";
+
+@Controller("posts")
+export class PostsController {
+  @Get()
+  @TenantRoute()
+  list() {
+    return tenancy.run((client) => client.model(Post).findAll({ status: "open" }));
+  }
+}
+```
+</Step>
+
+<Step>
+### Prove isolation
+
+Write the [two-tenant colliding-id test](/docs/guides/testing-isolation): same primary key under A and
+B, assert A never reads B's row, and — connecting as the runtime role with no `tenancyjs.tenant_id` GUC
+set — assert a raw `SELECT` returns 0 rows. That second check proves the RLS backstop, not just the
+facade.
+</Step>
+
+</Steps>
+
+<Callout type="info">
+  Cross-tenant admin work runs in an explicit central scope — `manager.runInCentralContext(() =>
+  tenancy.run(...))`. There is no request-controlled central mode; a resolution failure fails closed,
+  never central.
+</Callout>
+
+Full lifecycle and the security boundary: [NestJS integration](/docs/integrations/nestjs) ·
+[Sequelize adapter](/docs/adapters/sequelize) · [Limitations](/docs/concepts/limitations).

@@ -1,0 +1,259 @@
+---
+title: Express + TypeORM setup
+description: Wire fail-closed multi-tenancy into an Express 5 + TypeORM app with forced PostgreSQL RLS — a copy-pasteable setup-agent prompt, plus the manual walkthrough.
+---
+
+`tenancy init` doesn't scaffold Express + TypeORM yet, so this stack is a manual wire-up — a few files.
+This page gives you two ways to do it: hand the **setup-agent prompt** to your AI assistant, or follow
+the **manual walkthrough**. Either way, finish by running the two-tenant test — with fail-closed
+isolation you verify, you don't trust.
+
+This is **row-level** on PostgreSQL. The TypeORM adapter is a _callback facade_ — but here it is backed
+by **forced RLS**: the database enforces the tenant predicate even if the facade were bypassed. Two
+rules matter most: only ever expose the **protected repository** (never the native `DataSource` or
+`Repository`), and run the app as a **non-owner** role so `FORCE ROW LEVEL SECURITY` actually binds.
+
+## Setup-agent prompt
+
+Paste this into an assistant that can edit your repo and run commands (Claude Code, Cursor, …). It
+executes in order and verifies each step. It's pinned to the real API, so it won't invent factory names.
+
+````text
+# TenancyJS Setup Agent — Express 5 + TypeORM (row-level, PostgreSQL)
+
+You are a setup agent. Add fail-closed multi-tenancy to this Express + TypeORM project with TenancyJS,
+backed by forced PostgreSQL RLS. Execute every step in order. After each step, verify it applied before
+continuing. If a step does not apply, say so and continue. Do NOT invent API names — if unsure, fetch
+the linked doc.
+
+Source of truth (fetch if a detail is missing, do not guess):
+- https://tenancyjs.pages.dev/docs/adapters/typeorm
+- https://tenancyjs.pages.dev/docs/integrations/express
+- https://tenancyjs.pages.dev/docs/concepts/limitations
+- https://tenancyjs.pages.dev/docs/guides/testing-isolation
+
+## Pre-flight
+- Run `node -v`; abort if it is not >= 24.
+- Confirm `express` (v5) and `typeorm` are in package.json. Abort if this is not an Express + TypeORM
+  project.
+- Confirm the database is PostgreSQL (forced RLS is a Postgres feature; abort otherwise).
+
+## Step 1 — Install
+Run:
+```sh
+npm install tenancyjs-core@beta tenancyjs-adapter-typeorm@beta tenancyjs-integration-express@beta tenancyjs-identifiers@beta typeorm pg
+```
+Verify all six appear in package.json dependencies.
+
+## Step 2 — Entities
+Ensure a tenant-scoped entity (e.g. `Post`) has a non-null `tenantId` column mapped to `tenant_id`, and
+an index on it. Ensure a `Tenant` entity with `id` and `status`. Every tenant-owned table gets a
+`tenant_id` column.
+
+## Step 3 — Forced-RLS migration (the database backstop)
+Write a migration that runs AS THE TABLE OWNER and installs the policy. For each tenant table:
+- `ALTER TABLE posts ENABLE ROW LEVEL SECURITY;`
+- `ALTER TABLE posts FORCE ROW LEVEL SECURITY;` (so the owner is not exempt)
+- Create the isolation policy that reads the per-transaction GUCs the adapter sets:
+  ```sql
+  CREATE POLICY posts_tenant_isolation ON posts
+    USING (
+      current_setting('tenancyjs.is_central', true) = 'on'
+      OR tenant_id = current_setting('tenancyjs.tenant_id', true)
+    )
+    WITH CHECK (
+      current_setting('tenancyjs.is_central', true) = 'on'
+      OR tenant_id = current_setting('tenancyjs.tenant_id', true)
+    );
+  ```
+Then ensure the RUNTIME role the app connects as is NON-owner, NOT `BYPASSRLS`, and NOT a superuser —
+otherwise FORCE RLS is silently skipped. Grant it only DML on the tenant tables. Verify with
+`\du` that the runtime role has none of those attributes.
+
+## Step 4 — tenancy.ts (the single source of truth)
+Create `src/tenancy.ts`. It must:
+- Construct ONE `TenancyManager<Tenant>` and export it.
+- Construct and initialize the TypeORM `DataSource` (connecting as the NON-owner runtime role).
+- Create the adapter with `createTypeOrmTenancy({ manager, dataSource, tenantEntities: [...] })`,
+  where each entry is `{ entity, table, tenantProperty, tenantColumn }` (e.g.
+  `{ entity: Post, table: "posts", tenantProperty: "tenantId", tenantColumn: "tenant_id" }`).
+- `await tenancy.validate()` before serving.
+- Build a `TenantResolutionChain` with `new HeaderTenantResolver()` and a store whose `find(identifier)`
+  returns `[{ tenant: { id }, status }]` (or `[]`).
+- Export `manager`, `resolver`, and `tenancy`. Do NOT export the native DataSource for app use.
+
+## Step 5 — Register the middleware
+In `server.ts`, add `app.use(createExpressTenancyMiddleware({ manager, resolver }))` BEFORE routes. The
+resolver is an OBJECT with `resolve()` (the chain), not a `(req) => …` function.
+
+## Step 6 — Scope the routes
+For every handler that touches tenant data, query through
+`tenancy.run((client) => client.repository(Post).findBy({ status: "open" }))`. Use ONLY the protected
+repository from the callback — never the native DataSource or a native Repository. Remove any manual
+`where: { tenantId }` filters.
+
+## Step 7 — Central (cross-tenant) work
+For admin/cross-tenant handlers, wrap the work in
+`manager.runInCentralContext(() => tenancy.run(...))` explicitly. Unscoped tenant access must throw; a
+resolution failure fails closed, never central.
+
+## Step 8 — Error handling
+Add an Express error handler that maps `ExpressTenancyResolutionError` (it carries `.statusCode`) to
+400/404. Otherwise resolution failures surface as an unhandled 500.
+
+## Step 9 — Prove it
+Create a two-tenant test (Vitest or Jest): create tenant A and tenant B, write a row under EACH with the
+SAME primary key. Assert (a) querying as A never returns B's row via `tenancy.run`, AND (b) a RAW query
+executed as the runtime role with NO GUC set returns 0 rows — proving the database, not just the facade,
+enforces isolation. Follow https://tenancyjs.pages.dev/docs/guides/testing-isolation.
+
+## Step 10 — Verify
+- `npm run build` (or `tsc --noEmit`) — report errors.
+- Boot the app (`npm run start`) and confirm it serves after `tenancy.validate()` passes.
+- Run the two-tenant test and report the result.
+
+Report a summary of every file created/changed and any issue found.
+````
+
+<Callout type="warn">
+  AI wiring is a starting point, not proof. The only thing that demonstrates isolation is the two-tenant
+  colliding-id test in Step 9 — including the raw-as-runtime-role check — run it before you trust the
+  result.
+</Callout>
+
+## Manual walkthrough
+
+Prefer to wire it yourself? The same steps, with the code.
+
+<Steps>
+
+<Step>
+### Install
+
+```bash
+npm install tenancyjs-core@beta tenancyjs-adapter-typeorm@beta tenancyjs-integration-express@beta tenancyjs-identifiers@beta typeorm pg
+```
+</Step>
+
+<Step>
+### Force RLS in a migration
+
+Run this **as the table owner**. The policy reads the per-transaction GUCs the adapter sets on every
+scoped query — no matching GUC, no rows.
+
+```sql
+ALTER TABLE posts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE posts FORCE ROW LEVEL SECURITY;
+
+CREATE POLICY posts_tenant_isolation ON posts
+  USING (
+    current_setting('tenancyjs.is_central', true) = 'on'
+    OR tenant_id = current_setting('tenancyjs.tenant_id', true)
+  )
+  WITH CHECK (
+    current_setting('tenancyjs.is_central', true) = 'on'
+    OR tenant_id = current_setting('tenancyjs.tenant_id', true)
+  );
+```
+
+The app then connects as a **non-owner** role that is **not** `BYPASSRLS` and **not** a superuser —
+that is what makes `FORCE ROW LEVEL SECURITY` bind. Grant it only DML on the tenant tables.
+</Step>
+
+<Step>
+### One `tenancy.ts`
+
+The manager, the adapter, and the resolver all live here — one source of truth.
+
+```ts title="src/tenancy.ts"
+import { TenancyManager, type TenantRecord } from "tenancyjs-core";
+import { createTypeOrmTenancy } from "tenancyjs-adapter-typeorm";
+import { HeaderTenantResolver, TenantResolutionChain } from "tenancyjs-identifiers";
+import { dataSource, Post, Tenant as TenantEntity } from "./data-source";
+
+interface Tenant extends TenantRecord {
+  readonly id: string;
+}
+
+export const manager = new TenancyManager<Tenant>();
+
+// Connect dataSource as the NON-owner runtime role, then:
+export const tenancy = createTypeOrmTenancy({
+  manager,
+  dataSource,
+  tenantEntities: [
+    {
+      entity: Post,
+      table: "posts",
+      tenantProperty: "tenantId",
+      tenantColumn: "tenant_id",
+    },
+  ],
+});
+
+await tenancy.validate(); // fail fast before serving traffic
+
+export const resolver = new TenantResolutionChain<Tenant>({
+  resolvers: [new HeaderTenantResolver({ headerName: "x-tenant-id" })],
+  store: {
+    async find(identifier) {
+      const tenant = await dataSource
+        .getRepository(TenantEntity)
+        .findOneBy({ id: identifier.value });
+      return tenant ? [{ tenant: { id: tenant.id }, status: tenant.status }] : [];
+    },
+  },
+});
+```
+</Step>
+
+<Step>
+### Wire the middleware and scope routes
+
+Register the middleware before your routes, then query through `tenancy.run` — only the protected
+repository, never the native DataSource.
+
+```ts title="src/server.ts"
+import express from "express";
+import { createExpressTenancyMiddleware } from "tenancyjs-integration-express";
+import { manager, resolver, tenancy } from "./tenancy";
+import { Post } from "./data-source";
+
+const app = express();
+
+app.use(createExpressTenancyMiddleware({ manager, resolver }));
+
+app.get("/posts", async (_req, res) => {
+  const posts = await tenancy.run((client) =>
+    client.repository(Post).findBy({ status: "open" }),
+  );
+  res.json(posts); // only the current tenant's rows — enforced by RLS
+});
+
+// Map resolution failures to 400/404 instead of an unhandled 500.
+app.use((err, _req, res, next) => {
+  if (typeof err?.statusCode === "number")
+    res.status(err.statusCode).json({ error: err.message });
+  else next(err);
+});
+```
+</Step>
+
+<Step>
+### Prove isolation
+
+Write the [two-tenant colliding-id test](/docs/guides/testing-isolation): same primary key under A and
+B, assert A never reads B's row through `tenancy.run`, **and** assert that a raw query run as the runtime
+role with no GUC set returns 0 rows — proving the database enforces isolation, not just the facade.
+</Step>
+
+</Steps>
+
+<Callout type="info">
+  Cross-tenant admin work runs in an explicit central scope —
+  `manager.runInCentralContext(() => tenancy.run(...))`. The policy's `tenancyjs.is_central` branch lets
+  those queries through; a resolution failure fails closed, never central.
+</Callout>
+
+Full lifecycle and the security boundary: [Express integration](/docs/integrations/express) ·
+[TypeORM adapter](/docs/adapters/typeorm) · [Limitations](/docs/concepts/limitations).

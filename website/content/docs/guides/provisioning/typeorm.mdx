@@ -1,0 +1,123 @@
+---
+title: TypeORM — provisioning
+description: Create and migrate each tenant's schema or database with TypeORM, driven by the tenancy CLI.
+---
+
+This recipe implements the [provisioner hooks](/docs/getting-started/configuration) for **TypeORM** so
+`tenancy tenant provision | migrate | deprovision` create, migrate, and drop each tenant's placement.
+Routing (leasing the tenant's protected client at request time) is on the [TypeORM adapter page](/docs/adapters/typeorm);
+this page is only the setup seam TenancyJS leaves to you.
+
+TypeORM has a programmatic migrator, so the `migrate` hook builds a `DataSource` scoped to the tenant's
+placement and calls `runMigrations()`. Provision/deprovision DDL runs on a privileged admin `DataSource`,
+never your fail-closed runtime role.
+
+```ts title="provisioning.ts"
+import { DataSource } from "typeorm";
+import { entities, migrations } from "./data-source";
+
+// Admin/maintenance DataSource allowed to create schemas and databases.
+const admin = new DataSource({
+  type: "postgres",
+  url: process.env.ADMIN_DATABASE_URL, // connects to a maintenance db (e.g. postgres)
+});
+
+const schemaOf = (id: string) => `tenant_${id}`; // your placement naming
+const dbOf = (id: string) => `tenant_${id}`;
+
+// Build a tenant-scoped DataSource, apply committed migrations, then tear it down.
+async function runMigrations(options: { schema?: string; database?: string }): Promise<void> {
+  const ds = new DataSource({
+    type: "postgres",
+    url: process.env.DATABASE_URL,
+    entities,
+    migrations,
+    ...options, // schema: 'tenant_x' or database: 'tenant_x'
+  });
+  await ds.initialize();
+  try {
+    await ds.runMigrations();
+  } finally {
+    await ds.destroy();
+  }
+}
+```
+
+## Schema-per-tenant (PostgreSQL)
+
+One Postgres schema per tenant in a shared database. The tenant-scoped `DataSource` selects the schema
+with the `schema` option.
+
+```ts title="tenancy.config.ts"
+import { defineTenancyRuntime } from "tenancyjs-core";
+
+export default defineTenancyRuntime({
+  manager,
+  store,
+  adapters: [tenancy], // createTypeOrmTenancy({ strategy: "schemaPerTenant", ... }) — see the adapter page
+  provisioner: {
+    provision: async (tenant) => {
+      await admin.query(`create schema if not exists "${schemaOf(tenant.id)}"`);
+    },
+    migrate: async (tenant) => {
+      await runMigrations({ schema: schemaOf(tenant.id) });
+    },
+    deprovision: async (tenant) => {
+      await admin.query(`drop schema if exists "${schemaOf(tenant.id)}" cascade`);
+    },
+  },
+  dispose: () => admin.destroy(),
+});
+```
+
+## Database-per-tenant
+
+A separate database per tenant. `CREATE DATABASE` cannot run inside a transaction and must target a
+maintenance database (e.g. `postgres`), which is what the `admin` DataSource connects to.
+
+```ts
+provisioner: {
+  provision: async (tenant) => {
+    // Identifier is quoted; the id is validated by the store, but keep placement
+    // names to [a-z0-9_] so quoting is the only escaping you rely on.
+    await admin.query(`create database "${dbOf(tenant.id)}"`);
+  },
+  migrate: async (tenant) => {
+    await runMigrations({ database: dbOf(tenant.id) });
+  },
+  deprovision: async (tenant) => {
+    await admin.query(`drop database if exists "${dbOf(tenant.id)}" with (force)`);
+  },
+},
+```
+
+On **MySQL**, database-per-tenant is the strategy — MySQL schema and database are synonyms, so there is
+no schema-per-tenant mode. Give the admin DataSource `type: "mysql"`, run
+`` create database `tenant_x` `` / `` drop database `tenant_x` `` with backtick quoting, and build the
+tenant-scoped DataSource with `type: "mysql"`, `dialect: "mysql"` on the adapter, and `database: dbOf(tenant.id)`.
+
+## Run the flow
+
+```bash
+npx tenancy tenant create acme --set plan=pro   # 1. record + placement
+npx tenancy tenant provision acme               # 2. create schema/database
+npx tenancy tenant migrate acme                 # 3. ds.runMigrations()
+npx tenancy test:leak --test-file ./leak.mjs    # 4. prove isolation before trusting it
+```
+
+Roll a new migration out to everyone with `npx tenancy tenant migrate --all` — it reports each
+tenant's outcome and exits non-zero if any fail, so it's safe in CI.
+
+## Notes
+
+- Keep `provision` **idempotent** (`if not exists`) — the CLI may retry, and a half-onboarded tenant
+  should be safe to re-provision.
+- Routing validates the schema/database **already exists**; a tenant that hasn't been provisioned +
+  migrated fails closed on its first request rather than lazily creating storage. Provision before you
+  flip the tenant to `active`.
+- The database-per-tenant `connection.create` factory must return an **initialized** `DataSource` with
+  every registered entity — the same `entities` list the migrator uses — so the leased connection can
+  serve the whole protected surface.
+- Give the runtime role that serves traffic **no ownership and no `BYPASSRLS`**, separate from the
+  privileged `admin` DataSource that runs DDL — that keeps the Postgres RLS backstop enforceable.
+```

@@ -1,0 +1,274 @@
+---
+title: Express + Drizzle setup
+description: Wire fail-closed multi-tenancy into an Express 5 + Drizzle app on PostgreSQL — a copy-pasteable setup-agent prompt, plus the manual walkthrough.
+---
+
+`tenancy init` doesn't scaffold Express yet, so this stack is a manual wire-up — a few files. This page
+gives you two ways to do it: hand the **setup-agent prompt** to your AI assistant, or follow the
+**manual walkthrough**. Either way, finish by running the two-tenant test — with fail-closed isolation
+you verify, you don't trust.
+
+This is **row-level** on PostgreSQL, and the Drizzle adapter is a **callback facade backed by forced
+RLS**: the database enforces isolation, and the protected client only exposes scoped CRUD. The one rule
+that matters most: only ever query inside `tenancy.run(...)` — never touch the native Drizzle `db`.
+
+## Setup-agent prompt
+
+Paste this into an assistant that can edit your repo and run commands (Claude Code, Cursor, …). It
+executes in order and verifies each step. It's pinned to the real API, so it won't invent factory names.
+
+````text
+# TenancyJS Setup Agent — Express 5 + Drizzle (row-level, PostgreSQL)
+
+You are a setup agent. Add fail-closed multi-tenancy to this Express + Drizzle project with TenancyJS.
+Execute every step in order. After each step, verify it applied before continuing. If a step does not
+apply, say so and continue. Do NOT invent API names — if unsure, fetch the linked doc.
+
+Source of truth (fetch if a detail is missing, do not guess):
+- https://tenancyjs.pages.dev/docs/adapters/drizzle
+- https://tenancyjs.pages.dev/docs/integrations/express
+- https://tenancyjs.pages.dev/docs/concepts/limitations
+- https://tenancyjs.pages.dev/docs/guides/testing-isolation
+
+## Pre-flight
+- Run `node -v`; abort if it is not >= 24.
+- Confirm `express` (v5) and `drizzle-orm` are in package.json. Abort if this is not an Express +
+  Drizzle project.
+- Confirm the database is PostgreSQL. This adapter's row-level mode is RLS-enforced; it requires Postgres.
+
+## Step 1 — Install
+Run:
+```sh
+npm install tenancyjs-core@beta tenancyjs-adapter-drizzle@beta tenancyjs-integration-express@beta tenancyjs-identifiers@beta drizzle-orm pg
+```
+Verify all six appear in package.json dependencies.
+
+## Step 2 — Schema
+In `schema.ts`, define an unqualified `pgTable("posts", ...)` (plain public-schema tables are fine) with
+a non-null `tenantId` text column, plus a `tenants` table with `id` and `status`. Do NOT add a `tenantId`
+filter in application code — the RLS policy enforces it.
+
+## Step 3 — Forced-RLS migration (the enforcement layer)
+This is what actually isolates tenants. Write a migration run as the DATABASE OWNER that:
+- Installs the `posts` table (and any other tenant tables).
+- Runs `ALTER TABLE posts ENABLE ROW LEVEL SECURITY;` and `ALTER TABLE posts FORCE ROW LEVEL SECURITY;`
+  (FORCE so the owner is not exempt).
+- Creates a policy named exactly `posts_tenant_isolation` that reads the request GUCs:
+  `USING (tenant_id = current_setting('tenancyjs.tenant_id', true)
+    OR current_setting('tenancyjs.is_central', true) = 'true')`
+  with the same expression `WITH CHECK`.
+Then confirm the RUNTIME role the app connects as is NOT the table owner, NOT `BYPASSRLS`, and NOT a
+superuser — otherwise RLS is silently skipped. Grant it only `SELECT/INSERT/UPDATE/DELETE` on the tables.
+Verify: `\d+ posts` shows RLS enabled + forced and the policy present.
+
+## Step 4 — tenancy.ts (the single source of truth)
+Create `tenancy.ts`. It must:
+- Construct ONE `TenancyManager<Tenant>` and export it.
+- Build the native Drizzle db `drizzle({ client: pool })` (from `drizzle-orm/node-postgres`, `pg` Pool)
+  and keep it PRIVATE to this module.
+- Create the adapter with `createDrizzleTenancy({ manager, database:
+  createPostgresDrizzleBinding(db), tenantTables: [{ table: posts, policyName: "posts_tenant_isolation" }] })`
+  (both factories from `tenancyjs-adapter-drizzle`). Export the returned `tenancy`.
+- Build a `TenantResolutionChain` with `new HeaderTenantResolver()` and a store whose `find(identifier)`
+  returns `[{ tenant: { id }, status }]` (or `[]`).
+- Export `manager`, `resolver`, and `tenancy`. Do NOT export the native `db`.
+
+## Step 5 — Validate before serving
+Call `await tenancy.validate()` during startup, before `app.listen`. It verifies the non-privileged
+runtime role, enabled + forced RLS, and the reviewed policy contract. If it throws, the wiring is wrong —
+do not start the server.
+
+## Step 6 — Wire the middleware
+In `server.ts`, register `app.use(createExpressTenancyMiddleware({ manager, resolver }))` BEFORE any
+routes. The `resolver` is the `TenantResolutionChain` object — NOT a `(req) => …` function.
+
+## Step 7 — Query inside a scope
+For every route that touches tenant data, query through `tenancy.run((client) => client.table(posts)...)`.
+NEVER use the native drizzle db inside a scope. Do NOT add manual `where tenantId` filters — RLS does it.
+
+## Step 8 — Central (cross-tenant) work
+For admin/cross-tenant handlers, wrap the work in
+`manager.runInCentralContext(() => tenancy.run((client) => ...))`. Unscoped tenant access must fail closed.
+
+## Step 9 — Error handling
+Add an Express error handler that maps `ExpressTenancyResolutionError` (and any error with a numeric
+`.statusCode`) to a 400/404 JSON response — otherwise resolution failures surface as an unhandled 500.
+
+## Step 10 — Prove it
+Create a two-tenant test (Vitest or Jest): write a row under tenant A and tenant B with the SAME primary
+key, assert querying as A never returns B's row, AND assert that a raw query run as the runtime role with
+NO GUC set returns 0 rows (proves the DB — not the facade — enforces it). Follow
+https://tenancyjs.pages.dev/docs/guides/testing-isolation.
+
+## Step 11 — Verify
+- `npm run build` (or `tsc --noEmit`) — report errors.
+- Boot the app (`npm start`); confirm `tenancy.validate()` passes and it serves.
+- Run the two-tenant test and report the result.
+
+Report a summary of every file created/changed and any issue found.
+````
+
+<Callout type="warn">
+  AI wiring is a starting point, not proof. The only thing that demonstrates isolation is the two-tenant
+  colliding-id test in Step 10 — plus the no-GUC raw read returning zero rows — run both before you trust
+  the result.
+</Callout>
+
+## Manual walkthrough
+
+Prefer to wire it yourself? The same steps, with the code.
+
+<Steps>
+
+<Step>
+### Install
+
+```bash
+npm install tenancyjs-core@beta tenancyjs-adapter-drizzle@beta tenancyjs-integration-express@beta tenancyjs-identifiers@beta drizzle-orm pg
+```
+</Step>
+
+<Step>
+### Schema — plain public-schema tables
+
+Row mode needs no special schema. Use an unqualified `pgTable`; RLS does the isolating.
+
+```ts title="schema.ts"
+import { pgTable, text } from "drizzle-orm/pg-core";
+
+export const posts = pgTable("posts", {
+  id: text("id").primaryKey(),
+  tenantId: text("tenant_id").notNull(),
+  title: text("title").notNull(),
+});
+```
+</Step>
+
+<Step>
+### The forced-RLS migration (the enforcement layer)
+
+Run this as the **database owner**. FORCE means even the owner obeys the policy; the app connects as a
+separate, non-privileged runtime role.
+
+```sql title="migrations/0001_rls.sql"
+ALTER TABLE posts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE posts FORCE ROW LEVEL SECURITY;
+
+CREATE POLICY posts_tenant_isolation ON posts
+  USING (
+    tenant_id = current_setting('tenancyjs.tenant_id', true)
+    OR current_setting('tenancyjs.is_central', true) = 'true'
+  )
+  WITH CHECK (
+    tenant_id = current_setting('tenancyjs.tenant_id', true)
+    OR current_setting('tenancyjs.is_central', true) = 'true'
+  );
+
+-- The app connects as this role: NOT the owner, NOT BYPASSRLS, NOT superuser.
+GRANT SELECT, INSERT, UPDATE, DELETE ON posts TO app_runtime;
+```
+
+<Callout type="warn">
+  If the runtime role owns the table, has `BYPASSRLS`, or is a superuser, RLS is silently skipped and
+  every tenant sees every row. `tenancy.validate()` checks for this — let it.
+</Callout>
+</Step>
+
+<Step>
+### One `tenancy.ts`
+
+The manager, the protected client, and the resolver all live here — one source of truth. The native
+`db` stays private.
+
+```ts title="tenancy.ts"
+import { TenancyManager, type TenantRecord } from "tenancyjs-core";
+import {
+  createDrizzleTenancy,
+  createPostgresDrizzleBinding,
+} from "tenancyjs-adapter-drizzle";
+import { HeaderTenantResolver, TenantResolutionChain } from "tenancyjs-identifiers";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
+import { posts } from "./schema";
+
+interface Tenant extends TenantRecord {
+  readonly id: string;
+}
+
+export const manager = new TenancyManager<Tenant>();
+
+// Connect as the NON-privileged runtime role; keep the native db private.
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const db = drizzle({ client: pool });
+
+export const tenancy = createDrizzleTenancy({
+  manager,
+  database: createPostgresDrizzleBinding(db),
+  tenantTables: [{ table: posts, policyName: "posts_tenant_isolation" }],
+});
+
+export const resolver = new TenantResolutionChain<Tenant>({
+  resolvers: [new HeaderTenantResolver({ headerName: "x-tenant-id" })],
+  store: {
+    async find(identifier) {
+      const tenant = await lookupTenant(identifier.value);
+      return tenant ? [{ tenant: { id: tenant.id }, status: tenant.status }] : [];
+    },
+  },
+});
+```
+</Step>
+
+<Step>
+### Validate, then wire the middleware
+
+Call `tenancy.validate()` before serving — it proves the runtime role, forced RLS, and the policy
+contract. Register the middleware before your routes; query only inside `tenancy.run(...)`.
+
+```ts title="server.ts"
+import express from "express";
+import { createExpressTenancyMiddleware } from "tenancyjs-integration-express";
+import { manager, resolver, tenancy } from "./tenancy";
+import { posts } from "./schema";
+
+const app = express();
+
+await tenancy.validate(); // fail closed at startup if the DB isn't locked down
+
+app.use(createExpressTenancyMiddleware({ manager, resolver }));
+
+app.get("/posts", async (_req, res) => {
+  // Query inside the scope — never the native db. RLS injects the predicate.
+  const rows = await tenancy.run((client) => client.table(posts).findMany());
+  res.json(rows);
+});
+
+// Map ExpressTenancyResolutionError (and any .statusCode error) to 400/404.
+app.use((err, _req, res, next) => {
+  if (typeof err?.statusCode === "number")
+    res.status(err.statusCode).json({ error: err.message });
+  else next(err);
+});
+
+app.listen(3000);
+```
+</Step>
+
+<Step>
+### Prove isolation
+
+Write the [two-tenant colliding-id test](/docs/guides/testing-isolation): same primary key under A and
+B, assert A never reads B's row — **and** assert a raw query as the runtime role with no `tenancyjs.*`
+GUC set returns 0 rows. That second assertion proves the database, not the facade, enforces isolation.
+</Step>
+
+</Steps>
+
+<Callout type="info">
+  Cross-tenant admin work runs in an explicit central scope —
+  `manager.runInCentralContext(() => tenancy.run((client) => …))`. There is no request-controlled central
+  mode; a resolution failure fails closed, never central.
+</Callout>
+
+Full lifecycle and the security boundary: [Express integration](/docs/integrations/express) ·
+[Drizzle adapter](/docs/adapters/drizzle) · [Limitations](/docs/concepts/limitations).

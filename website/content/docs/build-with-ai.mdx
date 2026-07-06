@@ -1,129 +1,51 @@
 ---
 title: Build with AI
-description: Copy a prompt, paste it into your AI coding assistant, and let it wire up fail-closed tenant isolation — pointed at the exact docs and the rules that stop it from leaking.
+description: Copy a prompt, paste it into your AI coding assistant, and let it wire up fail-closed tenant isolation - pointed at the exact docs and the rules that stop it from leaking.
 ---
 
-Adding tenant isolation is mechanical but easy to get subtly wrong — the dangerous mistakes are the ones
+Adding tenant isolation is mechanical but easy to get subtly wrong - the dangerous mistakes are the ones
 that _don't_ throw. These prompts hand your AI assistant (Claude, Cursor, Copilot, Windsurf, …) the exact
 docs to read and the fail-closed rules to follow, so it builds the wiring for your stack instead of
 guessing a leaky shortcut.
 
 <Callout type="info">
-  **How to use it:** pick your framework + ORM + strategy, copy the [universal prompt](#the-universal-prompt),
-  fill the `{{placeholders}}` using the [reference table](#fill-in-reference), and paste it into an
-  assistant that can fetch URLs. Then **review the result and run the two-tenant test it writes** — with
-  fail-closed isolation, you verify, you don't trust.
+  **How to use it:** open the setup-agent prompt for your stack below, copy it whole, and paste it into
+  an assistant that can edit your repo (Claude Code, Cursor, …). It executes step by step and verifies
+  each change. Then **run the two-tenant test it writes** - with fail-closed isolation, you verify, you
+  don't trust.
 </Callout>
 
-## The universal prompt
+## Full setup-agent prompts
 
-Works for any framework × ORM × strategy. Replace every `{{placeholder}}` (the [reference table](#fill-in-reference)
-tells you what to put where), then paste.
+These are complete, imperative, verify-after-each-step prompts - no placeholders to fill. Each drives an
+AI agent through the entire wire-up for one stack and finishes by proving isolation.
 
-```text
-You are adding fail-closed multi-tenancy to my app with TenancyJS (https://tenancyjs.pages.dev).
-
-My stack:
-- Framework:  {{FRAMEWORK — Express | Next.js | NestJS | AdonisJS}}
-- ORM:        {{ORM — Prisma | Knex | Lucid | TypeORM | Sequelize | Drizzle | Mongoose}}
-- Database:   {{DATABASE — PostgreSQL | MySQL | MongoDB}}
-- Strategy:   {{STRATEGY — row-level | schema-per-tenant | database-per-tenant}}
-- Resolve the tenant from: {{TENANT SOURCE — subdomain | header X-Tenant-Id | JWT claim | path param}}
-
-Before writing ANY code, fetch and read these docs. They are the source of truth — do not guess the API:
-- https://tenancyjs.pages.dev/docs  (the mental model: strategy × adapter × integration, and THE RULES)
-- https://tenancyjs.pages.dev/docs/getting-started/quickstart  (end-to-end wiring)
-- https://tenancyjs.pages.dev/docs/adapters/{{ORM_SLUG}}  (the exact adapter API for my ORM)
-- https://tenancyjs.pages.dev/docs/integrations/{{FRAMEWORK_SLUG}}  (binding tenant context to each request)
-- https://tenancyjs.pages.dev/docs/strategies/{{STRATEGY_SLUG}}  (how my strategy is enforced)
-- https://tenancyjs.pages.dev/docs/guides/resolving-tenants  (resolving the tenant from a request)
-- https://tenancyjs.pages.dev/docs/concepts/limitations  (what is REJECTED and must NOT be used)
-- https://tenancyjs.pages.dev/docs/guides/testing-isolation  (how to prove isolation)
-
-Install (beta channel):
-  npm install tenancyjs-core@beta tenancyjs-adapter-{{ORM_SLUG}}@beta tenancyjs-integration-{{FRAMEWORK_PKG}}@beta {{ORM_PEER}}
-
-Then build, in this order:
-1. Create ONE TenancyManager<Tenant> and export it.
-2. Create the {{ORM}} adapter with strategy "{{STRATEGY}}", registering my tenant-scoped models/tables.
-   Get the exact factory name and options from the adapter doc above.
-3. Wire the {{FRAMEWORK}} integration so every request resolves the tenant from {{TENANT SOURCE}} and
-   opens a tenant scope (middleware / provider / config — see the integration doc).
-4. Convert my data access so every tenant query runs through the scoped client the adapter gives me
-   inside a scope. Remove manual "WHERE tenant_id = ?" filters — the adapter injects them.
-5. For admin / cross-tenant work, use the CENTRAL scope explicitly (see the integration doc). Never run
-   tenant-aware queries with no scope.
-
-Follow these rules EXACTLY — this is the entire point, do not weaken them:
-- Fail-closed: outside a valid tenant scope, tenant-aware access MUST throw. Do not add any fallback that
-  returns unscoped data.
-- Never use the native ORM client / model / connection / collection inside a scope — it bypasses the
-  facade (a direct cross-tenant leak on MySQL/MongoDB, which have no database backstop). Use only the
-  scoped client.
-- Raw SQL and nested/relational writes are REJECTED by the facade. They are safe ONLY in a
-  database-per-tenant scope, via the adapter's `unrestricted()` escape hatch (see the adapter doc). Do
-  not work around the facade any other way.
-- Only registered models/tables and plain scalar filter criteria are allowed.
-
-Deliver:
-- The tenancy config/module, the per-request wiring, and the converted data-access code.
-- A two-tenant test: create tenant A and tenant B with the SAME primary key, write a row under each, and
-  assert that querying as A never returns B's row — and that tenant-aware access with no scope throws.
-  Follow the testing-isolation guide.
-
-If any detail isn't in the docs above, FETCH the linked page — never invent an API name.
-```
-
-## Fill-in reference
-
-Use these to replace the placeholders.
-
-### Framework
-
-| Framework | `{{FRAMEWORK_SLUG}}` (docs) | `{{FRAMEWORK_PKG}}` (package) |
-| --- | --- | --- |
-| Express | `express` | `express` |
-| Next.js | `nextjs` | `next` |
-| NestJS | `nestjs` | `nest` |
-| AdonisJS | `adonis` | `adonis` |
-
-<Callout type="warn">
-  The docs slug and the package suffix differ for Next.js and NestJS — the doc is `/integrations/nextjs`
-  but the package is `tenancyjs-integration-next`; the doc is `/integrations/nestjs` but the package is
-  `tenancyjs-integration-nest`. Use each column as labelled.
-</Callout>
-
-### ORM adapter
-
-| ORM | `{{ORM_SLUG}}` | `{{ORM_PEER}}` (peer to install) | Strategies |
-| --- | --- | --- | --- |
-| Prisma | `prisma` | `@prisma/client` | row-level, schema-per-tenant, database-per-tenant |
-| Knex | `knex` | `knex` | all three (PostgreSQL) |
-| Lucid | `lucid` | `@adonisjs/lucid` | all three on PostgreSQL; database-per-tenant on MySQL |
-| TypeORM | `typeorm` | `typeorm` + `pg`/`mysql2` | row-level, schema-per-tenant, database-per-tenant |
-| Sequelize | `sequelize` | `sequelize` + `pg`/`mysql2` | row-level, schema-per-tenant, database-per-tenant |
-| Drizzle | `drizzle` | `drizzle-orm` | row-level, schema-per-tenant, database-per-tenant |
-| Mongoose | `mongoose` | `mongoose` | row-level, database-per-tenant (MongoDB) |
-
-`{{STRATEGY_SLUG}}` is `row-level`, `schema-per-tenant`, or `database-per-tenant`.
+<Cards>
+  <Card
+    title="NestJS + Prisma"
+    href="/docs/stacks/nestjs-prisma#setup-agent-prompt"
+    description="Row-level on PostgreSQL - the full setup-agent prompt plus a manual walkthrough."
+  />
+</Cards>
 
 <Callout type="info">
-  **Lucid pairs with AdonisJS** (`tenancyjs-integration-adonis`). **Schema-per-tenant is PostgreSQL-only**,
-  and **MySQL row-level is experimental** — the [capability matrix](/docs/concepts/capability-matrix)
-  shows exactly what's tested for your database.
+  More stacks are being turned into full setup-agent prompts. Until yours has a dedicated page, the quick
+  prompts below get an assistant most of the way - it still fetches the linked docs for the exact API.
+  Every adapter and integration page is written to be read by an agent.
 </Callout>
 
-## Ready-made examples
+## Quick prompts
 
-Fully-filled prompts you can copy as-is (or adapt).
-
+Copy as-is (or adapt). Shorter than the full setup-agent prompts above - they point the assistant at the
+docs and the rules rather than spelling out every file.
+ 
 ### Express + Prisma, row-level on PostgreSQL
 
 ```text
 You are adding fail-closed multi-tenancy to my Express + Prisma app on PostgreSQL with TenancyJS,
 using the row-level strategy. Resolve the tenant from the subdomain.
 
-Read first (source of truth — do not guess the API):
+Read first (source of truth - do not guess the API):
 - https://tenancyjs.pages.dev/docs                              (mental model + THE RULES)
 - https://tenancyjs.pages.dev/docs/getting-started/quickstart
 - https://tenancyjs.pages.dev/docs/adapters/prisma
@@ -140,7 +62,7 @@ registering my tenant models; (3) Express middleware that resolves the tenant fr
 opens the scope; (4) route all tenant queries through the scoped client (drop manual tenant filters);
 (5) central scope for admin work.
 
-Rules (do not weaken): fail-closed — unscoped tenant access must throw; never touch the native Prisma
+Rules (do not weaken): fail-closed - unscoped tenant access must throw; never touch the native Prisma
 client inside a scope; raw/nested writes are rejected by the facade; registered models + scalar filters
 only. On PostgreSQL row-level, also add the forced RLS policy the adapter doc describes.
 
@@ -154,7 +76,7 @@ cross-tenant read and that unscoped access throws. Fetch any linked page rather 
 You are adding fail-closed multi-tenancy to my AdonisJS + Lucid app on PostgreSQL with TenancyJS, using
 the schema-per-tenant strategy (one Postgres schema per tenant). Resolve the tenant from a header.
 
-Read first (source of truth — do not guess the API):
+Read first (source of truth - do not guess the API):
 - https://tenancyjs.pages.dev/docs                              (mental model + THE RULES)
 - https://tenancyjs.pages.dev/docs/getting-started/quickstart
 - https://tenancyjs.pages.dev/docs/adapters/lucid
@@ -163,15 +85,15 @@ Read first (source of truth — do not guess the API):
 - https://tenancyjs.pages.dev/docs/concepts/limitations         (what is REJECTED)
 - https://tenancyjs.pages.dev/docs/guides/testing-isolation
 
-Tip: `npx tenancy init` scaffolds AdonisJS + Lucid end to end — use it, then adapt.
+Tip: `npx tenancy init` scaffolds AdonisJS + Lucid end to end - use it, then adapt.
 Install: npm install tenancyjs-core@beta tenancyjs-adapter-lucid@beta tenancyjs-integration-adonis@beta
 
 Build: (1) config/tenancy.ts with a TenancyManager<Tenant> and the Lucid adapter, strategy
 "schemaPerTenant", schema: (tenant) => `tenant_${tenant.id}`; (2) register the integration provider +
-middleware; (3) my Lucid models are then scoped automatically — no per-query tenant filters; (4) use the
+middleware; (3) my Lucid models are then scoped automatically - no per-query tenant filters; (4) use the
 central context for admin work.
 
-Rules (do not weaken): fail-closed — unscoped tenant access must throw; never reach for the raw Lucid
+Rules (do not weaken): fail-closed - unscoped tenant access must throw; never reach for the raw Lucid
 connection inside a scope; raw queries and nested writes are rejected on the facade (they only work in a
 database-per-tenant scope via scope.unrestricted()); registered models + scalar filters only.
 
@@ -182,7 +104,7 @@ than inventing an API.
 
 <Callout type="warn">
   AI-generated wiring is a starting point, not proof. **Always run the two-tenant colliding-id test** the
-  prompt asks for — that's the only thing that actually demonstrates isolation. See
+  prompt asks for - that's the only thing that actually demonstrates isolation. See
   [Testing isolation](/docs/guides/testing-isolation) and the honest
   [Limitations](/docs/concepts/limitations).
 </Callout>

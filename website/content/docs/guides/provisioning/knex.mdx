@@ -1,0 +1,116 @@
+---
+title: Knex — provisioning
+description: Create and migrate each tenant's schema or database with Knex's programmatic migrator, driven by the tenancy CLI.
+---
+
+This recipe implements the [provisioner hooks](/docs/getting-started/configuration) for **Knex** so
+`tenancy tenant provision | migrate | deprovision` create, migrate, and drop each tenant's placement.
+Routing (leasing the tenant's Knex at request time) is on the [Knex adapter page](/docs/adapters/knex);
+this page is only the setup seam TenancyJS leaves to you.
+
+Knex is PostgreSQL-only here, and it ships a programmatic migrator — so the `migrate` hook opens a
+Knex instance scoped to the tenant's placement and calls `migrate.latest()`. DDL runs on a privileged
+`pg` pool, never your fail-closed runtime role.
+
+```ts title="provisioning.ts"
+import Knex from "knex";
+import { Pool } from "pg";
+
+// Admin/maintenance connection allowed to create schemas and databases.
+const admin = new Pool({ connectionString: process.env.ADMIN_DATABASE_URL });
+
+const schemaOf = (id: string) => `tenant_${id}`; // your placement naming
+const dbOf = (id: string) => `tenant_${id}`;
+
+// Migrate a placement, then tear the throwaway connection down.
+async function migrateWith(config: Knex.Config): Promise<void> {
+  const tenantKnex = Knex(config);
+  try {
+    await tenantKnex.migrate.latest();
+  } finally {
+    await tenantKnex.destroy();
+  }
+}
+```
+
+## Schema-per-tenant (PostgreSQL)
+
+One Postgres schema per tenant in a shared database. A throwaway Knex points its `searchPath` at the
+tenant's schema, so `migrate.latest()` — and the `knex_migrations` bookkeeping table — land there.
+
+```ts title="tenancy.config.ts"
+import { defineTenancyRuntime } from "tenancyjs-core";
+
+const baseUrl = process.env.DATABASE_URL!; // e.g. postgres://…/app
+
+export default defineTenancyRuntime({
+  manager,
+  store,
+  adapters: [tenancy], // createKnexTenancy({ strategy: "schemaPerTenant", … }) — see the adapter page
+  provisioner: {
+    provision: async (tenant) => {
+      await admin.query(`create schema if not exists "${schemaOf(tenant.id)}"`);
+    },
+    migrate: async (tenant) => {
+      await migrateWith({
+        client: "pg",
+        connection: { connectionString: baseUrl, searchPath: [schemaOf(tenant.id)] },
+        migrations: { directory: "./migrations" },
+      });
+    },
+    deprovision: async (tenant) => {
+      await admin.query(`drop schema if exists "${schemaOf(tenant.id)}" cascade`);
+    },
+  },
+  dispose: () => admin.end(),
+});
+```
+
+## Database-per-tenant
+
+A separate database per tenant. `CREATE DATABASE` cannot run inside a transaction and must target a
+maintenance database (e.g. `postgres`), which is what the `admin` pool connects to. The `migrate` hook
+opens a Knex pointed at the tenant's own database.
+
+```ts
+provisioner: {
+  provision: async (tenant) => {
+    // Identifier is quoted; the id is validated by the store, but keep placement
+    // names to [a-z0-9_] so quoting is the only escaping you rely on.
+    await admin.query(`create database "${dbOf(tenant.id)}"`);
+  },
+  migrate: async (tenant) => {
+    await migrateWith({
+      client: "pg",
+      connection: connectionStringFor(dbOf(tenant.id)), // your per-db URL
+      migrations: { directory: "./migrations" },
+    });
+  },
+  deprovision: async (tenant) => {
+    await admin.query(`drop database if exists "${dbOf(tenant.id)}" with (force)`);
+  },
+},
+```
+
+## Run the flow
+
+```bash
+npx tenancy tenant create acme --set plan=pro   # 1. record + placement
+npx tenancy tenant provision acme               # 2. create schema/database
+npx tenancy tenant migrate acme                 # 3. knex migrate.latest()
+npx tenancy test:leak --test-file ./leak.mjs    # 4. prove isolation before trusting it
+```
+
+Roll a new migration out to everyone with `npx tenancy tenant migrate --all` — it reports each
+tenant's outcome and exits non-zero if any fail, so it's safe in CI.
+
+## Notes
+
+- Placement identifiers are **quoted** everywhere (`"tenant_x"`); keep names to `[a-z0-9_]` so quoting
+  is the only escaping you depend on. `CREATE DATABASE` must run on the maintenance db and outside a
+  transaction — the `admin` pool is exactly that seam.
+- Keep `provision` **idempotent** (`if not exists`) — the CLI may retry, and a half-onboarded tenant
+  should be safe to re-provision. `migrate.latest()` is already idempotent via `knex_migrations`.
+- Routing validates the schema/database **already exists**; a tenant that hasn't been provisioned +
+  migrated fails closed on its first request rather than lazily creating storage. Provision before you
+  flip the tenant to `active`.

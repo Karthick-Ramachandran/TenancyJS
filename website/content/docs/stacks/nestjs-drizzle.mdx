@@ -1,0 +1,291 @@
+---
+title: NestJS + Drizzle setup
+description: Wire fail-closed multi-tenancy into a NestJS 11 + Drizzle app on PostgreSQL — a copy-pasteable setup-agent prompt, plus the manual walkthrough.
+---
+
+`tenancy init` doesn't scaffold NestJS yet, so this stack is a manual wire-up — a few files. This page
+gives you two ways to do it: hand the **setup-agent prompt** to your AI assistant, or follow the
+**manual walkthrough**. Either way, finish by running the two-tenant test — with fail-closed isolation
+you verify, you don't trust.
+
+This is **row-level** on PostgreSQL. The Drizzle adapter is a **callback facade backed by forced RLS**:
+the database enforces isolation, so a runtime role that is non-owner, non-`BYPASSRLS`, and non-superuser
+cannot read across tenants even on a raw connection. Call `tenancy.run((client) => …)` inside a
+`@TenantRoute()` handler; never reach for the native Drizzle db.
+
+## Setup-agent prompt
+
+Paste this into an assistant that can edit your repo and run commands (Claude Code, Cursor, …). It
+executes in order and verifies each step. It's pinned to the real API, so it won't invent factory names.
+
+````text
+# TenancyJS Setup Agent — NestJS 11 + Drizzle (row-level, PostgreSQL)
+
+You are a setup agent. Add fail-closed multi-tenancy to this NestJS + Drizzle project with TenancyJS.
+Execute every step in order. After each step, verify it applied before continuing. If a step does not
+apply, say so and continue. Do NOT invent API names — if unsure, fetch the linked doc.
+
+Source of truth (fetch if a detail is missing, do not guess):
+- https://tenancyjs.pages.dev/docs/adapters/drizzle
+- https://tenancyjs.pages.dev/docs/integrations/nestjs
+- https://tenancyjs.pages.dev/docs/concepts/limitations
+- https://tenancyjs.pages.dev/docs/guides/testing-isolation
+
+## Pre-flight
+- Run `node -v`; abort if it is not >= 24.
+- Confirm `@nestjs/core` (v11) and `drizzle-orm` are in package.json. Abort if this is not a
+  NestJS + Drizzle project.
+- Confirm the database is PostgreSQL (row-level here is RLS-enforced; there is no MySQL RLS).
+
+## Step 1 — Install
+Run:
+```sh
+npm install tenancyjs-core@beta tenancyjs-adapter-drizzle@beta tenancyjs-integration-nest@beta tenancyjs-identifiers@beta drizzle-orm pg
+```
+Verify all six appear in package.json dependencies.
+
+## Step 2 — Schema
+In `src/schema.ts`, ensure an unqualified `pgTable` for each tenant-owned table (e.g. `posts`) with a
+non-null `tenantId text` column, plus a `tenants` table with `id text primary key` and
+`status text default 'active'`. Do NOT qualify the tables with a schema — row mode uses the shared
+schema and RLS does the isolation. Verify each tenant table carries a `tenantId`.
+
+## Step 3 — Forced-RLS migration (the database is the enforcer)
+Write a migration run by a DATABASE OWNER role that:
+- Creates the tables from Step 2.
+- Creates a runtime role that is NOT the owner and is NOT `BYPASSRLS` / `SUPERUSER`; the app connects
+  as THIS role. Grant it only SELECT/INSERT/UPDATE/DELETE on the tenant tables.
+- For each tenant table: `ALTER TABLE posts ENABLE ROW LEVEL SECURITY;` and
+  `ALTER TABLE posts FORCE ROW LEVEL SECURITY;`
+- Creates the policy the adapter validates, reading the GUCs the adapter sets per scope:
+  ```sql
+  CREATE POLICY posts_tenant_isolation ON posts
+    USING (
+      current_setting('tenancyjs.is_central', true) = 'on'
+      OR tenant_id = current_setting('tenancyjs.tenant_id', true)
+    )
+    WITH CHECK (
+      current_setting('tenancyjs.is_central', true) = 'on'
+      OR tenant_id = current_setting('tenancyjs.tenant_id', true)
+    );
+  ```
+Verify: `\d posts` shows RLS enabled AND forced, and the app's connection string uses the runtime role.
+
+## Step 4 — tenancy.ts (the single source of truth)
+Create `src/tenancy.ts`. It must:
+- Construct ONE `TenancyManager<Tenant>` and export it.
+- Build a `Pool` from `pg` against the RUNTIME role's connection string.
+- Create the adapter:
+  `createDrizzleTenancy({ manager, database: createPostgresDrizzleBinding(drizzle({ client: pool })), tenantTables: [{ table: posts, policyName: "posts_tenant_isolation" }] })`
+  (`createDrizzleTenancy`, `createPostgresDrizzleBinding` from `tenancyjs-adapter-drizzle`;
+  `drizzle` from `drizzle-orm/node-postgres`).
+- Build a `TenantResolutionChain` with `new HeaderTenantResolver()` and a store whose `find(identifier)`
+  looks the tenant up and returns `[{ tenant: { id }, status }]` (or `[]`).
+- Export `manager`, `resolver`, and the adapter as `tenancy`.
+
+## Step 5 — Validate at boot
+At application bootstrap (e.g. in `main.ts` before `listen`), `await tenancy.validate()`. This checks
+the runtime role is non-privileged, RLS is enabled AND forced, and the policy contract matches. If it
+throws, the wiring is wrong — do not start serving.
+
+## Step 6 — Register TenancyModule
+In `app.module.ts`, add `TenancyModule.forRoot({ manager, resolver })` to imports (import both from
+`./tenancy`). Do not register a second guard/interceptor.
+
+## Step 7 — Scope the routes
+For every controller handler that touches tenant data:
+- Add `@TenantRoute()` (from `tenancyjs-integration-nest`).
+- Run queries via `tenancy.run((client) => client.table(posts).findMany(...))`. Do NOT add manual
+  `where tenantId` filters and do NOT touch the native Drizzle db. Leave public routes unmarked.
+
+## Step 8 — Central (cross-tenant) work
+For admin/cross-tenant handlers, wrap the work in
+`manager.runInCentralContext(() => tenancy.run((client) => …))`. Unscoped tenant access must throw;
+there is no request-controlled central mode.
+
+## Step 9 — Prove it
+Create a two-tenant test (Vitest or Jest): create tenant A and tenant B, write a row under EACH with the
+SAME primary key, assert querying as A never returns B's row, AND — because RLS is the backstop — assert
+that a RAW query on the runtime role's connection with no GUC set returns 0 rows. Follow
+https://tenancyjs.pages.dev/docs/guides/testing-isolation.
+
+## Step 10 — Verify
+- `npx nest build` (or `npm run build`) — report errors.
+- Boot the app (`npm run start`); confirm `tenancy.validate()` passes and it serves.
+- Run the two-tenant test and report the result.
+
+Report a summary of every file created/changed and any issue found.
+````
+
+<Callout type="warn">
+  AI wiring is a starting point, not proof. The only thing that demonstrates isolation is the two-tenant
+  colliding-id test in Step 9 — including the raw-connection check — run it before you trust the result.
+</Callout>
+
+## Manual walkthrough
+
+Prefer to wire it yourself? The same steps, with the code.
+
+<Steps>
+
+<Step>
+### Install
+
+```bash
+npm install tenancyjs-core@beta tenancyjs-adapter-drizzle@beta tenancyjs-integration-nest@beta tenancyjs-identifiers@beta drizzle-orm pg
+```
+</Step>
+
+<Step>
+### Forced-RLS migration
+
+Run this as the **owner** role. The app connects as a separate, non-privileged **runtime** role — one
+that is not the table owner and has neither `BYPASSRLS` nor `SUPERUSER`, so RLS actually applies to it.
+
+```sql
+CREATE TABLE posts (id text primary key, tenant_id text not null, title text);
+
+-- App connects as this role; RLS applies because it is non-owner and non-BYPASSRLS.
+CREATE ROLE app_runtime LOGIN PASSWORD '…';
+GRANT SELECT, INSERT, UPDATE, DELETE ON posts TO app_runtime;
+
+ALTER TABLE posts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE posts FORCE  ROW LEVEL SECURITY;
+
+CREATE POLICY posts_tenant_isolation ON posts
+  USING (
+    current_setting('tenancyjs.is_central', true) = 'on'
+    OR tenant_id = current_setting('tenancyjs.tenant_id', true)
+  )
+  WITH CHECK (
+    current_setting('tenancyjs.is_central', true) = 'on'
+    OR tenant_id = current_setting('tenancyjs.tenant_id', true)
+  );
+```
+
+The adapter sets `tenancyjs.tenant_id` and `tenancyjs.is_central` per scope; the database enforces the rest.
+</Step>
+
+<Step>
+### One `tenancy.ts`
+
+The manager, the adapter, and the resolver all live here — one source of truth.
+
+```ts title="src/tenancy.ts"
+import { TenancyManager, type TenantRecord } from "tenancyjs-core";
+import {
+  createDrizzleTenancy,
+  createPostgresDrizzleBinding,
+} from "tenancyjs-adapter-drizzle";
+import { HeaderTenantResolver, TenantResolutionChain } from "tenancyjs-identifiers";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
+import { posts, tenants } from "./schema";
+
+interface Tenant extends TenantRecord {
+  readonly id: string;
+}
+
+export const manager = new TenancyManager<Tenant>();
+
+// Connect as the NON-privileged runtime role — RLS is the enforcer.
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const db = drizzle({ client: pool });
+
+export const tenancy = createDrizzleTenancy({
+  manager,
+  database: createPostgresDrizzleBinding(db),
+  tenantTables: [{ table: posts, policyName: "posts_tenant_isolation" }],
+});
+
+export const resolver = new TenantResolutionChain({
+  resolvers: [new HeaderTenantResolver()], // X-Tenant-Id
+  store: {
+    async find(identifier) {
+      const [row] = await db
+        .select()
+        .from(tenants)
+        .where(eq(tenants.id, identifier.value));
+      return row ? [{ tenant: { id: row.id }, status: row.status }] : [];
+    },
+  },
+});
+```
+</Step>
+
+<Step>
+### Validate at boot
+
+`tenancy.validate()` refuses to unlock unless the runtime role is non-privileged, RLS is enabled and
+forced, and the policy contract matches. Run it before serving.
+
+```ts title="src/main.ts"
+import { NestFactory } from "@nestjs/core";
+import { AppModule } from "./app.module";
+import { tenancy } from "./tenancy";
+
+async function bootstrap() {
+  await tenancy.validate(); // throws if the RLS boundary isn't real
+  const app = await NestFactory.create(AppModule);
+  await app.listen(3000);
+}
+bootstrap();
+```
+</Step>
+
+<Step>
+### Register the module
+
+```ts title="src/app.module.ts"
+import { Module } from "@nestjs/common";
+import { TenancyModule } from "tenancyjs-integration-nest";
+import { manager, resolver } from "./tenancy";
+
+@Module({
+  imports: [TenancyModule.forRoot({ manager, resolver })],
+})
+export class AppModule {}
+```
+</Step>
+
+<Step>
+### Scope your routes
+
+Mark tenant routes; the interceptor opens the scope and `tenancy.run` reads it — no manual `tenantId`
+filter, and never the native db.
+
+```ts title="src/posts.controller.ts"
+import { Controller, Get } from "@nestjs/common";
+import { TenantRoute } from "tenancyjs-integration-nest";
+import { tenancy } from "./tenancy";
+import { posts } from "./schema";
+
+@Controller("posts")
+export class PostsController {
+  @Get()
+  @TenantRoute()
+  list() {
+    return tenancy.run((client) => client.table(posts).findMany());
+  }
+}
+```
+</Step>
+
+<Step>
+### Prove isolation
+
+Write the [two-tenant colliding-id test](/docs/guides/testing-isolation): same primary key under A and
+B, assert A never reads B's row, and — because RLS is the backstop — assert a raw query on the runtime
+role with no GUC set returns 0 rows.
+</Step>
+
+</Steps>
+
+<Callout type="info">
+  Cross-tenant admin work runs in an explicit central scope —
+  `manager.runInCentralContext(() => tenancy.run(…))`. There is no request-controlled central mode; a
+  resolution failure fails closed, never central.
+</Callout>
+
+Full lifecycle and the security boundary: [NestJS integration](/docs/integrations/nestjs) ·
+[Drizzle adapter](/docs/adapters/drizzle) · [Limitations](/docs/concepts/limitations).

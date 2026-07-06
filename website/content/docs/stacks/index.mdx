@@ -1,0 +1,60 @@
+---
+title: Set up your stack
+description: A complete, copy-pasteable setup-agent prompt for each framework + ORM — plus a manual walkthrough. Wire fail-closed multi-tenancy in one paste.
+---
+
+Each page here is a full, imperative **setup-agent prompt** for one stack — hand it to an AI assistant
+(Claude Code, Cursor, …) and it executes the wire-up step by step, verifying each change and finishing
+by proving isolation with a two-tenant test. Every page also has a **manual walkthrough** with the real
+code if you'd rather do it by hand.
+
+This is the "batteries-included, but not out-of-the-box" seam: TenancyJS scopes and fails closed for
+you, but wiring it into your app — and [provisioning each tenant's storage](/docs/guides/provisioning)
+— is a deliberate, reviewed step. These recipes make that step a single paste.
+
+## Pick your stack
+
+### Express
+
+<Cards>
+  <Card title="Express + Prisma" href="/docs/stacks/express-prisma" description="Row-level · PostgreSQL" />
+  <Card title="Express + Knex" href="/docs/stacks/express-knex" description="Row-level (forced RLS) · PostgreSQL" />
+  <Card title="Express + TypeORM" href="/docs/stacks/express-typeorm" description="Row-level (forced RLS) · PostgreSQL" />
+  <Card title="Express + Sequelize" href="/docs/stacks/express-sequelize" description="Row-level (forced RLS) · PostgreSQL" />
+  <Card title="Express + Drizzle" href="/docs/stacks/express-drizzle" description="Row-level (forced RLS) · PostgreSQL" />
+  <Card title="Express + Mongoose" href="/docs/stacks/express-mongoose" description="Row-level · MongoDB" />
+</Cards>
+
+### Next.js
+
+<Cards>
+  <Card title="Next.js + Prisma" href="/docs/stacks/nextjs-prisma" description="Row-level · PostgreSQL" />
+  <Card title="Next.js + Knex" href="/docs/stacks/nextjs-knex" description="Row-level (forced RLS) · PostgreSQL" />
+  <Card title="Next.js + TypeORM" href="/docs/stacks/nextjs-typeorm" description="Row-level (forced RLS) · PostgreSQL" />
+  <Card title="Next.js + Sequelize" href="/docs/stacks/nextjs-sequelize" description="Row-level (forced RLS) · PostgreSQL" />
+  <Card title="Next.js + Drizzle" href="/docs/stacks/nextjs-drizzle" description="Row-level (forced RLS) · PostgreSQL" />
+  <Card title="Next.js + Mongoose" href="/docs/stacks/nextjs-mongoose" description="Row-level · MongoDB" />
+</Cards>
+
+### NestJS
+
+<Cards>
+  <Card title="NestJS + Prisma" href="/docs/stacks/nestjs-prisma" description="Row-level · PostgreSQL" />
+  <Card title="NestJS + Knex" href="/docs/stacks/nestjs-knex" description="Row-level (forced RLS) · PostgreSQL" />
+  <Card title="NestJS + TypeORM" href="/docs/stacks/nestjs-typeorm" description="Row-level (forced RLS) · PostgreSQL" />
+  <Card title="NestJS + Sequelize" href="/docs/stacks/nestjs-sequelize" description="Row-level (forced RLS) · PostgreSQL" />
+  <Card title="NestJS + Drizzle" href="/docs/stacks/nestjs-drizzle" description="Row-level (forced RLS) · PostgreSQL" />
+  <Card title="NestJS + Mongoose" href="/docs/stacks/nestjs-mongoose" description="Row-level · MongoDB" />
+</Cards>
+
+### AdonisJS
+
+<Cards>
+  <Card title="AdonisJS + Lucid" href="/docs/stacks/adonis-lucid" description="Row-level (forced RLS) · PostgreSQL" />
+</Cards>
+
+<Callout type="info">
+  These recipes default to **row-level** — the fastest way to a working, tested isolation boundary. For
+  schema-per-tenant or database-per-tenant, follow the same wiring, then switch the adapter's `strategy`
+  and add the [provisioning recipe](/docs/guides/provisioning) for your ORM.
+</Callout>
