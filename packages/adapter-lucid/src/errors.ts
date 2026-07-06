@@ -29,7 +29,10 @@ export class LucidScopeError extends LucidTenancyError {
 
   constructor(model: string, operation: string) {
     super(
-      `Lucid ${model}.${operation} requires an active createLucidTenancy run callback.`,
+      `${model}.${operation} ran outside a tenant scope. TenancyJS refused it instead of returning ` +
+        `unscoped data (fail-closed). Query tenant-aware models inside tenancy.run(…), or make sure the ` +
+        `request went through the AdonisJS tenancy middleware. ` +
+        `Docs: https://tenancyjs.pages.dev/docs/concepts/tenant-context`,
       "TENANCY_LUCID_SCOPE",
     );
     this.model = model;

@@ -28,8 +28,13 @@ export class TenantContextError extends TenancyError {
   constructor(reason: TenantContextErrorReason) {
     const message =
       reason === "missing"
-        ? "Tenant context is required but no tenancy scope is active."
-        : "Tenant context is unavailable inside an explicit central scope.";
+        ? "No active tenant scope. TenancyJS refused this tenant-aware access instead of " +
+          "returning another tenant's data (this is fail-closed, by design). Run it inside a tenant " +
+          "scope — e.g. manager.runWithTenant(tenant, …) or your framework's tenancy middleware. " +
+          "Docs: https://tenancyjs.pages.dev/docs/concepts/tenant-context"
+        : "You're in the central (cross-tenant) scope, so there is no current tenant. Open a tenant " +
+          "scope if you meant to act as one; use getContext() to read the central marker here. " +
+          "Docs: https://tenancyjs.pages.dev/docs/concepts/tenant-context#central-context";
 
     super(message, "TENANCY_CONTEXT_UNAVAILABLE");
     this.reason = reason;
