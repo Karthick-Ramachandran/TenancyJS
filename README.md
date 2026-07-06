@@ -23,6 +23,16 @@ await tenancy.runWithTenant(tenant, async () => {
 > "supported" cell below is proven by a two-tenant adversarial isolation test on a real database -
 > nothing is marked supported on faith.
 
+## See it in action
+
+Two tenants, each with its own PostgreSQL database. Colliding primary keys stay isolated, forgetting the
+tenant scope throws instead of leaking, a spoofed `x-tenant-id` is refused with a sanitized 404, and a
+leak test proves it - all against a real database.
+
+![TenancyJS database-per-tenant demo](demo/demo.gif)
+
+Run it yourself in [`demo/`](demo/) (Express + Sequelize, database-per-tenant).
+
 ## Install
 
 ```bash

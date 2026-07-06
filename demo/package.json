@@ -1,0 +1,26 @@
+{
+  "name": "tenancyjs-demo-express-sequelize-dpt",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Runnable Express + Sequelize database-per-tenant demo for TenancyJS (used for the README GIF and video).",
+  "engines": { "node": ">=24" },
+  "scripts": {
+    "provision": "node provision.mjs",
+    "demo": "node demo.mjs",
+    "serve": "node server.mjs",
+    "leak": "npx --yes tenancyjs-cli test:leak --test-file tenancy.leak.test.mjs"
+  },
+  "dependencies": {
+    "express": "^5.2.0",
+    "pg": "^8.13.0",
+    "sequelize": "^6.37.0",
+    "tenancyjs-adapter-sequelize": "^0.1.1",
+    "tenancyjs-core": "^0.1.1",
+    "tenancyjs-identifiers": "^0.1.1",
+    "tenancyjs-integration-express": "^0.1.1"
+  },
+  "devDependencies": {
+    "tenancyjs-cli": "^0.1.1"
+  }
+}
