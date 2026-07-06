@@ -13,6 +13,12 @@ Postgres RLS** — the facade rejects unsafe criteria and the database policy is
 query can't escape its tenant scope. The one rule that matters most: only ever call the protected
 `client.model(...)` facade inside `tenancy.run(...)` — never the native Sequelize model.
 
+<Callout type="info">
+  Running **MySQL**? This page is PostgreSQL (row-level + forced RLS). MySQL has no schema-per-tenant
+  and its row-level mode is experimental and facade-only — use
+  [database-per-tenant on MySQL](/docs/stacks/mysql-database-per-tenant) instead.
+</Callout>
+
 ## Setup-agent prompt
 
 Paste this into an assistant that can edit your repo and run commands (Claude Code, Cursor, …). It

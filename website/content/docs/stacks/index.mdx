@@ -53,6 +53,15 @@ you, but wiring it into your app — and [provisioning each tenant's storage](/d
   <Card title="AdonisJS + Lucid" href="/docs/stacks/adonis-lucid" description="Row-level (forced RLS) · PostgreSQL" />
 </Cards>
 
+### MySQL
+
+MySQL has no schema-per-tenant, and row-level is experimental (facade-only, no backstop). The
+production path is database-per-tenant — one page covers every ORM.
+
+<Cards>
+  <Card title="MySQL — database-per-tenant" href="/docs/stacks/mysql-database-per-tenant" description="Prisma · TypeORM · Sequelize · Drizzle · Lucid" />
+</Cards>
+
 <Callout type="info">
   These recipes default to **row-level** — the fastest way to a working, tested isolation boundary. For
   schema-per-tenant or database-per-tenant, follow the same wiring, then switch the adapter's `strategy`

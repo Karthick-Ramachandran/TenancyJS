@@ -13,6 +13,12 @@ RLS**: the facade rejects unsafe criteria (including Symbol-keyed `Op.*` operato
 enforces the tenant boundary a second time. The one rule that matters most: only ever query through the
 protected `client.model(...)` facade — never a native Sequelize model or instance.
 
+<Callout type="info">
+  Running **MySQL**? This page is PostgreSQL (row-level + forced RLS). MySQL has no schema-per-tenant
+  and its row-level mode is experimental and facade-only — use
+  [database-per-tenant on MySQL](/docs/stacks/mysql-database-per-tenant) instead.
+</Callout>
+
 ## Setup-agent prompt
 
 Paste this into an assistant that can edit your repo and run commands (Claude Code, Cursor, …). It

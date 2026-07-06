@@ -12,6 +12,12 @@ This is **row-level** on PostgreSQL, and the Drizzle adapter is a **callback fac
 RLS**: the database enforces isolation, and the protected client only exposes scoped CRUD. The one rule
 that matters most: only ever query inside `tenancy.run(...)` — never touch the native Drizzle `db`.
 
+<Callout type="info">
+  Running **MySQL**? This page is PostgreSQL (row-level + forced RLS). MySQL has no schema-per-tenant
+  and its row-level mode is experimental and facade-only — use
+  [database-per-tenant on MySQL](/docs/stacks/mysql-database-per-tenant) instead.
+</Callout>
+
 ## Setup-agent prompt
 
 Paste this into an assistant that can edit your repo and run commands (Claude Code, Cursor, …). It

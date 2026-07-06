@@ -13,6 +13,12 @@ by **forced RLS**: the database enforces the tenant predicate even if the facade
 rules matter most: only ever expose the **protected repository** (never the native `DataSource` or
 `Repository`), and run the app as a **non-owner** role so `FORCE ROW LEVEL SECURITY` actually binds.
 
+<Callout type="info">
+  Running **MySQL**? This page is PostgreSQL (row-level + forced RLS). MySQL has no schema-per-tenant
+  and its row-level mode is experimental and facade-only — use
+  [database-per-tenant on MySQL](/docs/stacks/mysql-database-per-tenant) instead.
+</Callout>
+
 ## Setup-agent prompt
 
 Paste this into an assistant that can edit your repo and run commands (Claude Code, Cursor, …). It

@@ -12,6 +12,12 @@ This is **row-level** on PostgreSQL. Prisma row-level is _facade-enforced_ (the 
 query arguments; there is no RLS backstop), so the one rule that matters most: only ever expose the
 **extended** client — never the base Prisma client.
 
+<Callout type="info">
+  Running **MySQL**? This page is PostgreSQL (row-level + forced RLS). MySQL has no schema-per-tenant
+  and its row-level mode is experimental and facade-only — use
+  [database-per-tenant on MySQL](/docs/stacks/mysql-database-per-tenant) instead.
+</Callout>
+
 ## Setup-agent prompt
 
 Paste this into an assistant that can edit your repo and run commands (Claude Code, Cursor, …). It

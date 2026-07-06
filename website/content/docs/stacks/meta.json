@@ -20,6 +20,7 @@
     "nestjs-sequelize",
     "nestjs-drizzle",
     "nestjs-mongoose",
-    "adonis-lucid"
+    "adonis-lucid",
+    "mysql-database-per-tenant"
   ]
 }

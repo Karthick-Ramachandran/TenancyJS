@@ -13,6 +13,12 @@ the database enforces isolation, so a runtime role that is non-owner, non-`BYPAS
 cannot read across tenants even on a raw connection. Call `tenancy.run((client) => …)` inside a
 `@TenantRoute()` handler; never reach for the native Drizzle db.
 
+<Callout type="info">
+  Running **MySQL**? This page is PostgreSQL (row-level + forced RLS). MySQL has no schema-per-tenant
+  and its row-level mode is experimental and facade-only — use
+  [database-per-tenant on MySQL](/docs/stacks/mysql-database-per-tenant) instead.
+</Callout>
+
 ## Setup-agent prompt
 
 Paste this into an assistant that can edit your repo and run commands (Claude Code, Cursor, …). It

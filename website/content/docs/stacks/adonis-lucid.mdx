@@ -13,6 +13,12 @@ adapter scopes model operations through Lucid's hooks, and Postgres row-level se
 that refuses cross-tenant rows even if a query slips the facade. That database enforcement is why this
 stack forces RLS — the runtime role can't read another tenant's rows no matter what SQL reaches it.
 
+<Callout type="info">
+  Running **MySQL**? This page is PostgreSQL (row-level + forced RLS). MySQL has no schema-per-tenant
+  and its row-level mode is experimental and facade-only — use
+  [database-per-tenant on MySQL](/docs/stacks/mysql-database-per-tenant) instead.
+</Callout>
+
 ## Setup-agent prompt
 
 Paste this into an assistant that can edit your repo and run commands (Claude Code, Cursor, …). It
