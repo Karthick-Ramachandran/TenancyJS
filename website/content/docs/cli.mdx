@@ -24,6 +24,7 @@ Every operational command:
 ```bash
 npx tenancy init          # scaffold config + wiring for your framework and ORM
 npx tenancy init --framework express --orm drizzle # explicit non-interactive stack
+npx tenancy init --framework express --orm sequelize --strategy database-per-tenant # pick a strategy
 npx tenancy tenant check  # verify the runtime loads and the store works
 ```
 
@@ -101,6 +102,18 @@ npx tenancy tenant deprovision acme   # drop it - explicit id only
   failed and exits non-zero.
 </Callout>
 
+## Generate RLS policy SQL
+
+`tenancy policy` prints review-ready PostgreSQL forced-RLS DDL for your tenant tables - `ENABLE` +
+`FORCE ROW LEVEL SECURITY` and a `<table>_tenant_isolation` policy whose `USING` and `WITH CHECK` read
+`tenancyjs.tenant_id` and `tenancyjs.is_central`. It prints SQL and **executes nothing** (it opens no
+connection), so you review it and apply it with your own migration tool.
+
+```bash
+npx tenancy policy --table posts --table comments --role app_runtime
+npx tenancy policy --table posts --role app_runtime --tenant-column org_id --out db/rls.sql
+```
+
 ## Every command
 
 | Command | Does |
@@ -116,5 +129,6 @@ npx tenancy tenant deprovision acme   # drop it - explicit id only
 | `tenancy run <script> (--tenant <id> \| --central)` | Run a script in a scope |
 | `tenancy doctor` | Inspect a project's static setup |
 | `tenancy test:leak --test-file <path>` | Run a cross-tenant isolation leak test |
+| `tenancy policy --table <t> --role <role>` | Generate forced-RLS policy DDL (prints SQL, runs nothing) |
 
 Add `--json` to any of them for machine-readable, still-redacted output.
