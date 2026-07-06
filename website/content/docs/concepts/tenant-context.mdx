@@ -67,9 +67,34 @@ Adapters run inside a transaction scoped to the tenant, and that scope is torn d
 success or error. There's no context left dangling between requests.
 
 For setup and teardown around each tenant scope - priming a cache, opening a per-tenant resource - the
-manager supports **bootstrappers** and lifecycle listeners (`tenancy.initializing` → `initialized` →
-`ending` → `ended`). A bootstrapper's `revert` always runs if its `bootstrap` ran, even when the scope
-fails, so you never leak a half-open resource.
+manager supports **bootstrappers**. A bootstrapper is an object with a unique `id`, a `bootstrap`, and a
+`revert`; you register them on the manager. `bootstrap` runs on scope entry (in order), `revert` on
+teardown (reverse order) - and `revert` always runs if its `bootstrap` ran, even when the scope fails, so
+you never leak a half-open resource.
+
+```ts
+import { TenancyManager, type TenancyBootstrapper } from "tenancyjs-core";
+
+const cache: TenancyBootstrapper<Tenant> = {
+  id: "cache",
+  bootstrap: (ctx) => openCacheFor(ctx.tenant.id), // prime the per-tenant resource
+  revert: (ctx) => closeCacheFor(ctx.tenant.id), // always runs on teardown
+};
+
+const manager = new TenancyManager<Tenant>({ bootstrappers: [cache] });
+```
+
+You can also subscribe to the scope lifecycle with `manager.on(event, listener)` — it returns an
+unsubscribe function. The events fire in order: `tenancy.initializing` → _(bootstrappers)_ →
+`tenancy.initialized` → your work → `tenancy.ending` → _(reverts)_ → `tenancy.ended`. The `ending` and
+`ended` listeners run even when the scope failed.
+
+```ts
+const off = manager.on("tenancy.initialized", (ctx) => {
+  metrics.increment("tenant.enter", { tenant: ctx.tenant.id });
+});
+// later: off();
+```
 
 <Callout type="info">
   Nesting a scope for a **different** tenant inside an active tenant scope is rejected - it's almost

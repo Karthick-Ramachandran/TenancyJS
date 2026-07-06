@@ -39,9 +39,10 @@ export const tenancy = createLucidTenancy({
 });
 ```
 
-Register the [AdonisJS integration](/docs/integrations/adonis) provider + middleware (the `init`
-scaffold does both). Each request then resolves its tenant and runs scoped, so your Lucid models are
-isolated automatically - no per-query tenant filters:
+Register the [AdonisJS integration](/docs/integrations/adonis#register-the-provider-and-middleware)
+provider + middleware (that section has the exact `adonisrc.ts` and `start/kernel.ts` lines). Each
+request then resolves its tenant and runs scoped, so your Lucid models are isolated automatically - no
+per-query tenant filters:
 
 ```ts
 // inside a controller - already tenant-scoped by the middleware

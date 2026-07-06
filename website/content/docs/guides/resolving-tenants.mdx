@@ -67,10 +67,45 @@ resolver: async (req) => {
 ## Consistent failure semantics
 
 `tenancyjs-identifiers` gives you composable resolvers and a single, consistent mapping from resolution
-outcome to HTTP status - **400** for a missing/invalid identifier, **404** for not-found/suspended - so
-every framework behaves the same way. Reach for it instead of hand-rolling status codes.
+outcome to HTTP status. Compose the resolvers you need and give the chain a store to look the identifier
+up in:
 
-<Callout type="info">
-  A resolver should never "guess" a tenant or fall back to a default on failure. Returning `null` (or
-  throwing) is the safe outcome - it keeps the request from ever running unscoped.
+```ts
+import {
+  HeaderTenantResolver,
+  SubdomainTenantResolver,
+  TenantResolutionChain,
+} from "tenancyjs-identifiers";
+
+const chain = new TenantResolutionChain<Tenant>({
+  resolvers: [
+    new HeaderTenantResolver({ headerName: "x-tenant-id" }),
+    new SubdomainTenantResolver({ centralDomain: "app.example.com" }),
+  ],
+  store: {
+    // Look the identifier up in YOUR store and return the matches.
+    async find(identifier) {
+      const tenant = await lookupTenant(identifier.value);
+      return tenant ? [{ tenant, status: "active" }] : [];
+    },
+  },
+});
+
+const outcome = await chain.resolve({ host: req.host, headers: req.headers });
+if (outcome.status === "resolved") {
+  // outcome.tenant — hand it to manager.runWithTenant(...)
+}
+```
+
+Outcomes map to a status consistently — **400** for `no-identifier`/`invalid`, **404** for
+`not-found`/`suspended` (deliberately indistinguishable), **500** for `ambiguous` (more than one match) —
+so every framework behaves the same way. The Express/Next/Adonis integrations apply this for you; reach
+for the chain directly when you resolve tenants by hand.
+
+<Callout type="warn">
+  This resolution store — `find(identifier) → { tenant, status }[]` — is **not** the same interface as the
+  [registry store](/docs/getting-started/configuration#bring-your-own-tenant-store) the CLI uses (whose
+  `find(id)` returns one tenant or `null`). Same idea, different shapes — don't reuse one object for both.
+  And a resolver must never guess a tenant or fall back to a default; no match is the safe, fail-closed
+  outcome.
 </Callout>

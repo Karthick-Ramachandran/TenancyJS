@@ -90,9 +90,22 @@ export const store: TenantStore<Tenant> = {
 
 ## Placement lives on the record
 
-For schema- and database-per-tenant, put each tenant's placement (its schema name or connection
-reference) on the tenant record your store returns. Provisioning and migration read it from there, so
-there's one source of truth for where a tenant's data lives.
+The **only** field TenancyJS requires on a tenant is `id`. Everything else is yours — including
+*placement*: for schema- and database-per-tenant, put each tenant's schema name or connection reference
+on the tenant record your store returns. Your `connection(tenant)` / `schema(tenant)` callbacks and your
+provisioner hooks read those fields; the library never does. So there's one source of truth for where a
+tenant's data lives, and you name the fields.
+
+```ts
+interface Tenant {
+  readonly id: string; // required — the only field TenancyJS itself reads
+  // everything below is host-defined; name it however you like:
+  readonly name?: string;
+  readonly status?: "active" | "suspended";
+  readonly schemaName?: string; // read by your schema(tenant) callback (schema-per-tenant)
+  readonly databaseKey?: string; // read by your connection(tenant) callback (database-per-tenant)
+}
+```
 
 ## Secrets are redacted
 

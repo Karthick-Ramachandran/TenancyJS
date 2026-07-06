@@ -69,6 +69,17 @@ npx tenancy run ./backfill.ts --tenant acme
 npx tenancy run ./rollup.ts --central
 ```
 
+The script is imported **inside** the scope, so your normal scoped client just works — no context is
+passed in, you import your own `db`:
+
+```ts title="backfill.ts"
+import { db } from "./lib/db";
+
+// Runs scoped to the tenant (or central) the CLI resolved. Top-level code runs;
+// a default export, if present, runs too.
+await db.order.updateMany({ where: { migrated: false }, data: { migrated: true } });
+```
+
 You must pass exactly one of `--tenant <id>` or `--central`; the tenant is resolved (and validated)
 through your store before the script runs.
 

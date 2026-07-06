@@ -19,40 +19,93 @@ npm install tenancyjs-core tenancyjs-integration-next tenancyjs-adapter-prisma @
 
 ## Set up the runtime
 
-```ts title="lib/tenancy.ts"
-import { createNextTenancy } from "tenancyjs-integration-next";
-import { manager } from "./manager";
+Three small files: the manager + resolver, the tenant-scoped client, and the tenancy runtime.
 
-export const tenancy = createNextTenancy({
+```ts title="lib/tenancy/manager.ts"
+import { TenancyManager } from "tenancyjs-core";
+import { createPrismaAdapter } from "tenancyjs-adapter-prisma";
+import {
+  HeaderTenantResolver,
+  TenantResolutionChain,
+} from "tenancyjs-identifiers";
+
+export interface Tenant {
+  readonly id: string;
+}
+
+export const manager = new TenancyManager<Tenant>();
+
+// Classify each tenant-scoped Prisma model. `{}` uses the default "tenantId" field.
+export const adapter = createPrismaAdapter<Tenant>({
   manager,
-  resolver: (request) => ({ id: request.headers.get("x-tenant") ?? "" }),
+  tenantModels: { Order: {}, Post: {} },
 });
+
+// The resolver reads the request, then looks the tenant up in YOUR store.
+export const resolver = new TenantResolutionChain<Tenant>({
+  resolvers: [new HeaderTenantResolver({ headerName: "x-tenant-id" })],
+  store: {
+    async find(identifier) {
+      const tenant = await lookupTenant(identifier.value);
+      return tenant ? [{ tenant, status: "active" }] : [];
+    },
+  },
+});
+```
+
+```ts title="lib/db.ts"
+import { PrismaClient } from "@prisma/client";
+import { adapter } from "./tenancy/manager";
+
+// Inside a tenant scope this injects the tenant filter/field; outside it fails closed.
+export const db = new PrismaClient().$extends(adapter.extension);
+```
+
+```ts title="lib/tenancy/server.ts"
+import { createNextTenancy } from "tenancyjs-integration-next";
+import { manager, resolver } from "./manager";
+
+export const tenancy = createNextTenancy({ manager, resolver });
 ```
 
 ## Resolve identity at the edge
 
-Wire the edge middleware in `middleware.ts` so identity is resolved once, at the boundary, and carried
-forward:
+Next runs middleware on the Edge and your handlers on Node. The edge helper encodes the request's tenant
+identity into a hint header that the Node runtime reads back — so identity is captured once, at the
+boundary:
 
 ```ts title="middleware.ts"
-export { middleware } from "@/lib/tenancy";
+import { NextResponse } from "next/server";
+import { withNextTenantHint } from "tenancyjs-integration-next/edge";
+
+export function middleware(request: Request) {
+  // Encodes host + x-tenant-id into the hint header carried to your handlers.
+  const headers = withNextTenantHint(request);
+  return NextResponse.next({ request: { headers } });
+}
 
 export const config = {
   matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };
 ```
 
-Then run scoped work inside a Route Handler or Server Component - the tenant is already in context:
+## Run scoped work
+
+Wrap a Route Handler with `withRouteHandler` (or a Server Action with `withServerAction`). The tenant is
+resolved from the request and the scope is opened for you:
 
 ```ts title="app/orders/route.ts"
-import { tenancy } from "@/lib/tenancy";
-import { db } from "@/lib/db"; // your adapter-extended client
+import { tenancy } from "@/lib/tenancy/server";
+import { db } from "@/lib/db";
 
-export async function GET() {
-  const orders = await tenancy.run(() => db.order.findMany());
+export const GET = tenancy.withRouteHandler(async () => {
+  const orders = await db.order.findMany(); // scoped to the current tenant
   return Response.json(orders);
-}
+});
 ```
+
+Need to open the scope inline instead of wrapping the whole handler? Use
+`tenancy.runWithRequest(request, () => db.order.findMany())`.
 
 <Callout type="info">
   See [ADR-0009](https://github.com/Karthick-Ramachandran/TenancyJS/blob/main/docs/adrs/ADR-0009-nextjs-node-execution-and-edge-identity-handoff.md)

@@ -23,20 +23,89 @@ npm install tenancyjs-core tenancyjs-integration-adonis tenancyjs-adapter-lucid
 
 ## Configure
 
-Define your tenancy config with `defineAdonisTenancyConfig`, providing a resolver that turns the request
-context into a tenant:
+`defineAdonisTenancyConfig` takes a `TenancyManager`, a resolver (a
+[`TenantResolutionChain`](/docs/guides/resolving-tenants#consistent-failure-semantics)), and the Lucid tenancy
+**as a factory** — AdonisJS loads config before providers boot, so the Lucid service is resolved lazily:
 
 ```ts title="config/tenancy.ts"
+import db from "@adonisjs/lucid/services/db";
+import { TenancyManager } from "tenancyjs-core";
+import { createLucidTenancy } from "tenancyjs-adapter-lucid";
+import {
+  HeaderTenantResolver,
+  TenantResolutionChain,
+} from "tenancyjs-identifiers";
 import { defineAdonisTenancyConfig } from "tenancyjs-integration-adonis";
+// import Post from "#models/post";
 
-export default defineAdonisTenancyConfig({
-  resolver: (ctx) => ({ id: ctx.subdomains.tenant ?? "" }),
+export interface Tenant {
+  id: string;
+  name: string;
+}
+
+const manager = new TenancyManager<Tenant>();
+
+const resolver = new TenantResolutionChain<Tenant>({
+  resolvers: [new HeaderTenantResolver({ headerName: "x-tenant-id" })],
+  store: {
+    async find(identifier) {
+      // look the tenant up in YOUR store, then:
+      // return [{ tenant: { id: identifier.value, name }, status: "active" }];
+      return [];
+    },
+  },
+});
+
+export default defineAdonisTenancyConfig<Tenant>({
+  manager,
+  resolver,
+  tenancy: () =>
+    createLucidTenancy<Tenant>({
+      manager,
+      database: db,
+      strategy: "rowLevel", // or "schemaPerTenant" | "databasePerTenant"
+      tenantModels: [/* Post, ... */],
+    }),
 });
 ```
 
-Register the provider, then add the tenancy middleware to your router (the `init` scaffold does both).
-Each request resolves its tenant and runs scoped, so your Lucid models are automatically isolated - no
-per-query tenant filters:
+## Register the provider and middleware
+
+Two edits (the `init` scaffold writes the middleware file for you; the two registrations are manual):
+
+**1. Register the provider** in `adonisrc.ts`:
+
+```ts title="adonisrc.ts"
+providers: [
+  // ...existing providers
+  () => import('tenancyjs-integration-adonis/provider'),
+],
+```
+
+**2. Add the middleware file**, register it as a **named** middleware, and apply it to tenant route
+groups only — central routes omit it:
+
+```ts title="app/middleware/tenant_middleware.ts"
+export { TenancyMiddleware as default } from "tenancyjs-integration-adonis";
+```
+
+```ts title="start/kernel.ts"
+export const middleware = router.named({
+  // ...existing named middleware
+  tenant: () => import('#middleware/tenant_middleware'),
+});
+```
+
+```ts title="start/routes.ts"
+router
+  .group(() => {
+    // your tenant-scoped routes
+  })
+  .use(middleware.tenant());
+```
+
+Each request in a tenant group then resolves its tenant and runs scoped, so your Lucid models are
+isolated automatically - no per-query tenant filters:
 
 ```ts
 // inside a controller - already tenant-scoped
