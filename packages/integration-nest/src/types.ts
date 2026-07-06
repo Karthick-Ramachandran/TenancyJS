@@ -5,13 +5,17 @@ import type {
 } from "tenancyjs-core";
 import type {
   ResolverInput,
+  TenantResolutionContext,
   TenantResolutionOutcome,
 } from "tenancyjs-identifiers";
 
 export interface NestTenantResolver<
   TTenant extends TenantRecord = TenantRecord,
 > {
-  resolve(input: ResolverInput): MaybePromise<TenantResolutionOutcome<TTenant>>;
+  resolve(
+    input: ResolverInput,
+    context?: TenantResolutionContext,
+  ): MaybePromise<TenantResolutionOutcome<TTenant>>;
 }
 
 export interface NestTenancyExecutor {
@@ -24,6 +28,12 @@ export interface NestTenancyOptions<
   readonly manager: TenancyManager<TTenant>;
   readonly resolver: NestTenantResolver<TTenant>;
   readonly executor?: NestTenancyExecutor;
+  /**
+   * Extract the authenticated principal from the request so the resolver's
+   * `authorize` hook can verify tenant membership (e.g. `(req) => req.user`).
+   * The guard runs after your authentication guards, so the principal is set.
+   */
+  readonly principal?: (request: unknown) => unknown;
 }
 
 export type NestTenancyResolutionFailure =

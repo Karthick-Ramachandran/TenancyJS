@@ -31,6 +31,12 @@ export interface NextTenancyOptions<
 > {
   readonly manager: TenancyManager<TTenant>;
   readonly resolver: NextTenantResolver<TTenant>;
+  /**
+   * Resolve the authenticated principal for the current request so the resolver's
+   * `authorize` hook can verify tenant membership. Next.js has no `req.user`, so
+   * read your session here (e.g. from `cookies()`/`headers()` in the Node runtime).
+   */
+  readonly principal?: () => MaybePromise<unknown>;
 }
 
 export type NextRequestInput = Request | Headers | ResolverInput;

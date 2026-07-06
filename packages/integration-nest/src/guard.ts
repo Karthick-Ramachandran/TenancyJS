@@ -15,6 +15,7 @@ export class NestTenantResolutionGuard<
     private readonly reflector: Reflector,
     private readonly resolver: NestTenantResolver<TTenant>,
     private readonly store: NestTenantResolutionStore<TTenant>,
+    private readonly principal?: (request: unknown) => unknown,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -22,6 +23,7 @@ export class NestTenantResolutionGuard<
     const request = context.switchToHttp().getRequest<unknown>();
     const outcome = await this.resolver.resolve(
       createNestResolverInput(request),
+      { principal: this.principal?.(request) },
     );
     if (outcome.status !== "resolved") {
       throw new NestTenancyResolutionError(outcome.status);

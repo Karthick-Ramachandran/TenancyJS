@@ -415,6 +415,7 @@ describe("Edge identity handoff", () => {
         host: "alpha.example.test",
         headers: expect.objectContaining({ host: "alpha.example.test" }),
       }),
+      { principal: undefined },
     );
   });
 });

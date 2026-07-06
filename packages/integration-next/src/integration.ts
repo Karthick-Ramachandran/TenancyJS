@@ -37,7 +37,9 @@ export function createNextTenancy<TTenant extends TenantRecord = TenantRecord>(
 
     const resolverInput = createResolverInput(input);
     const outcome: TenantResolutionOutcome<TTenant> =
-      await validated.resolver.resolve(resolverInput);
+      await validated.resolver.resolve(resolverInput, {
+        principal: await validated.principal?.(),
+      });
     if (outcome.status !== "resolved") {
       throw createResolutionError(outcome);
     }
@@ -106,9 +108,20 @@ function validateOptions<TTenant extends TenantRecord>(
       "Next tenancy integration requires a tenant resolver.",
     );
   }
+  if (
+    options.principal !== undefined &&
+    typeof options.principal !== "function"
+  ) {
+    throw new NextTenancyConfigurationError(
+      "Next tenancy principal must be a function.",
+    );
+  }
   return Object.freeze({
     manager: options.manager,
     resolver: options.resolver,
+    ...(options.principal === undefined
+      ? {}
+      : { principal: options.principal }),
   });
 }
 

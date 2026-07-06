@@ -6,6 +6,7 @@ import type {
 } from "tenancyjs-core";
 import type {
   ResolverInput,
+  TenantResolutionContext,
   TenantResolutionOutcome,
 } from "tenancyjs-identifiers";
 import type { HttpContext } from "@adonisjs/core/http";
@@ -19,8 +20,14 @@ import type { AdonisTenancyResolutionError } from "./errors.js";
 export interface AdonisTenantResolver<
   TTenant extends TenantRecord = TenantRecord,
 > {
-  resolve(input: ResolverInput): MaybePromise<TenantResolutionOutcome<TTenant>>;
+  resolve(
+    input: ResolverInput,
+    context?: TenantResolutionContext,
+  ): MaybePromise<TenantResolutionOutcome<TTenant>>;
 }
+
+/** Extract the authenticated principal from the request for the membership check. */
+export type AdonisPrincipalResolver = (ctx: HttpContext) => unknown;
 
 /**
  * The application-owned Lucid tenancy service the middleware runs tenant work
@@ -60,6 +67,12 @@ export interface AdonisTenancyOptions<
   readonly resolver: AdonisTenantResolver<TTenant>;
   readonly tenancy: AdonisTenancyRunner | AdonisTenancyRunnerFactory;
   readonly onError?: AdonisTenancyErrorHandler;
+  /**
+   * Extract the authenticated principal from the request (e.g. `(ctx) =>
+   * ctx.auth.user`) so the resolver's `authorize` hook can verify tenant
+   * membership. Apply the middleware after authentication.
+   */
+  readonly principal?: AdonisPrincipalResolver;
 }
 
 export interface AdonisTenancyConfig<
@@ -69,4 +82,5 @@ export interface AdonisTenancyConfig<
   readonly resolver: AdonisTenantResolver<TTenant>;
   readonly tenancy: AdonisTenancyRunner;
   readonly onError: AdonisTenancyErrorHandler;
+  readonly principal?: AdonisPrincipalResolver;
 }

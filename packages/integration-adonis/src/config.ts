@@ -85,10 +85,22 @@ export function defineAdonisTenancyConfig<
     return resolvedTenancy;
   };
 
+  if (
+    options.principal !== undefined &&
+    typeof options.principal !== "function"
+  ) {
+    throw new AdonisTenancyConfigurationError(
+      "The AdonisJS tenancy principal must be a function.",
+    );
+  }
+
   return Object.freeze({
     manager: options.manager,
     resolver: options.resolver,
     onError: options.onError ?? defaultErrorHandler,
+    ...(options.principal === undefined
+      ? {}
+      : { principal: options.principal }),
     get tenancy(): AdonisTenancyRunner {
       return resolveTenancy();
     },

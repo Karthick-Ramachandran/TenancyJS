@@ -26,7 +26,13 @@ export class TenancyModule {
           reflector: Reflector,
           config: NestTenancyOptions<TTenant>,
           store: NestTenantResolutionStore<TTenant>,
-        ) => new NestTenantResolutionGuard(reflector, config.resolver, store),
+        ) =>
+          new NestTenantResolutionGuard(
+            reflector,
+            config.resolver,
+            store,
+            config.principal,
+          ),
       },
       {
         provide: APP_INTERCEPTOR,
@@ -79,9 +85,20 @@ function validateOptions<TTenant extends TenantRecord>(
       "Nest tenancy executor must expose run(callback).",
     );
   }
+  if (
+    options.principal !== undefined &&
+    typeof options.principal !== "function"
+  ) {
+    throw new NestTenancyConfigurationError(
+      "Nest tenancy principal must be a function.",
+    );
+  }
   return Object.freeze({
     manager: options.manager,
     resolver: options.resolver,
     ...(options.executor === undefined ? {} : { executor: options.executor }),
+    ...(options.principal === undefined
+      ? {}
+      : { principal: options.principal }),
   });
 }

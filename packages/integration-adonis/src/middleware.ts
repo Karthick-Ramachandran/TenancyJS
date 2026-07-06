@@ -31,6 +31,7 @@ export class TenancyMiddleware<TTenant extends TenantRecord = TenantRecord> {
   async handle(ctx: HttpContext, next: NextFn): Promise<void> {
     const outcome = await this.#config.resolver.resolve(
       createResolverInput(ctx),
+      { principal: this.#config.principal?.(ctx) },
     );
 
     if (outcome.status !== "resolved") {
