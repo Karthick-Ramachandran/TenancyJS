@@ -1,6 +1,6 @@
 {
   "name": "tenancyjs-adapter-prisma",
-  "version": "0.1.0-beta.1",
+  "version": "0.1.0-beta.2",
   "description": "Fail-closed row-level tenant isolation for Prisma Client.",
   "type": "module",
   "license": "MIT",
