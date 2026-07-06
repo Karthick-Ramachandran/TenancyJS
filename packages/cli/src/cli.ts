@@ -157,7 +157,76 @@ async function runInit(
       ? formatJson(publicPlan(plan, parsed.apply))
       : formatPlan(plan, parsed.apply),
   );
+  if (parsed.apply && !parsed.json)
+    io.writeStdout(formatNextSteps(framework, orm));
   return plan.actions.some(({ status }) => status === "conflict") ? 2 : 0;
+}
+
+const INTEGRATION_PACKAGE: Record<InitFramework, string> = {
+  express: "tenancyjs-integration-express",
+  adonis: "tenancyjs-integration-adonis",
+  next: "tenancyjs-integration-next",
+};
+const ORM_PEER: Record<InitOrm, string> = {
+  prisma: "@prisma/client",
+  lucid: "@adonisjs/lucid",
+  typeorm: "typeorm",
+  sequelize: "sequelize",
+  drizzle: "drizzle-orm",
+};
+
+/** Concrete, copy-pasteable "what to do next" after `init --apply`. */
+function formatNextSteps(framework: InitFramework, orm: InitOrm): string {
+  const packages = [
+    "tenancyjs-core",
+    `tenancyjs-adapter-${orm}`,
+    INTEGRATION_PACKAGE[framework],
+    "tenancyjs-identifiers",
+    ORM_PEER[orm],
+  ].join(" ");
+  const docs = "https://tenancyjs.pages.dev/docs";
+  const lines: string[] = [
+    "",
+    "Next steps:",
+    `  1. Install the packages:`,
+    `       npm install ${packages}`,
+    `  2. Open the scaffolded files and:`,
+    `       - point the resolver's store at your tenant table (it returns the matched tenant)`,
+    `       - register each tenant-scoped model/table with the adapter`,
+  ];
+  if (framework === "adonis")
+    lines.push(
+      `  3. Register the provider in adonisrc.ts and the tenant middleware in start/kernel.ts`,
+      `       ${docs}/integrations/adonis#register-the-provider-and-middleware`,
+    );
+  else if (framework === "express")
+    lines.push(
+      `  3. Mount the middleware, passing a TenantResolutionChain resolver (from tenancyjs-identifiers):`,
+      `       app.use(createExpressTenancyMiddleware({ manager, resolver }))  —  ${docs}/integrations/express`,
+    );
+  else
+    lines.push(
+      `  3. Add the edge middleware.ts and wrap route handlers with withRouteHandler`,
+      `       ${docs}/integrations/nextjs`,
+    );
+  if (orm === "prisma")
+    lines.push(
+      `  4. Prisma row-level is facade-only — no RLS SQL needed; just classify your models.`,
+    );
+  else
+    lines.push(
+      `  4. Row-level needs forced Postgres RLS: create a non-bypass runtime role and a`,
+      `       <table>_tenant_isolation policy (ENABLE + FORCE), and connect as that role:`,
+      `       ${docs}/strategies/row-level#the-rls-backstop`,
+    );
+  lines.push(
+    `  5. Provision + migrate your tenant tables, then prove isolation:`,
+    `       npx tenancy tenant check     npx tenancy test:leak --test-file <path>`,
+    "",
+    `Full walkthrough: ${docs}/getting-started/quickstart`,
+    "",
+  );
+  return lines.join("\n");
 }
 
 async function resolveOrm(

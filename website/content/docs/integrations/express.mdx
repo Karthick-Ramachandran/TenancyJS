@@ -16,8 +16,11 @@ tenant's scope. Everything downstream - routes, services, ORM queries - is autom
 The framework integration plus your ORM's adapter (Prisma shown):
 
 ```bash
-npm install tenancyjs-core tenancyjs-integration-express tenancyjs-adapter-prisma @prisma/client
+npm install tenancyjs-core tenancyjs-adapter-prisma tenancyjs-integration-express tenancyjs-identifiers @prisma/client
 ```
+
+`tenancyjs-identifiers` supplies the resolver (`TenantResolutionChain` + the header/subdomain resolvers)
+the middleware needs — it's a required part of the wiring, not optional.
 
 ## Wire it up
 
@@ -45,37 +48,63 @@ export const db = new PrismaClient().$extends(adapter.extension);
 <Step>
 ### The middleware
 
-Register it early, before your routes. Give it your `manager` and a **resolver** that turns a request
-into a tenant.
+Register it early, before your routes. Give it your `manager` and a **resolver** — an object with a
+`resolve()` method. Build one with a `TenantResolutionChain` from `tenancyjs-identifiers`: it reads the
+request and looks the identifier up in **your** store.
 
 ```ts title="server.ts"
 import express from "express";
 import { createExpressTenancyMiddleware } from "tenancyjs-integration-express";
-import { manager, db } from "./tenancy";
+import {
+  HeaderTenantResolver,
+  TenantResolutionChain,
+} from "tenancyjs-identifiers";
+import { manager, db, type Tenant } from "./tenancy";
 
 const app = express();
 
-app.use(
-  createExpressTenancyMiddleware({
-    manager,
-    resolver: (req) => ({ id: req.subdomains.at(-1) ?? "" }),
-  }),
-);
+const resolver = new TenantResolutionChain<Tenant>({
+  resolvers: [new HeaderTenantResolver({ headerName: "x-tenant-id" })],
+  store: {
+    // Look the identifier up in YOUR store; return the match(es).
+    async find(identifier) {
+      const tenant = await lookupTenant(identifier.value);
+      return tenant ? [{ tenant, status: "active" }] : [];
+    },
+  },
+});
+
+app.use(createExpressTenancyMiddleware({ manager, resolver }));
 
 app.get("/orders", async (_req, res) => {
   res.json(await db.order.findMany()); // already scoped to the tenant
 });
+
+// Map resolution failures to 400/404 — otherwise they surface as an unhandled 500.
+app.use((err, _req, res, next) => {
+  if (typeof err?.statusCode === "number")
+    res.status(err.statusCode).json({ error: err.message });
+  else next(err);
+});
 ```
+
 </Step>
 
 </Steps>
+
+<Callout type="warn">
+  The `resolver` is **not** a `(req) => …` function — it's an object with `resolve(input)` (a
+  `TenantResolutionChain`), and it receives a `ResolverInput` (`{ host, headers }`), not the Express
+  `req`. Passing a function fails middleware validation.
+</Callout>
 
 ## How it behaves
 
 - **On success:** the tenant scope is open for the whole request; adapters are scoped, and the scope is
   torn down when the response finishes.
 - **On a resolution failure:** a missing/invalid identifier or an unknown/suspended tenant makes the
-  middleware respond **400**/**404** - your handler never runs.
+  middleware `next(error)` with an error carrying `.statusCode` (400/404) — add the error handler above
+  (or pass a custom `onError`) to turn that into a response. Your route handler never runs.
 
 ## Use a different ORM
 

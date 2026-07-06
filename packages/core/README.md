@@ -23,17 +23,41 @@ npm install tenancyjs-adapter-prisma tenancyjs-integration-express
 
 During the beta the packages are on the `beta` dist-tag: `npm install tenancyjs-core@beta`.
 
-## Fastest start — the CLI
+## The CLI — `tenancyjs-cli`
 
-The `tenancyjs-cli` scaffolds tenant isolation for your stack. Run it with `npx` (no install needed):
+One operational CLI for your whole tenant lifecycle. Run any command with `npx tenancy …` (no install),
+or `npm install -g tenancyjs-cli` for a global `tenancy`. Every command takes `--json` for
+machine-readable, secret-redacted output.
+
+**Scaffold & inspect**
 
 ```bash
-npx tenancy init        # detects your framework + ORM and scaffolds the wiring
-npx tenancy doctor      # inspects your setup and flags untested combinations
+npx tenancy init            # detect your framework + ORM and scaffold the wiring
+npx tenancy doctor          # inspect a project's static setup + migration effort
+npx tenancy tenant check    # health-probe the runtime and warn on untested combinations
+npx tenancy test:leak --test-file ./leak.mjs   # run a cross-tenant isolation leak test
 ```
 
-Prefer a global command? `npm install -g tenancyjs-cli`, then run `tenancy init`. See the
-[CLI reference](https://tenancyjs.pages.dev/docs/cli).
+**Manage tenants** (backed by your own store — see [Configuration](https://tenancyjs.pages.dev/docs/getting-started/configuration))
+
+```bash
+npx tenancy tenant list                 # list tenants from your store
+npx tenancy tenant show acme            # show one tenant
+npx tenancy tenant create acme --set plan=pro --set region=eu
+npx tenancy tenant suspend acme         # / tenant activate acme
+```
+
+**Provision, migrate & run** (per-tenant placement + scripts)
+
+```bash
+npx tenancy tenant provision acme       # create the tenant's schema/database (your hook)
+npx tenancy tenant migrate --all        # migrate every tenant, reporting each outcome
+npx tenancy tenant deprovision acme     # drop it (explicit id only — never --all)
+npx tenancy run ./backfill.ts --tenant acme     # run a script inside a tenant scope
+npx tenancy run ./rollup.ts --central           # …or in the central (cross-tenant) scope
+```
+
+Full reference: **[CLI docs →](https://tenancyjs.pages.dev/docs/cli)**.
 
 **Or let an AI do it:** copy a prompt from
 [Build with AI](https://tenancyjs.pages.dev/docs/build-with-ai) and paste it into your assistant.

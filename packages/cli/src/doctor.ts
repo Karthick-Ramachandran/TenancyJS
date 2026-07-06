@@ -15,11 +15,16 @@ import type {
   MigrationEffort,
 } from "./types.js";
 
-const REQUIRED_FILES = [
-  "tenancy.config.ts",
-  "src/tenancy/register.ts",
-  "src/middleware/tenancy.ts",
-] as const;
+// The wiring files each supported framework's `init` scaffolds (see templates.ts).
+const WIRING_BY_FRAMEWORK: Record<string, readonly string[]> = Object.freeze({
+  express: [
+    "tenancy.config.ts",
+    "src/tenancy/register.ts",
+    "src/middleware/tenancy.ts",
+  ],
+  next: ["tenancy.config.ts", "lib/tenancy/register.ts", "lib/tenancy/server.ts"],
+  adonis: ["config/tenancy.ts", "app/middleware/tenant_middleware.ts"],
+});
 const DEFAULT_LEAK_TESTS = [
   "test/tenancy.leak.test.mjs",
   "tests/tenancy.leak.test.mjs",
@@ -53,34 +58,47 @@ export async function runDoctor(
 ): Promise<DoctorReport> {
   const detection = await detectProject(root);
   const findings: DoctorFinding[] = [];
-  if (detection.framework.name !== "express") {
+  const frameworkName = detection.framework.name;
+  const ormName = detection.orm.name;
+  const wiring = WIRING_BY_FRAMEWORK[frameworkName];
+
+  if (wiring === undefined) {
     findings.push(
-      finding("UNSUPPORTED_FRAMEWORK", "error", "Express was not detected."),
+      finding(
+        "UNSUPPORTED_FRAMEWORK",
+        "error",
+        `No supported framework detected (found "${frameworkName}"). tenancy supports Express, Next.js, and AdonisJS.`,
+      ),
     );
   } else if (!detection.framework.supported) {
     findings.push(
       finding(
-        "UNSUPPORTED_EXPRESS_VERSION",
-        "error",
-        "Express must be in the tested 5.2 range.",
-      ),
-    );
-  }
-  if (detection.orm.name !== "prisma") {
-    findings.push(
-      finding("UNSUPPORTED_ORM", "error", "Prisma Client was not detected."),
-    );
-  } else if (!detection.orm.supported) {
-    findings.push(
-      finding(
-        "UNSUPPORTED_PRISMA_VERSION",
-        "error",
-        "Prisma Client must be in the tested 7.8 range.",
+        "UNSUPPORTED_FRAMEWORK_VERSION",
+        "warning",
+        `Detected ${frameworkName} ${detection.framework.version ?? ""}, outside the tested version range.`.trim(),
       ),
     );
   }
 
-  for (const path of REQUIRED_FILES) {
+  if (ormName === "unknown") {
+    findings.push(
+      finding(
+        "UNSUPPORTED_ORM",
+        "error",
+        "No supported ORM detected. tenancy supports Prisma, Lucid, TypeORM, Sequelize, and Drizzle.",
+      ),
+    );
+  } else if (!detection.orm.supported) {
+    findings.push(
+      finding(
+        "UNSUPPORTED_ORM_VERSION",
+        "warning",
+        `Detected ${ormName} ${detection.orm.version ?? ""}, outside the tested version range.`.trim(),
+      ),
+    );
+  }
+
+  for (const path of wiring ?? []) {
     if (!(await regularFileExists(detection.root, path))) {
       findings.push(
         finding(
@@ -115,12 +133,28 @@ export async function runDoctor(
     );
   }
 
-  await inspectClassification(detection.root, findings);
-  for (const sourceRoot of SOURCE_ROOTS) {
-    const absolute = resolveContainedPath(detection.root, sourceRoot);
-    if (await directoryExists(absolute)) {
-      await scanDirectory(detection.root, absolute, findings);
+  // Deep model/query analysis (Prisma client extension + raw/nested usage) is
+  // Prisma-specific — run it only for Prisma. Other supported ORMs skip it (their
+  // isolation is validated at runtime by the adapter, not by static analysis here).
+  if (ormName === "prisma") {
+    const registerPath =
+      (wiring ?? []).find((path) => path.endsWith("register.ts")) ??
+      "src/tenancy/register.ts";
+    await inspectClassification(detection.root, registerPath, findings);
+    for (const sourceRoot of SOURCE_ROOTS) {
+      const absolute = resolveContainedPath(detection.root, sourceRoot);
+      if (await directoryExists(absolute)) {
+        await scanDirectory(detection.root, absolute, findings);
+      }
     }
+  } else if (ormName !== "unknown") {
+    findings.push(
+      finding(
+        "ORM_ANALYSIS_SKIPPED",
+        "info",
+        `Deep model/query migration analysis currently covers Prisma; skipped for ${ormName}.`,
+      ),
+    );
   }
 
   findings.sort(compareFindings);
@@ -147,9 +181,9 @@ export async function runDoctor(
 
 async function inspectClassification(
   root: string,
+  registerPath: string,
   findings: DoctorFinding[],
 ): Promise<void> {
-  const registerPath = "src/tenancy/register.ts";
   const schemaPath = "prisma/schema.prisma";
   const register = await optionalRead(root, registerPath);
   const schema = await optionalRead(root, schemaPath);
