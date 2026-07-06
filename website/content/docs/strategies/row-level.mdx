@@ -71,7 +71,7 @@ create role app_runtime login nosuperuser nobypassrls;
 alter table posts enable row level security;
 alter table posts force row level security;      -- FORCE so even the table owner is subject to it
 
-create policy tenant_isolation on posts
+create policy posts_tenant_isolation on posts
   using (
     current_setting('tenancyjs.is_central', true) = 'true'
     or tenant_id = nullif(current_setting('tenancyjs.tenant_id', true), '')
@@ -85,10 +85,19 @@ create policy tenant_isolation on posts
 grant select, insert, update, delete on posts to app_runtime;
 ```
 
-Connect your ORM as `app_runtime` (not a superuser / not the table owner). Now even a query that somehow
-escaped the facade cannot read or write another tenant's rows — the database itself refuses. The `WITH
-CHECK` clause blocks writing a row under the wrong tenant, and `FORCE` ensures the owner can't sidestep
-it. Point the adapter's `policyName` option at your policy (default naming is shown on each adapter page).
+The `WITH CHECK` clause blocks writing a row under the wrong tenant, and `FORCE` ensures the owner can't
+sidestep it. **The policy name matters:** the adapter validates a policy named
+`<table>_tenant_isolation` by default (hence `posts_tenant_isolation` above) — if you name it something
+else, pass that name via the adapter's `policyName` option, or `validate()` fails with a policy-invalid
+error.
+
+<Callout type="warn">
+  **Two roles, two connections.** RLS only bites when the app connects as a role that *cannot* bypass it.
+  So run the DDL above (create table, policy, grants) as the table **owner** (a privileged/admin
+  connection), and connect your **app** as `app_runtime` (the `nobypassrls`, non-owner role). If the app
+  connects as the owner or a superuser, RLS silently no-ops and you're back to facade-only. A common
+  setup: a separate `admin` DB connection for migrations, and the default connection as `app_runtime`.
+</Callout>
 
 <Callout type="warn">
   The runtime role must be `nobypassrls`, not a superuser, and **not the owner** of the tenant tables —

@@ -18,7 +18,7 @@ own ORM, so this pairs with the [Lucid adapter](/docs/adapters/lucid) - and beca
 ## Install
 
 ```bash
-npm install tenancyjs-core tenancyjs-integration-adonis tenancyjs-adapter-lucid
+npm install tenancyjs-core tenancyjs-adapter-lucid tenancyjs-integration-adonis tenancyjs-identifiers
 ```
 
 ## Configure
@@ -49,9 +49,13 @@ const resolver = new TenantResolutionChain<Tenant>({
   resolvers: [new HeaderTenantResolver({ headerName: "x-tenant-id" })],
   store: {
     async find(identifier) {
-      // look the tenant up in YOUR store, then:
-      // return [{ tenant: { id: identifier.value, name }, status: "active" }];
-      return [];
+      // Look the identifier up in YOUR store and return the match(es).
+      // Returning [] means "not found" → the request 404s (nothing is a tenant),
+      // so wire this to your real tenant table:
+      const row = await lookupTenant(identifier.value); // your DB lookup
+      return row
+        ? [{ tenant: { id: row.id, name: row.name }, status: "active" }]
+        : [];
     },
   },
 });

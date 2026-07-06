@@ -24,6 +24,8 @@ npm install tenancyjs-core tenancyjs-adapter-lucid tenancyjs-integration-adonis
 import { TenancyManager } from "tenancyjs-core";
 import { createLucidTenancy } from "tenancyjs-adapter-lucid";
 import db from "@adonisjs/lucid/services/db";
+import Order from "#models/order";
+import Post from "#models/post";
 
 export interface Tenant {
   readonly id: string;
@@ -35,7 +37,9 @@ export const tenancy = createLucidTenancy({
   manager,
   database: db,
   strategy: "rowLevel", // "schemaPerTenant" | "databasePerTenant"
-  tenantTables: ["orders", "posts"],
+  // Register each tenant-scoped Lucid model. Optional per-entry:
+  // { model, table?, tenantColumn?, tenantAttribute?, policyName? }.
+  tenantModels: [{ model: Order }, { model: Post }],
 });
 ```
 
