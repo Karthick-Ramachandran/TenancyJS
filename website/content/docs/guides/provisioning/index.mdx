@@ -5,13 +5,13 @@ description: Batteries-included recipes for creating and migrating each tenant's
 
 TenancyJS routes every query to the right tenant's placement and fails closed when there is no scope.
 What it deliberately does **not** do is run `CREATE SCHEMA` / `CREATE DATABASE` or your migrations for
-you — creating a tenant's storage is your ORM's job, run through **provisioner hooks** that the
+you - creating a tenant's storage is your ORM's job, run through **provisioner hooks** that the
 [`tenancy` CLI](/docs/cli) drives. That's the one manual seam: batteries-included, but not
 zero-config.
 
 These recipes fill that seam. Each one is a concrete, copy-adaptable implementation of the three hooks
 for one ORM, wired so `tenancy tenant provision | migrate | deprovision` just work. They're written to
-be followed by a human or an AI assistant — paste your `TENANCY.md` context (from
+be followed by a human or an AI assistant - paste your `TENANCY.md` context (from
 [`tenancy init --ai-context`](/docs/cli)) and hand your agent the recipe for your stack.
 
 ## The shape of every recipe
@@ -21,7 +21,7 @@ Whatever the ORM, onboarding a tenant is the same four moves:
 <Steps>
 
 <Step>
-### Record — `store.create`
+### Record - `store.create`
 
 Write the tenant row (id + its **placement**: schema name or database key). Covered once in
 [Configuration → bring-your-own store](/docs/getting-started/configuration#bring-your-own-tenant-store);
@@ -29,21 +29,21 @@ the recipes assume it's in place.
 </Step>
 
 <Step>
-### Provision — `provisioner.provision`
+### Provision - `provisioner.provision`
 
 Create the placement: `CREATE SCHEMA` for schema-per-tenant, `CREATE DATABASE` for
 database-per-tenant. Row-level shares tables, so there's nothing to provision.
 </Step>
 
 <Step>
-### Migrate — `provisioner.migrate`
+### Migrate - `provisioner.migrate`
 
 Bring the fresh placement up to your current schema by running **your ORM's own migrator** against it.
-This is the part that differs most per ORM — it's the heart of each recipe.
+This is the part that differs most per ORM - it's the heart of each recipe.
 </Step>
 
 <Step>
-### Route — the adapter
+### Route - the adapter
 
 At request time the adapter leases the tenant's connection and scopes the query. That's configured on
 the [adapter page](/docs/adapters) for your ORM; nothing extra to do here.
@@ -63,7 +63,7 @@ Then prove it with [`tenancy test:leak`](/docs/guides/testing-isolation) before 
 | TypeORM | PostgreSQL | PostgreSQL · MySQL | [TypeORM →](/docs/guides/provisioning/typeorm) |
 | Sequelize | PostgreSQL | PostgreSQL · MySQL | [Sequelize →](/docs/guides/provisioning/sequelize) |
 | Drizzle | PostgreSQL | PostgreSQL · MySQL | [Drizzle →](/docs/guides/provisioning/drizzle) |
-| Mongoose | — | MongoDB | [Mongoose →](/docs/guides/provisioning/mongoose) |
+| Mongoose | - | MongoDB | [Mongoose →](/docs/guides/provisioning/mongoose) |
 
 <Callout type="info">
   MySQL has no schema namespace separate from a database (`SCHEMA` is a synonym for `DATABASE`), so on
@@ -73,5 +73,5 @@ Then prove it with [`tenancy test:leak`](/docs/guides/testing-isolation) before 
 <Callout type="warn">
   The DDL and migrator calls in these recipes run with **elevated privileges** (a maintenance/admin
   connection that can create schemas or databases). Keep that connection separate from your fail-closed
-  runtime role — the [runtime role must not own tables or bypass RLS](/docs/strategies/row-level#the-rls-backstop).
+  runtime role - the [runtime role must not own tables or bypass RLS](/docs/strategies/row-level#the-rls-backstop).
 </Callout>

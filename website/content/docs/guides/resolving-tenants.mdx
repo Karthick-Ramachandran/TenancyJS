@@ -93,19 +93,19 @@ const chain = new TenantResolutionChain<Tenant>({
 
 const outcome = await chain.resolve({ host: req.host, headers: req.headers });
 if (outcome.status === "resolved") {
-  // outcome.tenant — hand it to manager.runWithTenant(...)
+  // outcome.tenant - hand it to manager.runWithTenant(...)
 }
 ```
 
-Outcomes map to a status consistently — **400** for `no-identifier`/`invalid`, **404** for
-`not-found`/`suspended` (deliberately indistinguishable), **500** for `ambiguous` (more than one match) —
+Outcomes map to a status consistently - **400** for `no-identifier`/`invalid`, **404** for
+`not-found`/`suspended` (deliberately indistinguishable), **500** for `ambiguous` (more than one match) -
 so every framework behaves the same way. The Express/Next/Adonis integrations apply this for you; reach
 for the chain directly when you resolve tenants by hand.
 
 <Callout type="warn">
-  This resolution store — `find(identifier) → { tenant, status }[]` — is **not** the same interface as the
+  This resolution store - `find(identifier) → { tenant, status }[]` - is **not** the same interface as the
   [registry store](/docs/getting-started/configuration#bring-your-own-tenant-store) the CLI uses (whose
-  `find(id)` returns one tenant or `null`). Same idea, different shapes — don't reuse one object for both.
+  `find(id)` returns one tenant or `null`). Same idea, different shapes - don't reuse one object for both.
   And a resolver must never guess a tenant or fall back to a default; no match is the safe, fail-closed
   outcome.
 </Callout>

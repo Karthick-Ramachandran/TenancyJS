@@ -55,11 +55,11 @@ const orders = await Order.all();
 
 <Callout type="warn">
   **Use instance methods for writes, not bulk query-builder statements.** The adapter scopes model
-  operations through Lucid's hooks — `Model.create`, `Model.all`, `Model.find*`, `.paginate`, and
+  operations through Lucid's hooks - `Model.create`, `Model.all`, `Model.find*`, `.paginate`, and
   `row.save()` / `row.delete()` (the *instance* delete). A bulk **query-builder** write like
   `Post.query().delete()` or `Post.query().update({...})` bypasses those hooks, so it runs unscoped (on
   schema/database-per-tenant it lands on the wrong placement and fails loudly rather than crossing
-  tenants — but it's still wrong). For bulk work inside a scope, iterate instance methods, or use
+  tenants - but it's still wrong). For bulk work inside a scope, iterate instance methods, or use
   [`scope.unrestricted()`](#full-query-freedom-scopeunrestricted) in a database-per-tenant scope.
 </Callout>
 

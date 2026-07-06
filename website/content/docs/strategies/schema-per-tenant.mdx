@@ -47,7 +47,7 @@ const tenancy = createKnexTenancy({
 });
 ```
 
-On **Lucid** (AdonisJS) it's the same options via `createLucidTenancy` — register your models with
+On **Lucid** (AdonisJS) it's the same options via `createLucidTenancy` - register your models with
 `tenantModels`, and your Lucid models are then scoped automatically:
 
 ```ts
@@ -63,7 +63,7 @@ const tenancy = createLucidTenancy({
 
 ## What the database needs
 
-The adapter's `validate()` **refuses to run** until these hold — set them up before serving. Run the DDL
+The adapter's `validate()` **refuses to run** until these hold - set them up before serving. Run the DDL
 as a privileged/admin connection, then connect your app as the non-privileged `app_runtime` role:
 
 ```sql
@@ -85,12 +85,12 @@ Two rules `validate()` enforces, easy to miss:
 
 - **Tenant tables must not exist in the central schema.** A `public.posts` shadows the tenant tables and
   fails validation (`CENTRAL_SCHEMA_SHADOWS_TENANT_TABLE`).
-- **The runtime role's default `search_path` must not resolve a tenant-table name** — otherwise an
+- **The runtime role's default `search_path` must not resolve a tenant-table name** - otherwise an
   unqualified query could hit the wrong place (`DEFAULT_SEARCH_PATH_SHADOWS_TENANT_TABLE`). Keep tenant
   tables only in their own schemas.
 
 For **database-enforced** isolation, add a per-tenant `role(tenant)` whose role has `USAGE` on only its
-own schema — then the database itself rejects cross-schema access, not just the adapter.
+own schema - then the database itself rejects cross-schema access, not just the adapter.
 
 ## Provisioning
 

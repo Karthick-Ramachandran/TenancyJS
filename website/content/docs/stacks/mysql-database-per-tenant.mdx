@@ -1,6 +1,6 @@
 ---
-title: MySQL — database-per-tenant setup
-description: The production path for MySQL — a database per tenant, wired and provisioned. Copy-pasteable setup-agent prompt plus a manual walkthrough.
+title: MySQL - database-per-tenant setup
+description: The production path for MySQL - a database per tenant, wired and provisioned. Copy-pasteable setup-agent prompt plus a manual walkthrough.
 ---
 
 Most stack pages here default to PostgreSQL row-level with forced RLS. **MySQL is different**, so it
@@ -8,7 +8,7 @@ gets its own page. This is the honest, production-grade MySQL path: **a database
 
 <Callout type="warn">
   MySQL has no schema-per-tenant (`SCHEMA` is a synonym for `DATABASE`), and MySQL **row-level is
-  experimental and facade-enforced** — there is no database-level backstop like Postgres RLS, so a
+  experimental and facade-enforced** - there is no database-level backstop like Postgres RLS, so a
   single retained native connection can read across tenants. For real isolation on MySQL, use
   **database-per-tenant**: each tenant's data lives in its own database, a genuine engine-level boundary.
 </Callout>
@@ -26,11 +26,11 @@ Worked for **Express + Drizzle on MySQL**; the ORM step below shows the one-line
 TypeORM, Sequelize, and Lucid. Paste this into an assistant that can edit your repo.
 
 ````text
-# TenancyJS Setup Agent — Express 5 + Drizzle on MySQL (database-per-tenant)
+# TenancyJS Setup Agent - Express 5 + Drizzle on MySQL (database-per-tenant)
 
 You are a setup agent. Add fail-closed, database-per-tenant multi-tenancy to this Express + Drizzle app
 on MySQL with TenancyJS. Execute every step in order and verify each before continuing. Do NOT invent
-API names — fetch the linked doc if unsure.
+API names - fetch the linked doc if unsure.
 
 Source of truth:
 - https://tenancyjs.pages.dev/docs/adapters/drizzle
@@ -44,14 +44,14 @@ Source of truth:
 - Confirm MySQL 8 and the `mysql2` driver are available.
 - Confirm this is an Express 5 + Drizzle project.
 
-## Step 1 — Install
+## Step 1 - Install
 `npm install tenancyjs-core@beta tenancyjs-adapter-drizzle@beta tenancyjs-integration-express@beta tenancyjs-identifiers@beta drizzle-orm mysql2`
 
-## Step 2 — Placement on the tenant record
-Each tenant row must carry a `databaseKey` (an opaque handle to its database — never a URL or
+## Step 2 - Placement on the tenant record
+Each tenant row must carry a `databaseKey` (an opaque handle to its database - never a URL or
 credentials). The store's `find(identifier)` returns `[{ tenant: { id, databaseKey }, status }]`.
 
-## Step 3 — tenancy.ts
+## Step 3 - tenancy.ts
 - One exported `TenancyManager<Tenant>`.
 - A `landlord` MySQL Drizzle binding (`createMySqlDrizzleBinding(drizzle({ client: landlordPool }))`) for
   central work.
@@ -74,44 +74,44 @@ credentials). The store's `find(identifier)` returns `[{ tenant: { id, databaseK
   ALWAYS provide `close` so the cache disposes idle tenant pools. Never use the native Drizzle db inside a scope.
 - A `TenantResolutionChain` (HeaderTenantResolver + the store above).
 
-## Step 4 — Express wiring
+## Step 4 - Express wiring
 `app.use(createExpressTenancyMiddleware({ manager, resolver }))`; add an error handler for
 `ExpressTenancyResolutionError` (400/404/500). Inside a request, `tenancy.run((db) => db.table(posts).findMany())`.
 
-## Step 5 — Provision each tenant's database
+## Step 5 - Provision each tenant's database
 Implement the provisioner hooks (see the Drizzle provisioning recipe): `provision` runs
 `` CREATE DATABASE `tenant_x` `` on a privileged `mysql2` admin connection (NOT in a transaction);
 `migrate` runs your Drizzle migrations against the tenant database; `deprovision` drops it. Then:
 `npx tenancy tenant create acme --set databaseKey=tenant_acme` → `npx tenancy tenant provision acme` →
 `npx tenancy tenant migrate acme`.
 
-## Step 6 — Central work
+## Step 6 - Central work
 Cross-tenant/admin work runs against the landlord explicitly via `manager.runInCentralContext(...)`.
 Never run tenant-aware queries with no scope.
 
-## Step 7 — Prove it
+## Step 7 - Prove it
 Two tenants in two databases, same primary key: write a row under each, assert querying as A never
 returns B's row, and that a tenant query with no scope THROWS. Follow the testing-isolation guide.
 
-## Step 8 — Verify
+## Step 8 - Verify
 `npm run build`, boot the app, run the two-tenant test. Report every file changed and any issue.
 ````
 
 ## The one-line swap for other ORMs
 
-Same shape — a `connection(tenant)` (or `database(tenant)`) resolver in `strategy: "databasePerTenant"`.
+Same shape - a `connection(tenant)` (or `database(tenant)`) resolver in `strategy: "databasePerTenant"`.
 Only the adapter factory and provisioning DDL change:
 
 | ORM | Adapter (MySQL, database-per-tenant) | Provisioning recipe |
 | --- | --- | --- |
-| Prisma | `createPrismaDatabaseTenancy({ manager, connection })` — per-tenant client with a `mysql2` driver adapter | [Prisma →](/docs/guides/provisioning/prisma) |
+| Prisma | `createPrismaDatabaseTenancy({ manager, connection })` - per-tenant client with a `mysql2` driver adapter | [Prisma →](/docs/guides/provisioning/prisma) |
 | TypeORM | `createTypeOrmTenancy({ manager, dataSource, strategy: "databasePerTenant", dialect: "mysql", tenantEntities, connection })` | [TypeORM →](/docs/guides/provisioning/typeorm) |
 | Sequelize | `createSequelizeTenancy({ manager, sequelize, strategy: "databasePerTenant", tenantModels, connection })` (MySQL dialect) | [Sequelize →](/docs/guides/provisioning/sequelize) |
 | Lucid | `createLucidTenancy({ manager, database, strategy: "databasePerTenant", tenantModels, connection })` (AdonisJS + MySQL) | [Lucid →](/docs/guides/provisioning/lucid) |
 
 <Callout type="info">
   `CREATE DATABASE` is MySQL's isolation boundary here; provisioning creates and migrates it. The full
-  create/migrate/drop hooks per ORM are in the [provisioning recipes](/docs/guides/provisioning) — that's
+  create/migrate/drop hooks per ORM are in the [provisioning recipes](/docs/guides/provisioning) - that's
   the "batteries-included, manual-setup" half of MySQL onboarding.
 </Callout>
 

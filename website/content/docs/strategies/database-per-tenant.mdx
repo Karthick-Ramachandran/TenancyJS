@@ -37,7 +37,7 @@ const tenancy = createKnexTenancy({
 ```
 
 On **Lucid** (AdonisJS), `create` returns a `{ transaction, destroy }` handle wrapping a named Lucid
-connection — the same shape works for **PostgreSQL and MySQL** (Lucid's one MySQL-capable strategy):
+connection - the same shape works for **PostgreSQL and MySQL** (Lucid's one MySQL-capable strategy):
 
 ```ts
 const tenancy = createLucidTenancy({

@@ -1,20 +1,20 @@
 ---
 title: NestJS + Prisma setup
-description: Wire fail-closed multi-tenancy into a NestJS 11 + Prisma 7 app — a copy-pasteable setup-agent prompt, plus the manual walkthrough.
+description: Wire fail-closed multi-tenancy into a NestJS 11 + Prisma 7 app - a copy-pasteable setup-agent prompt, plus the manual walkthrough.
 ---
 
-`tenancy init` doesn't scaffold NestJS yet, so this stack is a manual wire-up — a few files. This page
+`tenancy init` doesn't scaffold NestJS yet, so this stack is a manual wire-up - a few files. This page
 gives you two ways to do it: hand the **setup-agent prompt** to your AI assistant, or follow the
-**manual walkthrough**. Either way, finish by running the two-tenant test — with fail-closed isolation
+**manual walkthrough**. Either way, finish by running the two-tenant test - with fail-closed isolation
 you verify, you don't trust.
 
 This is **row-level** on PostgreSQL. Prisma row-level is _facade-enforced_ (the extension rewrites
 query arguments; there is no RLS backstop), so the one rule that matters most: only ever expose the
-**extended** client — never the base Prisma client.
+**extended** client - never the base Prisma client.
 
 <Callout type="info">
   Running **MySQL**? This page is PostgreSQL (row-level + forced RLS). MySQL has no schema-per-tenant
-  and its row-level mode is experimental and facade-only — use
+  and its row-level mode is experimental and facade-only - use
   [database-per-tenant on MySQL](/docs/stacks/mysql-database-per-tenant) instead.
 </Callout>
 
@@ -24,11 +24,11 @@ Paste this into an assistant that can edit your repo and run commands (Claude Co
 executes in order and verifies each step. It's pinned to the real API, so it won't invent factory names.
 
 ````text
-# TenancyJS Setup Agent — NestJS 11 + Prisma 7 (row-level, PostgreSQL)
+# TenancyJS Setup Agent - NestJS 11 + Prisma 7 (row-level, PostgreSQL)
 
 You are a setup agent. Add fail-closed multi-tenancy to this NestJS + Prisma project with TenancyJS.
 Execute every step in order. After each step, verify it applied before continuing. If a step does not
-apply, say so and continue. Do NOT invent API names — if unsure, fetch the linked doc.
+apply, say so and continue. Do NOT invent API names - if unsure, fetch the linked doc.
 
 Source of truth (fetch if a detail is missing, do not guess):
 - https://tenancyjs.pages.dev/docs/adapters/prisma
@@ -42,21 +42,21 @@ Source of truth (fetch if a detail is missing, do not guess):
   NestJS + Prisma project.
 - Confirm the database is PostgreSQL.
 
-## Step 1 — Install
+## Step 1 - Install
 Run:
 ```sh
 npm install tenancyjs-core@beta tenancyjs-adapter-prisma@beta tenancyjs-integration-nest@beta tenancyjs-identifiers@beta @prisma/adapter-pg
 ```
 Verify all five appear in package.json dependencies.
 
-## Step 2 — Schema
+## Step 2 - Schema
 In `prisma/schema.prisma`, ensure:
 - A `Tenant` model with `id String @id` and `status String @default("active")`.
 - At least one tenant-scoped model with a non-null `tenantId String` and an index on `tenantId`
   (e.g. `Post`). If the app already has domain models, add `tenantId` to each tenant-owned one.
 Then run `npx prisma generate` (and `npx prisma migrate dev` if you own migrations).
 
-## Step 3 — tenancy.ts (the single source of truth)
+## Step 3 - tenancy.ts (the single source of truth)
 Create `src/tenancy.ts`. It must:
 - Construct ONE `TenancyManager<Tenant>` and export it.
 - Construct the BASE Prisma client with the Postgres driver adapter:
@@ -70,36 +70,36 @@ Create `src/tenancy.ts`. It must:
 - Export `manager`, `resolver`, and the EXTENDED client as `prisma`. Do NOT export the base client for
   app use.
 
-## Step 4 — PrismaService
+## Step 4 - PrismaService
 Create `src/prisma.service.ts`: an `@Injectable()` provider whose value IS the extended `prisma` client
 (re-export it via a provider, or `useValue: prisma`). Controllers inject THIS, never the base client.
 
-## Step 5 — Register TenancyModule
+## Step 5 - Register TenancyModule
 In `app.module.ts`, add `TenancyModule.forRoot({ manager, resolver })` to imports (import both from
 `./tenancy`). Do not register a second guard/interceptor.
 
-## Step 6 — Scope the routes
+## Step 6 - Scope the routes
 For every controller handler that touches tenant data:
 - Add `@TenantRoute()` (from `tenancyjs-integration-nest`).
-- Query through the injected extended `prisma` client. REMOVE any manual `where: { tenantId }` filters —
+- Query through the injected extended `prisma` client. REMOVE any manual `where: { tenantId }` filters -
   the extension injects the predicate. Leave non-tenant/public routes unmarked.
 
-## Step 7 — Central (cross-tenant) work
+## Step 7 - Central (cross-tenant) work
 For admin/cross-tenant handlers, do NOT leave them unscoped. Wrap the work in
 `manager.runInCentralContext(() => ...)` explicitly. Unscoped tenant access must throw.
 
-## Step 8 — Lock the boundary
-- Ensure the base Prisma client is never provided to controllers/services — only the extended client.
+## Step 8 - Lock the boundary
+- Ensure the base Prisma client is never provided to controllers/services - only the extended client.
 - Do not use raw queries or nested relation writes on the extended client; they are rejected by the
   facade. If you need them, that's a database-per-tenant concern (see the adapter doc), not row-level.
 
-## Step 9 — Prove it
+## Step 9 - Prove it
 Create a two-tenant test (Vitest or Jest): create tenant A and tenant B, write a row under EACH with the
 SAME primary key, assert querying as A never returns B's row, and assert that a tenant query with no
 active scope THROWS. Follow https://tenancyjs.pages.dev/docs/guides/testing-isolation.
 
-## Step 10 — Verify
-- `npx nest build` (or `npm run build`) — report errors.
+## Step 10 - Verify
+- `npx nest build` (or `npm run build`) - report errors.
 - Boot the app (`npm run start`) and confirm it serves.
 - Run the two-tenant test and report the result.
 
@@ -108,7 +108,7 @@ Report a summary of every file created/changed and any issue found.
 
 <Callout type="warn">
   AI wiring is a starting point, not proof. The only thing that demonstrates isolation is the two-tenant
-  colliding-id test in Step 9 — run it before you trust the result.
+  colliding-id test in Step 9 - run it before you trust the result.
 </Callout>
 
 ## Manual walkthrough
@@ -128,7 +128,7 @@ npm install tenancyjs-core@beta tenancyjs-adapter-prisma@beta tenancyjs-integrat
 <Step>
 ### One `tenancy.ts`
 
-The manager, the extended Prisma client, and the resolver all live here — one source of truth.
+The manager, the extended Prisma client, and the resolver all live here - one source of truth.
 
 ```ts title="src/tenancy.ts"
 import { TenancyManager, type TenantRecord } from "tenancyjs-core";
@@ -210,7 +210,7 @@ export class AppModule {}
 <Step>
 ### Scope your routes
 
-Mark tenant routes; the interceptor opens the scope and the extended client reads it — no manual
+Mark tenant routes; the interceptor opens the scope and the extended client reads it - no manual
 `tenantId` filter.
 
 ```ts title="src/posts.controller.ts"
@@ -242,7 +242,7 @@ B, assert A never reads B's row, and assert an unscoped tenant query throws.
 </Steps>
 
 <Callout type="info">
-  Cross-tenant admin work runs in an explicit central scope — `manager.runInCentralContext(() => …)`.
+  Cross-tenant admin work runs in an explicit central scope - `manager.runInCentralContext(() => …)`.
   There is no request-controlled central mode; a resolution failure fails closed, never central.
 </Callout>
 

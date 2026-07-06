@@ -1,5 +1,5 @@
 ---
-title: Prisma — provisioning
+title: Prisma - provisioning
 description: Create and migrate each tenant's schema or database with Prisma, driven by the tenancy CLI.
 ---
 
@@ -45,7 +45,7 @@ const baseUrl = process.env.DATABASE_URL!; // e.g. postgres://…/app
 export default defineTenancyRuntime({
   manager,
   store,
-  adapters: [tenancy], // createPrismaSchemaTenancy(...) — see the adapter page
+  adapters: [tenancy], // createPrismaSchemaTenancy(...) - see the adapter page
   provisioner: {
     provision: async (tenant) => {
       await admin.query(`create schema if not exists "${schemaOf(tenant.id)}"`);
@@ -84,7 +84,7 @@ provisioner: {
 },
 ```
 
-On **MySQL**, `CREATE DATABASE "tenant_x"` / `DROP DATABASE` is the same shape — swap the `pg` pool for
+On **MySQL**, `CREATE DATABASE "tenant_x"` / `DROP DATABASE` is the same shape - swap the `pg` pool for
 a `mysql2` admin connection and use `` `tenant_x` `` backtick quoting.
 
 ## Run the flow
@@ -96,14 +96,14 @@ npx tenancy tenant migrate acme                 # 3. prisma migrate deploy
 npx tenancy test:leak --test-file ./leak.mjs    # 4. prove isolation before trusting it
 ```
 
-Roll a new migration out to everyone with `npx tenancy tenant migrate --all` — it reports each
+Roll a new migration out to everyone with `npx tenancy tenant migrate --all` - it reports each
 tenant's outcome and exits non-zero if any fail, so it's safe in CI.
 
 ## Notes
 
 - **Prisma 7 needs a driver adapter** (`@prisma/adapter-pg`) and reads the datasource from
   `prisma.config.ts`. The `?schema=` URL still selects the schema for `migrate deploy`.
-- Keep `provision` **idempotent** (`if not exists`) — the CLI may retry, and a half-onboarded tenant
+- Keep `provision` **idempotent** (`if not exists`) - the CLI may retry, and a half-onboarded tenant
   should be safe to re-provision.
 - Routing validates the schema/database **already exists**; a tenant that hasn't been provisioned +
   migrated fails closed on its first request rather than lazily creating storage. Provision before you

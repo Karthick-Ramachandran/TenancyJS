@@ -1,5 +1,5 @@
 ---
-title: Sequelize — provisioning
+title: Sequelize - provisioning
 description: Create and migrate each tenant's schema or database with Sequelize, driven by the tenancy CLI.
 ---
 
@@ -8,8 +8,8 @@ This recipe implements the [provisioner hooks](/docs/getting-started/configurati
 Routing (leasing the tenant's model/instance at request time) is on the [Sequelize adapter page](/docs/adapters/sequelize);
 this page is only the setup seam TenancyJS leaves to you.
 
-Sequelize has no built-in runtime migrator, so the `migrate` hook drives your migration tool — an
-[Umzug](https://github.com/sequelize/umzug) instance or the `sequelize-cli` — against a tenant-scoped
+Sequelize has no built-in runtime migrator, so the `migrate` hook drives your migration tool - an
+[Umzug](https://github.com/sequelize/umzug) instance or the `sequelize-cli` - against a tenant-scoped
 connection. DDL runs on a privileged admin `Sequelize`, never your fail-closed runtime role.
 
 ```ts title="provisioning.ts"
@@ -40,7 +40,7 @@ const baseUrl = process.env.DATABASE_URL!; // e.g. postgres://…/app
 export default defineTenancyRuntime({
   manager,
   store,
-  adapters: [tenancy], // createSequelizeTenancy({ strategy: "schemaPerTenant", … }) — see the adapter page
+  adapters: [tenancy], // createSequelizeTenancy({ strategy: "schemaPerTenant", … }) - see the adapter page
   provisioner: {
     provision: async (tenant) => {
       // Idempotent DDL on the admin connection.
@@ -111,9 +111,9 @@ migrate: async (tenant) => {
 },
 ```
 
-On **MySQL**, ``CREATE DATABASE `tenant_x` `` / `DROP DATABASE` is the same shape — pass `dialect: "mysql"`
+On **MySQL**, ``CREATE DATABASE `tenant_x` `` / `DROP DATABASE` is the same shape - pass `dialect: "mysql"`
 to the adapter and use backtick quoting. MySQL treats schema and database as synonyms, so it supports
-**database-per-tenant** (and row-level) — not schema-per-tenant — and this is the strategy to use there.
+**database-per-tenant** (and row-level) - not schema-per-tenant - and this is the strategy to use there.
 
 ## Run the flow
 
@@ -124,20 +124,20 @@ npx tenancy tenant migrate acme                 # 3. umzug up / sequelize-cli db
 npx tenancy test:leak --test-file ./leak.mjs    # 4. prove isolation before trusting it
 ```
 
-Roll a new migration out to everyone with `npx tenancy tenant migrate --all` — it reports each
+Roll a new migration out to everyone with `npx tenancy tenant migrate --all` - it reports each
 tenant's outcome and exits non-zero if any fail, so it's safe in CI.
 
 ## Notes
 
-- Sequelize ships **no `sequelize.migrate()`**. The `migrate` hook's exact call depends on your tool —
+- Sequelize ships **no `sequelize.migrate()`**. The `migrate` hook's exact call depends on your tool -
   `umzug.up()` on a tenant-scoped instance, or `sequelize-cli db:migrate` with a per-tenant env. Keep the
   DDL on the admin connection either way.
-- Keep `provision` **idempotent** (`if not exists` / `createSchema` on an already-created schema is safe) —
+- Keep `provision` **idempotent** (`if not exists` / `createSchema` on an already-created schema is safe) -
   the CLI may retry, and a half-onboarded tenant should be safe to re-provision.
 - Routing validates the schema/database **already exists**; a tenant that hasn't been provisioned +
   migrated fails closed on its first request rather than lazily creating storage. Provision before you
   flip the tenant to `active`.
 - In database-per-tenant, each leased tenant `Sequelize` must register the **same model names** the
   adapter's `tenantModels` configure, or routing can't resolve the model.
-- For the Postgres RLS backstop, keep the runtime role **non-owner and non-`BYPASSRLS`** — the admin
+- For the Postgres RLS backstop, keep the runtime role **non-owner and non-`BYPASSRLS`** - the admin
   connection above owns the DDL; the request-time role only ever sees its own rows.

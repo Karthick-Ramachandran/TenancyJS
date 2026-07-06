@@ -84,7 +84,7 @@ const cache: TenancyBootstrapper<Tenant> = {
 const manager = new TenancyManager<Tenant>({ bootstrappers: [cache] });
 ```
 
-You can also subscribe to the scope lifecycle with `manager.on(event, listener)` — it returns an
+You can also subscribe to the scope lifecycle with `manager.on(event, listener)` - it returns an
 unsubscribe function. The events fire in order: `tenancy.initializing` → _(bootstrappers)_ →
 `tenancy.initialized` → your work → `tenancy.ending` → _(reverts)_ → `tenancy.ended`. The `ending` and
 `ended` listeners run even when the scope failed.

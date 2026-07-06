@@ -1,21 +1,21 @@
 ---
 title: AdonisJS + Lucid setup
-description: Wire fail-closed multi-tenancy into an AdonisJS 7 + Lucid 22 app with forced PostgreSQL RLS — a copy-pasteable setup-agent prompt, plus the manual walkthrough.
+description: Wire fail-closed multi-tenancy into an AdonisJS 7 + Lucid 22 app with forced PostgreSQL RLS - a copy-pasteable setup-agent prompt, plus the manual walkthrough.
 ---
 
 `npx tenancy init` scaffolds AdonisJS + Lucid end to end, so the fastest path is to run it and adapt.
 This page gives you two ways in: hand the **setup-agent prompt** to your AI assistant, or follow the
-**manual walkthrough**. Either way, finish by running the two-tenant test — with fail-closed isolation
+**manual walkthrough**. Either way, finish by running the two-tenant test - with fail-closed isolation
 you verify, you don't trust.
 
 This is **row-level** on PostgreSQL. Lucid row-level is a **callback facade backed by forced RLS**: the
 adapter scopes model operations through Lucid's hooks, and Postgres row-level security is the backstop
 that refuses cross-tenant rows even if a query slips the facade. That database enforcement is why this
-stack forces RLS — the runtime role can't read another tenant's rows no matter what SQL reaches it.
+stack forces RLS - the runtime role can't read another tenant's rows no matter what SQL reaches it.
 
 <Callout type="info">
   Running **MySQL**? This page is PostgreSQL (row-level + forced RLS). MySQL has no schema-per-tenant
-  and its row-level mode is experimental and facade-only — use
+  and its row-level mode is experimental and facade-only - use
   [database-per-tenant on MySQL](/docs/stacks/mysql-database-per-tenant) instead.
 </Callout>
 
@@ -25,11 +25,11 @@ Paste this into an assistant that can edit your repo and run commands (Claude Co
 executes in order and verifies each step. It's pinned to the real API, so it won't invent factory names.
 
 ````text
-# TenancyJS Setup Agent — AdonisJS 7 + Lucid 22 (row-level, PostgreSQL)
+# TenancyJS Setup Agent - AdonisJS 7 + Lucid 22 (row-level, PostgreSQL)
 
 You are a setup agent. Add fail-closed multi-tenancy to this AdonisJS + Lucid project with TenancyJS.
 Execute every step in order. After each step, verify it applied before continuing. If a step does not
-apply, say so and continue. Do NOT invent API names — if unsure, fetch the linked doc.
+apply, say so and continue. Do NOT invent API names - if unsure, fetch the linked doc.
 
 Source of truth (fetch if a detail is missing, do not guess):
 - https://tenancyjs.pages.dev/docs/adapters/lucid
@@ -43,19 +43,19 @@ Source of truth (fetch if a detail is missing, do not guess):
   AdonisJS + Lucid project.
 - Confirm the database is PostgreSQL and that `pg` is installed (it and `luxon` are Lucid peers).
 
-## Step 1 — Scaffold or wire manually
+## Step 1 - Scaffold or wire manually
 `npx tenancy init` scaffolds this exact stack end to end. Offer to run it, then adapt the result to
 this repo. If the user prefers explicit wiring (or `init` doesn't fit), do Steps 2–8 by hand.
 
-## Step 2 — Install
+## Step 2 - Install
 Run:
 ```sh
 npm install tenancyjs-core@beta tenancyjs-adapter-lucid@beta tenancyjs-integration-adonis@beta tenancyjs-identifiers@beta
 ```
 Verify all four appear in package.json dependencies. `tenancyjs-identifiers` MUST be a direct
-dependency — AdonisJS only resolves it transitively otherwise, and config import fails.
+dependency - AdonisJS only resolves it transitively otherwise, and config import fails.
 
-## Step 3 — config/tenancy.ts (the single source of truth)
+## Step 3 - config/tenancy.ts (the single source of truth)
 Create `config/tenancy.ts`. It must:
 - Construct ONE `TenancyManager<Tenant>`.
 - Build the Lucid adapter with `createLucidTenancy({ manager, database: db, tenantModels: [...] })`
@@ -66,7 +66,7 @@ Create `config/tenancy.ts`. It must:
 - Export `defineAdonisTenancyConfig({ manager, resolver, tenancy })` as default, passing `tenancy` as a
   lazy factory `() => createLucidTenancy(...)` (config loads before providers boot).
 
-## Step 4 — Forced-RLS migration
+## Step 4 - Forced-RLS migration
 Create a migration that installs RLS as the DB OWNER and runs the app as a NON-owner runtime role:
 - The runtime role must NOT own the tables, must NOT have BYPASSRLS, and must NOT be a superuser
   (or FORCE RLS is silently skipped for it).
@@ -76,29 +76,29 @@ Create a migration that installs RLS as the DB OWNER and runs the app as a NON-o
   `current_setting('tenancyjs.is_central', true) = 'true'`.
 Verify the policy exists (`\d+ posts`) and the runtime role is non-owner.
 
-## Step 5 — Register provider + middleware
+## Step 5 - Register provider + middleware
 - In `adonisrc.ts`, add `() => import('tenancyjs-integration-adonis/provider')` to `providers`.
 - Add `app/middleware/tenant_middleware.ts` re-exporting `TenancyMiddleware` as default, register it as
   a NAMED middleware `tenant` in `start/kernel.ts`.
 - In `start/routes.ts`, apply `.use(middleware.tenant())` to tenant route GROUPS only. Central routes
-  omit it — never apply it globally.
+  omit it - never apply it globally.
 
-## Step 6 — Validate at startup
+## Step 6 - Validate at startup
 Ensure `await tenancy.validate()` runs before the first `tenancy.run(...)` and THROWS if invalid (the
 web provider validates automatically; Ace commands and scripts must call it themselves).
 
-## Step 7 — Central (cross-tenant) work
+## Step 7 - Central (cross-tenant) work
 For admin/cross-tenant handlers, do NOT leave them unscoped. Open an explicit central scope through
 application-owned code (`manager.runInCentralContext(...)`); unscoped tenant access must fail closed.
 
-## Step 8 — Prove it
+## Step 8 - Prove it
 Create a two-tenant test (`node ace test`): write a row under tenant A and tenant B with the SAME
 primary key; assert querying as A never returns B's row; and assert that raw SQL run as the runtime
-role with NO GUC set returns 0 rows (RLS backstop). In tests, call `config.tenancy.validate()` yourself —
+role with NO GUC set returns 0 rows (RLS backstop). In tests, call `config.tenancy.validate()` yourself -
 the /testing helper does not auto-validate. Follow https://tenancyjs.pages.dev/docs/guides/testing-isolation.
 
-## Step 9 — Verify
-- `node ace build` — report errors.
+## Step 9 - Verify
+- `node ace build` - report errors.
 - Boot the app (`node ace serve`) and confirm it serves.
 - Run `node ace test` and report the result.
 
@@ -107,7 +107,7 @@ Report a summary of every file created/changed and any issue found.
 
 <Callout type="warn">
   AI wiring is a starting point, not proof. The only thing that demonstrates isolation is the two-tenant
-  colliding-id test in Step 8 — run it, including the raw-as-runtime-role check, before you trust it.
+  colliding-id test in Step 8 - run it, including the raw-as-runtime-role check, before you trust it.
 </Callout>
 
 ## Manual walkthrough
@@ -123,7 +123,7 @@ Prefer to wire it yourself? The same steps, with the code.
 npm install tenancyjs-core@beta tenancyjs-adapter-lucid@beta tenancyjs-integration-adonis@beta tenancyjs-identifiers@beta
 ```
 
-`@adonisjs/lucid`, `luxon`, and `pg` are AdonisJS peers — make sure `@adonisjs/lucid` and `pg` are
+`@adonisjs/lucid`, `luxon`, and `pg` are AdonisJS peers - make sure `@adonisjs/lucid` and `pg` are
 present. Keep `tenancyjs-identifiers` a **direct** dependency; Adonis only resolves it transitively
 otherwise, and `config/tenancy.ts` fails to import.
 </Step>
@@ -131,7 +131,7 @@ otherwise, and `config/tenancy.ts` fails to import.
 <Step>
 ### One `config/tenancy.ts`
 
-The manager, the Lucid adapter, and the resolver all live here — one source of truth. The adapter is a
+The manager, the Lucid adapter, and the resolver all live here - one source of truth. The adapter is a
 callback facade; the AdonisJS config wraps it as a lazy factory.
 
 ```ts title="config/tenancy.ts"
@@ -183,7 +183,7 @@ export default defineAdonisTenancyConfig<Tenant>({
 ### Force RLS in a migration
 
 The facade is one guard; forced RLS is the database backstop. Install the tables and policy as the DB
-**owner**, and run the app as a **non-owner** runtime role (no `BYPASSRLS`, not a superuser — otherwise
+**owner**, and run the app as a **non-owner** runtime role (no `BYPASSRLS`, not a superuser - otherwise
 `FORCE` is skipped for it).
 
 ```ts title="database/migrations/xxxx_force_rls_posts.ts"
@@ -238,7 +238,7 @@ export const middleware = router.named({
 });
 ```
 
-Apply it to tenant route **groups** only — central routes stay unmarked:
+Apply it to tenant route **groups** only - central routes stay unmarked:
 
 ```ts title="start/routes.ts"
 router
@@ -253,7 +253,7 @@ router
 ### Run app work inside both contexts
 
 The middleware opens the request's tenant scope; run the manager scope and the Lucid scope together, and
-your models read isolated automatically — no `where tenantId`:
+your models read isolated automatically - no `where tenantId`:
 
 ```ts title="app/controllers/posts_controller.ts"
 const posts = await manager.runWithTenant(tenant, () =>
@@ -271,7 +271,7 @@ const { valid } = await tenancy.validate();
 if (!valid) throw new Error("Tenancy validation failed");
 ```
 
-Cross-tenant admin work runs through an explicit central scope in application-owned code — never opened
+Cross-tenant admin work runs through an explicit central scope in application-owned code - never opened
 by a request.
 </Step>
 
@@ -280,14 +280,14 @@ by a request.
 
 Write the [two-tenant colliding-id test](/docs/guides/testing-isolation) with `node ace test`: same
 primary key under A and B, assert A never reads B's row, **and** assert a raw query run as the runtime
-role with no GUC returns 0 rows (the RLS backstop). In tests, call `config.tenancy.validate()` yourself —
+role with no GUC returns 0 rows (the RLS backstop). In tests, call `config.tenancy.validate()` yourself -
 the `/testing` helper does not auto-validate.
 </Step>
 
 </Steps>
 
 <Callout type="info">
-  In Ace commands, scripts, and tests, call `tenancy.validate()` yourself — only the web provider
+  In Ace commands, scripts, and tests, call `tenancy.validate()` yourself - only the web provider
   validates automatically. A resolution failure fails closed, never central.
 </Callout>
 

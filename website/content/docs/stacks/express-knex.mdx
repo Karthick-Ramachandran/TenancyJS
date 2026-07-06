@@ -1,16 +1,16 @@
 ---
 title: Express + Knex setup
-description: Wire fail-closed multi-tenancy into an Express 5 + Knex app with database-enforced Postgres RLS — a copy-pasteable setup-agent prompt, plus the manual walkthrough.
+description: Wire fail-closed multi-tenancy into an Express 5 + Knex app with database-enforced Postgres RLS - a copy-pasteable setup-agent prompt, plus the manual walkthrough.
 ---
 
-`tenancy init` doesn't scaffold Express + Knex yet, so this stack is a manual wire-up — a few files. This
+`tenancy init` doesn't scaffold Express + Knex yet, so this stack is a manual wire-up - a few files. This
 page gives you two ways to do it: hand the **setup-agent prompt** to your AI assistant, or follow the
-**manual walkthrough**. Either way, finish by running the two-tenant test — with fail-closed isolation
+**manual walkthrough**. Either way, finish by running the two-tenant test - with fail-closed isolation
 you verify, you don't trust.
 
 This is **row-level** on PostgreSQL, and Knex is a **callback facade backed by forced RLS**. The facade
 scopes every query; the database enforces isolation independently via a `FORCE ROW LEVEL SECURITY` policy
-under a non-privileged runtime role. That backstop is the point — set it up (Step 4) or you're running on
+under a non-privileged runtime role. That backstop is the point - set it up (Step 4) or you're running on
 the facade alone. Keep the base Knex private; only expose `tenancy.run`.
 
 ## Setup-agent prompt
@@ -19,11 +19,11 @@ Paste this into an assistant that can edit your repo and run commands (Claude Co
 executes in order and verifies each step. It's pinned to the real API, so it won't invent factory names.
 
 ````text
-# TenancyJS Setup Agent — Express 5 + Knex (row-level, PostgreSQL)
+# TenancyJS Setup Agent - Express 5 + Knex (row-level, PostgreSQL)
 
 You are a setup agent. Add fail-closed multi-tenancy to this Express + Knex project with TenancyJS.
 Execute every step in order. After each step, verify it applied before continuing. If a step does not
-apply, say so and continue. Do NOT invent API names — if unsure, fetch the linked doc.
+apply, say so and continue. Do NOT invent API names - if unsure, fetch the linked doc.
 
 Source of truth (fetch if a detail is missing, do not guess):
 - https://tenancyjs.pages.dev/docs/adapters/knex
@@ -34,21 +34,21 @@ Source of truth (fetch if a detail is missing, do not guess):
 ## Pre-flight
 - Run `node -v`; abort if it is not >= 24.
 - Confirm `express` (v5) and `knex` are in package.json. Abort if this is not an Express + Knex project.
-- Confirm the database is PostgreSQL. Knex tenancy is PostgreSQL-only — abort otherwise.
+- Confirm the database is PostgreSQL. Knex tenancy is PostgreSQL-only - abort otherwise.
 
-## Step 1 — Install
+## Step 1 - Install
 Run:
 ```sh
 npm install tenancyjs-core@beta tenancyjs-adapter-knex@beta tenancyjs-integration-express@beta tenancyjs-identifiers@beta knex pg
 ```
 Verify all six appear in package.json dependencies.
 
-## Step 2 — Schema
+## Step 2 - Schema
 Ensure a `tenants` table (`id text primary key`, `status text not null default 'active'`) and at least
 one tenant-scoped table with a non-null `tenant_id` column (e.g. `posts`). Add `tenant_id` to every
 tenant-owned table. Index `tenant_id`.
 
-## Step 3 — tenancy.ts (the single source of truth)
+## Step 3 - tenancy.ts (the single source of truth)
 Create `src/tenancy.ts`. It must:
 - Construct ONE `TenancyManager<Tenant>` and export it.
 - Construct the BASE Knex with `Knex({ client: "pg", connection: process.env.DATABASE_URL })` using the
@@ -59,7 +59,7 @@ Create `src/tenancy.ts`. It must:
   looks the tenant up and returns `[{ tenant: { id }, status }]` (or `[]`).
 - Export `manager`, `resolver`, `tenancy`. Do NOT export the base Knex for app use.
 
-## Step 4 — Forced RLS migration (the database backstop) — DO NOT SKIP
+## Step 4 - Forced RLS migration (the database backstop) - DO NOT SKIP
 Write a migration, run under a MIGRATION/OWNER role, that for each tenant table:
 - Adds a non-null `tenant_id`.
 - `ALTER TABLE posts ENABLE ROW LEVEL SECURITY;` then `ALTER TABLE posts FORCE ROW LEVEL SECURITY;`
@@ -69,35 +69,35 @@ Write a migration, run under a MIGRATION/OWNER role, that for each tenant table:
 Confirm the RUNTIME role the app connects as is NOT the table owner, is NOT superuser, and does NOT have
 BYPASSRLS. This is what makes the isolation database-enforced, not facade-only.
 
-## Step 5 — Validate at startup
+## Step 5 - Validate at startup
 Before `app.listen`, `await tenancy.validate()`. If it rejects (RLS missing, policy wrong, or the role
-can bypass), log the error and REFUSE to serve — do not fall back to facade-only.
+can bypass), log the error and REFUSE to serve - do not fall back to facade-only.
 
-## Step 6 — Middleware
+## Step 6 - Middleware
 In `server.ts`, register `app.use(createExpressTenancyMiddleware({ manager, resolver }))` EARLY, before
-routes. The resolver is the `TenantResolutionChain` object — NOT a `(req) => …` function.
+routes. The resolver is the `TenantResolutionChain` object - NOT a `(req) => …` function.
 
-## Step 7 — Scope the routes
+## Step 7 - Scope the routes
 For every handler that touches tenant data, query through `tenancy.run((db) => db.table("posts")…)`.
-REMOVE any manual `where("tenant_id", …)` filters — the facade injects the scope and the policy enforces
+REMOVE any manual `where("tenant_id", …)` filters - the facade injects the scope and the policy enforces
 it. Leave non-tenant/public routes alone.
 
-## Step 8 — Central (cross-tenant) work
+## Step 8 - Central (cross-tenant) work
 For admin/cross-tenant handlers, wrap the work in
 `manager.runInCentralContext(() => tenancy.run((db) => …))` explicitly. Unscoped tenant access must throw.
 
-## Step 9 — Error handler
+## Step 9 - Error handler
 Add a final Express error handler that maps `ExpressTenancyResolutionError` (it carries `.statusCode`) to
 400/404, and anything else to 500. Otherwise resolution failures surface as an unhandled 500.
 
-## Step 10 — Prove it
+## Step 10 - Prove it
 Create a two-tenant test (Vitest or Jest): create tenant A and tenant B, write a row under EACH with the
 SAME primary key, assert querying as A never returns B's row. THEN, as the runtime role with no tenant
-GUC set, run a raw `select * from posts` and assert it returns 0 rows — that proves the RLS backstop, not
+GUC set, run a raw `select * from posts` and assert it returns 0 rows - that proves the RLS backstop, not
 just the facade. Follow https://tenancyjs.pages.dev/docs/guides/testing-isolation.
 
-## Step 11 — Verify
-- `npm run build` (if TypeScript) — report errors.
+## Step 11 - Verify
+- `npm run build` (if TypeScript) - report errors.
 - Boot the app (`npm run start`) and confirm `tenancy.validate()` passed and it serves.
 - Run the two-tenant test and report the result.
 
@@ -105,7 +105,7 @@ Report a summary of every file created/changed and any issue found.
 ````
 
 <Callout type="warn">
-  AI wiring is a starting point, not proof. The only thing that demonstrates isolation is Step 10 — the
+  AI wiring is a starting point, not proof. The only thing that demonstrates isolation is Step 10 - the
   two-tenant colliding-id test **and** the raw-query-as-runtime-role check that proves the RLS backstop.
   Run both before you trust the result.
 </Callout>
@@ -127,7 +127,7 @@ npm install tenancyjs-core@beta tenancyjs-adapter-knex@beta tenancyjs-integratio
 <Step>
 ### One `tenancy.ts`
 
-The manager, the Knex facade, and the resolver all live here — one source of truth. The base Knex stays
+The manager, the Knex facade, and the resolver all live here - one source of truth. The base Knex stays
 private; the app only ever gets a scoped `db` through `tenancy.run`.
 
 ```ts title="src/tenancy.ts"
@@ -170,7 +170,7 @@ export const resolver = new TenantResolutionChain<Tenant>({
 ### The forced RLS migration (the database backstop)
 
 Run this under the **owner/migration** role. The app connects as a separate runtime role that is not the
-owner, not superuser, and lacks `BYPASSRLS` — so `FORCE ROW LEVEL SECURITY` binds it to the policy.
+owner, not superuser, and lacks `BYPASSRLS` - so `FORCE ROW LEVEL SECURITY` binds it to the policy.
 
 ```ts title="migrations/001_posts_rls.ts"
 import type { Knex } from "knex";
@@ -204,7 +204,7 @@ export async function down(knex: Knex): Promise<void> {
 ### Validate, then wire the middleware
 
 Call `tenancy.validate()` at startup and refuse to serve if RLS is missing or the role can bypass it.
-Register the middleware early — the resolver is the `TenantResolutionChain` object, not a function.
+Register the middleware early - the resolver is the `TenantResolutionChain` object, not a function.
 
 ```ts title="src/server.ts"
 import express from "express";
@@ -240,7 +240,7 @@ app.listen(3000);
 <Step>
 ### Central (cross-tenant) work
 
-Admin routes don't run unscoped — the policy would hide every row. Open an explicit central scope; the
+Admin routes don't run unscoped - the policy would hide every row. Open an explicit central scope; the
 policy's `is_central` branch lets the query through.
 
 ```ts title="src/admin.ts"
@@ -257,7 +257,7 @@ export function countAllPosts() {
 
 Write the [two-tenant colliding-id test](/docs/guides/testing-isolation): the same primary key under A and
 B, assert A never reads B's row. Then, connected as the **runtime role with no tenant GUC set**, run a raw
-`select * from posts` and assert it returns **0 rows** — that proves the forced-RLS backstop holds even if
+`select * from posts` and assert it returns **0 rows** - that proves the forced-RLS backstop holds even if
 the facade were bypassed.
 </Step>
 
@@ -265,7 +265,7 @@ the facade were bypassed.
 
 <Callout type="info">
   Two independent guards: the facade scopes queries, and forced RLS enforces isolation in the database
-  under a non-privileged role. Validate the second at startup — facade-only is not the design.
+  under a non-privileged role. Validate the second at startup - facade-only is not the design.
 </Callout>
 
 Full lifecycle and the security boundary: [Express integration](/docs/integrations/express) ·

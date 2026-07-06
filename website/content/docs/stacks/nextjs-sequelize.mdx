@@ -1,20 +1,20 @@
 ---
 title: Next.js + Sequelize setup
-description: Wire fail-closed multi-tenancy into a Next.js 16 App Router + Sequelize app — a copy-pasteable setup-agent prompt, plus the manual walkthrough.
+description: Wire fail-closed multi-tenancy into a Next.js 16 App Router + Sequelize app - a copy-pasteable setup-agent prompt, plus the manual walkthrough.
 ---
 
-`tenancy init` doesn't scaffold Next.js yet, so this stack is a manual wire-up — a few files. This page
+`tenancy init` doesn't scaffold Next.js yet, so this stack is a manual wire-up - a few files. This page
 gives you two ways to do it: hand the **setup-agent prompt** to your AI assistant, or follow the
-**manual walkthrough**. Either way, finish by running the two-tenant test — with fail-closed isolation
+**manual walkthrough**. Either way, finish by running the two-tenant test - with fail-closed isolation
 you verify, you don't trust.
 
 This is **row-level** on PostgreSQL, backed by **forced RLS**. The Sequelize adapter is a _callback
-facade_ — you query the protected model, never the native Sequelize model — and PostgreSQL forces the
+facade_ - you query the protected model, never the native Sequelize model - and PostgreSQL forces the
 policy underneath, so the database itself rejects a cross-tenant read even if the facade were bypassed.
 
 <Callout type="info">
   Running **MySQL**? This page is PostgreSQL (row-level + forced RLS). MySQL has no schema-per-tenant
-  and its row-level mode is experimental and facade-only — use
+  and its row-level mode is experimental and facade-only - use
   [database-per-tenant on MySQL](/docs/stacks/mysql-database-per-tenant) instead.
 </Callout>
 
@@ -24,11 +24,11 @@ Paste this into an assistant that can edit your repo and run commands (Claude Co
 executes in order and verifies each step. It's pinned to the real API, so it won't invent factory names.
 
 ````text
-# TenancyJS Setup Agent — Next.js 16 + Sequelize (row-level, PostgreSQL)
+# TenancyJS Setup Agent - Next.js 16 + Sequelize (row-level, PostgreSQL)
 
 You are a setup agent. Add fail-closed multi-tenancy to this Next.js App Router + Sequelize project with
 TenancyJS. Execute every step in order. After each step, verify it applied before continuing. If a step
-does not apply, say so and continue. Do NOT invent API names — if unsure, fetch the linked doc.
+does not apply, say so and continue. Do NOT invent API names - if unsure, fetch the linked doc.
 
 Source of truth (fetch if a detail is missing, do not guess):
 - https://tenancyjs.pages.dev/docs/adapters/sequelize
@@ -42,23 +42,23 @@ Source of truth (fetch if a detail is missing, do not guess):
   + Sequelize project.
 - Confirm the database is PostgreSQL. Row-level here REQUIRES forced RLS; MySQL is out of scope.
 
-## Step 1 — Install
+## Step 1 - Install
 Run:
 ```sh
 npm install tenancyjs-core@beta tenancyjs-adapter-sequelize@beta tenancyjs-integration-next@beta tenancyjs-identifiers@beta sequelize pg
 ```
 Verify all six appear in package.json dependencies.
 
-## Step 2 — Models
+## Step 2 - Models
 In `lib/models.ts`, define a Sequelize model for each tenant-scoped table (e.g. `Post`) with a non-null
 `tenantId` attribute mapped to a `tenant_id` column, plus a `Tenant` model (`id` primary key,
 `status` not null default `'active'`). Export the `sequelize` instance and the models. Verify the file
 compiles.
 
-## Step 3 — Forced-RLS migration (do NOT skip)
+## Step 3 - Forced-RLS migration (do NOT skip)
 This is the backstop that makes row-level safe. Write a migration run by an OWNER role that:
 - Creates the tenant tables (owner owns them).
-- Creates a NON-OWNER runtime role for the app connection — it must NOT be the table owner, must NOT
+- Creates a NON-OWNER runtime role for the app connection - it must NOT be the table owner, must NOT
   have BYPASSRLS, and must NOT be a superuser (owners and superusers ignore RLS).
 - Runs `ALTER TABLE posts ENABLE ROW LEVEL SECURITY;` and `ALTER TABLE posts FORCE ROW LEVEL SECURITY;`
   for every tenant table.
@@ -67,7 +67,7 @@ This is the backstop that makes row-level safe. Write a migration run by an OWNE
 - Grants the runtime role table privileges but not ownership.
 Point `DATABASE_URL` at the NON-OWNER runtime role. Verify the role is non-owner and RLS is FORCED.
 
-## Step 4 — The Sequelize adapter (ormTenancy)
+## Step 4 - The Sequelize adapter (ormTenancy)
 Create `lib/db.ts`. It must:
 - Construct ONE `TenancyManager<Tenant>` and export it.
 - Build the `sequelize` instance from `DATABASE_URL` (the runtime role) with `dialect: "postgres"`.
@@ -75,43 +75,43 @@ Create `lib/db.ts`. It must:
   table: "posts", tenantAttribute: "tenantId", tenantColumn: "tenant_id" }] })` and export it as
   `ormTenancy`.
 - Do NOT export the native Sequelize model. The app queries ONLY through `ormTenancy.run((client) =>
-  client.model(Post)...)` — the protected facade, never the native model.
+  client.model(Post)...)` - the protected facade, never the native model.
 
-## Step 5 — Resolver + Next runtime (nextTenancy)
+## Step 5 - Resolver + Next runtime (nextTenancy)
 In `lib/tenancy.ts`:
 - Build a `TenantResolutionChain` with `new HeaderTenantResolver({ headerName: "x-tenant-id" })` and a
   store whose `find(identifier)` looks the tenant up and returns `[{ tenant: { id }, status }]` (or `[]`).
 - Create `createNextTenancy({ manager, resolver })` and export it as `nextTenancy`. Name it distinctly
-  from `ormTenancy` — they are different objects.
+  from `ormTenancy` - they are different objects.
 
-## Step 6 — Scope the routes (Node runtime)
+## Step 6 - Scope the routes (Node runtime)
 For every Route Handler / Server Action that touches tenant data:
 - Wrap it: `export const GET = nextTenancy.withRouteHandler(async () =>
   ormTenancy.run((c) => c.model(Post).findAll({ status: "open" })))`. Server Actions use
   `nextTenancy.withServerAction`.
-- Add `export const runtime = "nodejs"` — the adapter runs on Node, not the Edge.
+- Add `export const runtime = "nodejs"` - the adapter runs on Node, not the Edge.
 - REMOVE any manual `where tenantId` filters; the scope + policy inject isolation.
 
-## Step 7 — Edge hint (optional)
+## Step 7 - Edge hint (optional)
 If you resolve identity from the host/subdomain, add `middleware.ts` using `withNextTenantHint` from
 `tenancyjs-integration-next/edge` to carry identity across the Edge→Node boundary.
 
-## Step 8 — Central (cross-tenant) work
+## Step 8 - Central (cross-tenant) work
 For admin/cross-tenant reads, wrap the work in
 `manager.runInCentralContext(() => ormTenancy.run((c) => c.model(Post).findAll({})))`. This sets
 `tenancyjs.is_central`, which the policy honours. Unscoped tenant access must throw.
 
-## Step 9 — Cache safety
+## Step 9 - Cache safety
 Any Next cache (`fetch` cache, `unstable_cache`, route segment cache) that wraps tenant data MUST be
 keyed by tenant id, or left uncached. A shared cache entry across tenants is a leak the policy cannot
 catch.
 
-## Step 10 — Validate + prove it
+## Step 10 - Validate + prove it
 - Call `await ormTenancy.validate()` at boot; it confirms the runtime role is non-privileged and RLS
   is enabled + forced before serving. Abort if it throws.
 - Create a two-tenant test: write a row under tenant A and tenant B with the SAME primary key, assert a
   scoped read as A never returns B's row, AND assert a RAW query as the runtime role with NO GUC set
-  returns 0 rows (proof the policy — not just the facade — isolates). Follow
+  returns 0 rows (proof the policy - not just the facade - isolates). Follow
   https://tenancyjs.pages.dev/docs/guides/testing-isolation.
 - `npm run build`, boot the app, run the test, report the result.
 
@@ -120,7 +120,7 @@ Report a summary of every file created/changed and any issue found.
 
 <Callout type="warn">
   AI wiring is a starting point, not proof. The only thing that demonstrates isolation is the two-tenant
-  colliding-id test in Step 10 — including the raw-as-runtime-role read that must return 0 rows.
+  colliding-id test in Step 10 - including the raw-as-runtime-role read that must return 0 rows.
 </Callout>
 
 ## Manual walkthrough
@@ -138,7 +138,7 @@ npm install tenancyjs-core@beta tenancyjs-adapter-sequelize@beta tenancyjs-integ
 </Step>
 
 <Step>
-### Models — a non-null `tenantId`
+### Models - a non-null `tenantId`
 
 Each tenant-scoped model keeps a non-null `tenantId` attribute mapped to the `tenant_id` column the
 policy reads.
@@ -192,7 +192,7 @@ Point `DATABASE_URL` at `app_runtime`, never the owner.
 </Step>
 
 <Step>
-### The Sequelize adapter — `ormTenancy`
+### The Sequelize adapter - `ormTenancy`
 
 The manager and the callback-facade adapter live here. The app never touches the native Sequelize model.
 
@@ -227,7 +227,7 @@ await ormTenancy.validate();
 </Step>
 
 <Step>
-### Resolver + Next runtime — `nextTenancy`
+### Resolver + Next runtime - `nextTenancy`
 
 ```ts title="lib/tenancy.ts"
 import { createNextTenancy } from "tenancyjs-integration-next";
@@ -245,7 +245,7 @@ const resolver = new TenantResolutionChain({
   },
 });
 
-// Distinct from ormTenancy — different object, different job.
+// Distinct from ormTenancy - different object, different job.
 export const nextTenancy = createNextTenancy({ manager, resolver });
 ```
 </Step>
@@ -254,7 +254,7 @@ export const nextTenancy = createNextTenancy({ manager, resolver });
 ### Scope your routes (Node runtime)
 
 `nextTenancy.withRouteHandler` opens the scope; `ormTenancy.run` queries through the facade. No manual
-`tenantId` filter — the scope sets the GUC and the policy enforces it.
+`tenantId` filter - the scope sets the GUC and the policy enforces it.
 
 ```ts title="app/posts/route.ts"
 import { nextTenancy } from "@/lib/tenancy";
@@ -298,13 +298,13 @@ export const config = {
 
 Write the [two-tenant colliding-id test](/docs/guides/testing-isolation): same primary key under A and
 B, assert a scoped read as A never returns B's row, **and** assert a raw query as the runtime role with
-no GUC set returns 0 rows — that last one proves the policy, not just the facade, isolates.
+no GUC set returns 0 rows - that last one proves the policy, not just the facade, isolates.
 </Step>
 
 </Steps>
 
 <Callout type="info">
-  Cross-tenant admin work runs in an explicit central scope —
+  Cross-tenant admin work runs in an explicit central scope -
   `manager.runInCentralContext(() => ormTenancy.run((c) => c.model(Post).findAll({})))`. Next caches
   around tenant data must be tenant-keyed or uncached; a shared entry is a leak the policy can't catch.
 </Callout>

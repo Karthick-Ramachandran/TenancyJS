@@ -20,7 +20,7 @@ npm install tenancyjs-core tenancyjs-adapter-prisma tenancyjs-integration-expres
 ```
 
 `tenancyjs-identifiers` supplies the resolver (`TenantResolutionChain` + the header/subdomain resolvers)
-the middleware needs — it's a required part of the wiring, not optional.
+the middleware needs - it's a required part of the wiring, not optional.
 
 ## Wire it up
 
@@ -48,7 +48,7 @@ export const db = new PrismaClient().$extends(adapter.extension);
 <Step>
 ### The middleware
 
-Register it early, before your routes. Give it your `manager` and a **resolver** — an object with a
+Register it early, before your routes. Give it your `manager` and a **resolver** - an object with a
 `resolve()` method. Build one with a `TenantResolutionChain` from `tenancyjs-identifiers`: it reads the
 request and looks the identifier up in **your** store.
 
@@ -80,7 +80,7 @@ app.get("/orders", async (_req, res) => {
   res.json(await db.order.findMany()); // already scoped to the tenant
 });
 
-// Map resolution failures to 400/404 — otherwise they surface as an unhandled 500.
+// Map resolution failures to 400/404 - otherwise they surface as an unhandled 500.
 app.use((err, _req, res, next) => {
   if (typeof err?.statusCode === "number")
     res.status(err.statusCode).json({ error: err.message });
@@ -93,7 +93,7 @@ app.use((err, _req, res, next) => {
 </Steps>
 
 <Callout type="warn">
-  The `resolver` is **not** a `(req) => …` function — it's an object with `resolve(input)` (a
+  The `resolver` is **not** a `(req) => …` function - it's an object with `resolve(input)` (a
   `TenantResolutionChain`), and it receives a `ResolverInput` (`{ host, headers }`), not the Express
   `req`. Passing a function fails middleware validation.
 </Callout>
@@ -103,7 +103,7 @@ app.use((err, _req, res, next) => {
 - **On success:** the tenant scope is open for the whole request; adapters are scoped, and the scope is
   torn down when the response finishes.
 - **On a resolution failure:** a missing/invalid identifier or an unknown/suspended tenant makes the
-  middleware `next(error)` with an error carrying `.statusCode` (400/404) — add the error handler above
+  middleware `next(error)` with an error carrying `.statusCode` (400/404) - add the error handler above
   (or pass a custom `onError`) to turn that into a response. Your route handler never runs.
 
 ## Use a different ORM

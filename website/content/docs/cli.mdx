@@ -69,7 +69,7 @@ npx tenancy run ./backfill.ts --tenant acme
 npx tenancy run ./rollup.ts --central
 ```
 
-The script is imported **inside** the scope, so your normal scoped client just works — no context is
+The script is imported **inside** the scope, so your normal scoped client just works - no context is
 passed in, you import your own `db`:
 
 ```ts title="backfill.ts"

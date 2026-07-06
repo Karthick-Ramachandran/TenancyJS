@@ -71,7 +71,7 @@ export const tenancy = createNextTenancy({ manager, resolver });
 ## Resolve identity at the edge
 
 Next runs middleware on the Edge and your handlers on Node. The edge helper encodes the request's tenant
-identity into a hint header that the Node runtime reads back — so identity is captured once, at the
+identity into a hint header that the Node runtime reads back - so identity is captured once, at the
 boundary:
 
 ```ts title="middleware.ts"

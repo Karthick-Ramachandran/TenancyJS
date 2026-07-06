@@ -57,14 +57,14 @@ await manager.runWithTenant({ id: "acme" }, async () => {
 
 For the RLS-backed SQL adapters (Knex, Lucid, TypeORM, Sequelize, Drizzle) on PostgreSQL, each tenant
 table needs a row-level security policy. The adapter validates this contract at startup and **refuses to
-run** (`validate()` fails) until it's in place — so this SQL isn't optional, it's the backstop that makes
+run** (`validate()` fails) until it's in place - so this SQL isn't optional, it's the backstop that makes
 a facade bug non-fatal.
 
-TenancyJS sets two transaction-local settings on every scoped query — `tenancyjs.tenant_id` (the current
+TenancyJS sets two transaction-local settings on every scoped query - `tenancyjs.tenant_id` (the current
 tenant) and `tenancyjs.is_central` (`'true'` only in the central scope). Your policy reads them:
 
 ```sql
--- A non-privileged runtime role — must NOT be able to bypass RLS, and must NOT own the tables.
+-- A non-privileged runtime role - must NOT be able to bypass RLS, and must NOT own the tables.
 create role app_runtime login nosuperuser nobypassrls;
 
 -- Per tenant table:
@@ -87,7 +87,7 @@ grant select, insert, update, delete on posts to app_runtime;
 
 The `WITH CHECK` clause blocks writing a row under the wrong tenant, and `FORCE` ensures the owner can't
 sidestep it. **The policy name matters:** the adapter validates a policy named
-`<table>_tenant_isolation` by default (hence `posts_tenant_isolation` above) — if you name it something
+`<table>_tenant_isolation` by default (hence `posts_tenant_isolation` above) - if you name it something
 else, pass that name via the adapter's `policyName` option, or `validate()` fails with a policy-invalid
 error.
 
@@ -100,9 +100,9 @@ error.
 </Callout>
 
 <Callout type="warn">
-  The runtime role must be `nobypassrls`, not a superuser, and **not the owner** of the tenant tables —
+  The runtime role must be `nobypassrls`, not a superuser, and **not the owner** of the tenant tables -
   a role that can bypass RLS makes the backstop meaningless. Prisma is facade-only (no RLS layer), and
-  Mongoose is facade-only because MongoDB has no RLS — for those, the adapter facade is the entire
+  Mongoose is facade-only because MongoDB has no RLS - for those, the adapter facade is the entire
   guarantee.
 </Callout>
 

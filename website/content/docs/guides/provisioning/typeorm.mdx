@@ -1,5 +1,5 @@
 ---
-title: TypeORM — provisioning
+title: TypeORM - provisioning
 description: Create and migrate each tenant's schema or database with TypeORM, driven by the tenancy CLI.
 ---
 
@@ -54,7 +54,7 @@ import { defineTenancyRuntime } from "tenancyjs-core";
 export default defineTenancyRuntime({
   manager,
   store,
-  adapters: [tenancy], // createTypeOrmTenancy({ strategy: "schemaPerTenant", ... }) — see the adapter page
+  adapters: [tenancy], // createTypeOrmTenancy({ strategy: "schemaPerTenant", ... }) - see the adapter page
   provisioner: {
     provision: async (tenant) => {
       await admin.query(`create schema if not exists "${schemaOf(tenant.id)}"`);
@@ -91,7 +91,7 @@ provisioner: {
 },
 ```
 
-On **MySQL**, database-per-tenant is the strategy — MySQL schema and database are synonyms, so there is
+On **MySQL**, database-per-tenant is the strategy - MySQL schema and database are synonyms, so there is
 no schema-per-tenant mode. Give the admin DataSource `type: "mysql"`, run
 `` create database `tenant_x` `` / `` drop database `tenant_x` `` with backtick quoting, and build the
 tenant-scoped DataSource with `type: "mysql"`, `dialect: "mysql"` on the adapter, and `database: dbOf(tenant.id)`.
@@ -105,19 +105,19 @@ npx tenancy tenant migrate acme                 # 3. ds.runMigrations()
 npx tenancy test:leak --test-file ./leak.mjs    # 4. prove isolation before trusting it
 ```
 
-Roll a new migration out to everyone with `npx tenancy tenant migrate --all` — it reports each
+Roll a new migration out to everyone with `npx tenancy tenant migrate --all` - it reports each
 tenant's outcome and exits non-zero if any fail, so it's safe in CI.
 
 ## Notes
 
-- Keep `provision` **idempotent** (`if not exists`) — the CLI may retry, and a half-onboarded tenant
+- Keep `provision` **idempotent** (`if not exists`) - the CLI may retry, and a half-onboarded tenant
   should be safe to re-provision.
 - Routing validates the schema/database **already exists**; a tenant that hasn't been provisioned +
   migrated fails closed on its first request rather than lazily creating storage. Provision before you
   flip the tenant to `active`.
 - The database-per-tenant `connection.create` factory must return an **initialized** `DataSource` with
-  every registered entity — the same `entities` list the migrator uses — so the leased connection can
+  every registered entity - the same `entities` list the migrator uses - so the leased connection can
   serve the whole protected surface.
 - Give the runtime role that serves traffic **no ownership and no `BYPASSRLS`**, separate from the
-  privileged `admin` DataSource that runs DDL — that keeps the Postgres RLS backstop enforceable.
+  privileged `admin` DataSource that runs DDL - that keeps the Postgres RLS backstop enforceable.
 ```

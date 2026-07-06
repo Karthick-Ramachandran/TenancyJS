@@ -30,7 +30,7 @@ export default defineTenancyRuntime({
   adapters: [tenancy], // optional - powers `tenant check` capability reporting
   provisioner: {
     // These run when you call `tenancy tenant provision|migrate|deprovision`.
-    // This example is schema-per-tenant on Postgres — swap the DDL for your
+    // This example is schema-per-tenant on Postgres - swap the DDL for your
     // strategy (database-per-tenant → CREATE DATABASE; row-level → usually a
     // no-op provision + a migrate that seeds the shared tables).
     provision: async (tenant) => {
@@ -54,8 +54,8 @@ export default defineTenancyRuntime({
 
 <Callout type="info">
   For **database-per-tenant**, `provision` becomes `create database "tenant_${tenant.id}"` (run against a
-  maintenance database), and `deprovision` drops it. For **row-level**, provisioning is often a no-op —
-  all tenants share the tables — and `migrate` just ensures the shared schema + [RLS
+  maintenance database), and `deprovision` drops it. For **row-level**, provisioning is often a no-op -
+  all tenants share the tables - and `migrate` just ensures the shared schema + [RLS
   policies](/docs/strategies/row-level#the-rls-backstop) exist.
 </Callout>
 
@@ -90,7 +90,7 @@ export const store: TenantStore<Tenant> = {
 
 ## Placement lives on the record
 
-The **only** field TenancyJS requires on a tenant is `id`. Everything else is yours — including
+The **only** field TenancyJS requires on a tenant is `id`. Everything else is yours - including
 *placement*: for schema- and database-per-tenant, put each tenant's schema name or connection reference
 on the tenant record your store returns. Your `connection(tenant)` / `schema(tenant)` callbacks and your
 provisioner hooks read those fields; the library never does. So there's one source of truth for where a
@@ -98,7 +98,7 @@ tenant's data lives, and you name the fields.
 
 ```ts
 interface Tenant {
-  readonly id: string; // required — the only field TenancyJS itself reads
+  readonly id: string; // required - the only field TenancyJS itself reads
   // everything below is host-defined; name it however you like:
   readonly name?: string;
   readonly status?: "active" | "suspended";

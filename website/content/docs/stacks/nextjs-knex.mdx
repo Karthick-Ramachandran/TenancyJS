@@ -1,15 +1,15 @@
 ---
 title: Next.js + Knex setup
-description: Wire fail-closed multi-tenancy into a Next.js 16 App Router + Knex app — a copy-pasteable setup-agent prompt, plus the manual walkthrough.
+description: Wire fail-closed multi-tenancy into a Next.js 16 App Router + Knex app - a copy-pasteable setup-agent prompt, plus the manual walkthrough.
 ---
 
-`tenancy init` doesn't scaffold Next.js yet, so this stack is a manual wire-up — a few files. This page
+`tenancy init` doesn't scaffold Next.js yet, so this stack is a manual wire-up - a few files. This page
 gives you two ways to do it: hand the **setup-agent prompt** to your AI assistant, or follow the
-**manual walkthrough**. Either way, finish by running the two-tenant test — with fail-closed isolation
+**manual walkthrough**. Either way, finish by running the two-tenant test - with fail-closed isolation
 you verify, you don't trust.
 
-This is **row-level** on PostgreSQL, backed by **forced RLS**. The Knex adapter is a _callback facade_ —
-you never touch the base Knex instance — and PostgreSQL forces the policy underneath, so the database
+This is **row-level** on PostgreSQL, backed by **forced RLS**. The Knex adapter is a _callback facade_ -
+you never touch the base Knex instance - and PostgreSQL forces the policy underneath, so the database
 itself rejects a cross-tenant read even if the facade were bypassed.
 
 ## Setup-agent prompt
@@ -18,11 +18,11 @@ Paste this into an assistant that can edit your repo and run commands (Claude Co
 executes in order and verifies each step. It's pinned to the real API, so it won't invent factory names.
 
 ````text
-# TenancyJS Setup Agent — Next.js 16 + Knex (row-level, PostgreSQL)
+# TenancyJS Setup Agent - Next.js 16 + Knex (row-level, PostgreSQL)
 
 You are a setup agent. Add fail-closed multi-tenancy to this Next.js App Router + Knex project with
 TenancyJS. Execute every step in order. After each step, verify it applied before continuing. If a step
-does not apply, say so and continue. Do NOT invent API names — if unsure, fetch the linked doc.
+does not apply, say so and continue. Do NOT invent API names - if unsure, fetch the linked doc.
 
 Source of truth (fetch if a detail is missing, do not guess):
 - https://tenancyjs.pages.dev/docs/adapters/knex
@@ -37,22 +37,22 @@ Source of truth (fetch if a detail is missing, do not guess):
 - Confirm the database is PostgreSQL. The Knex adapter is PostgreSQL-only and row-level here REQUIRES
   forced RLS; MySQL is out of scope.
 
-## Step 1 — Install
+## Step 1 - Install
 Run:
 ```sh
 npm install tenancyjs-core@beta tenancyjs-adapter-knex@beta tenancyjs-integration-next@beta tenancyjs-identifiers@beta knex pg
 ```
 Verify all six appear in package.json dependencies.
 
-## Step 2 — Schema
+## Step 2 - Schema
 Create tenant-scoped tables (e.g. `posts`) with a non-null `tenant_id` column and an index on it, plus a
 `tenants` table (`id text primary key`, `status text not null default 'active'`). The Knex facade is a
-callback over a plain `pg` connection — row mode does not rewrite the table name. Verify the tables exist.
+callback over a plain `pg` connection - row mode does not rewrite the table name. Verify the tables exist.
 
-## Step 3 — Forced-RLS migration (do NOT skip)
+## Step 3 - Forced-RLS migration (do NOT skip)
 This is the backstop that makes row-level safe. Write a migration run by an OWNER role that:
 - Creates the tenant tables (owner owns them).
-- Creates a NON-OWNER runtime role for the app connection — it must NOT be the table owner, must NOT
+- Creates a NON-OWNER runtime role for the app connection - it must NOT be the table owner, must NOT
   have BYPASSRLS, and must NOT be a superuser (owners and superusers ignore RLS).
 - Runs `ALTER TABLE posts ENABLE ROW LEVEL SECURITY;` and `ALTER TABLE posts FORCE ROW LEVEL SECURITY;`
   for every tenant table.
@@ -61,51 +61,51 @@ This is the backstop that makes row-level safe. Write a migration run by an OWNE
 - Grants the runtime role table privileges but not ownership.
 Point `DATABASE_URL` at the NON-OWNER runtime role. Verify the role is non-owner and RLS is FORCED.
 
-## Step 4 — The Knex adapter (knexTenancy)
+## Step 4 - The Knex adapter (knexTenancy)
 Create `lib/db.ts`. It must:
 - Construct ONE `TenancyManager<Tenant>` and export it.
 - Build a base Knex instance with `Knex({ client: "pg", connection: process.env.DATABASE_URL })` (the
-  runtime role). Keep it private to the module — call it `baseKnex`.
+  runtime role). Keep it private to the module - call it `baseKnex`.
 - Create the adapter with `createKnexTenancy({ manager, knex: baseKnex, strategy: "rowLevel",
   tenantTables: { posts: { tenantColumn: "tenant_id", policyName: "posts_tenant_isolation" } } })` and
   export it as `knexTenancy`.
 - Do NOT export `baseKnex`. The app queries ONLY through `knexTenancy.run(...)`.
 
-## Step 5 — Resolver + Next runtime (nextTenancy)
+## Step 5 - Resolver + Next runtime (nextTenancy)
 In `lib/tenancy.ts`:
 - Build a `TenantResolutionChain` with `new HeaderTenantResolver({ headerName: "x-tenant-id" })` and a
   store whose `find(identifier)` looks the tenant up and returns `[{ tenant: { id }, status }]` (or `[]`).
 - Create `createNextTenancy({ manager, resolver })` and export it as `nextTenancy`. Name it distinctly
-  from `knexTenancy` — they are different objects.
+  from `knexTenancy` - they are different objects.
 
-## Step 6 — Scope the routes (Node runtime)
+## Step 6 - Scope the routes (Node runtime)
 For every Route Handler / Server Action that touches tenant data:
 - Wrap it: `export const GET = nextTenancy.withRouteHandler(async () =>
   knexTenancy.run((db) => db.table("posts").select()))`. Server Actions use
   `nextTenancy.withServerAction`.
-- Add `export const runtime = "nodejs"` — the adapter runs on Node, not the Edge.
+- Add `export const runtime = "nodejs"` - the adapter runs on Node, not the Edge.
 - REMOVE any manual `where tenant_id` filters; the scope + policy inject isolation.
 
-## Step 7 — Edge hint (optional)
+## Step 7 - Edge hint (optional)
 If you resolve identity from the host/subdomain, add `middleware.ts` using `withNextTenantHint` from
 `tenancyjs-integration-next/edge` to carry identity across the Edge→Node boundary.
 
-## Step 8 — Central (cross-tenant) work
+## Step 8 - Central (cross-tenant) work
 For admin/cross-tenant reads, wrap the work in
 `manager.runInCentralContext(() => knexTenancy.run((db) => db.table("posts").select()))`. This sets
 `tenancyjs.is_central`, which the policy honours. Unscoped tenant access must throw.
 
-## Step 9 — Cache safety
+## Step 9 - Cache safety
 Any Next cache (`fetch` cache, `unstable_cache`, route segment cache) that wraps tenant data MUST be
 keyed by tenant id, or left uncached. A shared cache entry across tenants is a leak the policy cannot
 catch.
 
-## Step 10 — Validate + prove it
+## Step 10 - Validate + prove it
 - Call `await knexTenancy.validate()` at boot; it confirms the runtime role is non-privileged and RLS is
   enabled + forced before serving. Abort if it throws.
 - Create a two-tenant test: write a row under tenant A and tenant B with the SAME primary key, assert a
   scoped read as A never returns B's row, AND assert a RAW query as the runtime role with NO GUC set
-  returns 0 rows (proof the policy — not just the facade — isolates). Follow
+  returns 0 rows (proof the policy - not just the facade - isolates). Follow
   https://tenancyjs.pages.dev/docs/guides/testing-isolation.
 - `npm run build`, boot the app, run the test, report the result.
 
@@ -114,7 +114,7 @@ Report a summary of every file created/changed and any issue found.
 
 <Callout type="warn">
   AI wiring is a starting point, not proof. The only thing that demonstrates isolation is the two-tenant
-  colliding-id test in Step 10 — including the raw-as-runtime-role read that must return 0 rows.
+  colliding-id test in Step 10 - including the raw-as-runtime-role read that must return 0 rows.
 </Callout>
 
 ## Manual walkthrough
@@ -168,7 +168,7 @@ Point `DATABASE_URL` at `app_runtime`, never the owner.
 </Step>
 
 <Step>
-### The Knex adapter — `knexTenancy`
+### The Knex adapter - `knexTenancy`
 
 The manager and the callback-facade adapter live here. The app never sees the base Knex instance.
 
@@ -201,7 +201,7 @@ await knexTenancy.validate();
 </Step>
 
 <Step>
-### Resolver + Next runtime — `nextTenancy`
+### Resolver + Next runtime - `nextTenancy`
 
 ```ts title="lib/tenancy.ts"
 import { createNextTenancy } from "tenancyjs-integration-next";
@@ -219,7 +219,7 @@ const resolver = new TenantResolutionChain({
   },
 });
 
-// Distinct from knexTenancy — different object, different job.
+// Distinct from knexTenancy - different object, different job.
 export const nextTenancy = createNextTenancy({ manager, resolver });
 ```
 </Step>
@@ -228,7 +228,7 @@ export const nextTenancy = createNextTenancy({ manager, resolver });
 ### Scope your routes (Node runtime)
 
 `nextTenancy.withRouteHandler` opens the scope; `knexTenancy.run` hands you a tenant-scoped Knex. No
-manual `tenant_id` filter — the scope sets the GUC and the policy enforces it.
+manual `tenant_id` filter - the scope sets the GUC and the policy enforces it.
 
 ```ts title="app/posts/route.ts"
 import { nextTenancy } from "@/lib/tenancy";
@@ -269,13 +269,13 @@ export const config = {
 
 Write the [two-tenant colliding-id test](/docs/guides/testing-isolation): same primary key under A and
 B, assert a scoped read as A never returns B's row, **and** assert a raw query as the runtime role with
-no GUC set returns 0 rows — that last one proves the policy, not just the facade, isolates.
+no GUC set returns 0 rows - that last one proves the policy, not just the facade, isolates.
 </Step>
 
 </Steps>
 
 <Callout type="info">
-  Cross-tenant admin work runs in an explicit central scope —
+  Cross-tenant admin work runs in an explicit central scope -
   `manager.runInCentralContext(() => knexTenancy.run((db) => db.table("posts").select()))`. Next caches
   around tenant data must be tenant-keyed or uncached; a shared entry is a leak the policy can't catch.
 </Callout>

@@ -1,5 +1,5 @@
 ---
-title: Mongoose — provisioning
+title: Mongoose - provisioning
 description: Ensure each tenant's indexes and database exist with Mongoose, driven by the tenancy CLI.
 ---
 
@@ -8,7 +8,7 @@ This recipe implements the [provisioner hooks](/docs/getting-started/configurati
 Routing (leasing the tenant's connection at request time) is on the [Mongoose adapter page](/docs/adapters/mongoose);
 this page is only the setup seam TenancyJS leaves to you.
 
-MongoDB has no `CREATE DATABASE` DDL — a database and its collections spring into existence on the first
+MongoDB has no `CREATE DATABASE` DDL - a database and its collections spring into existence on the first
 write. So "provisioning" a Mongo tenant is not creating a database; it is opening the tenant's connection
 and **ensuring indexes** exist. Every tenant connection must reach a **replica set** (the adapter requires
 it for managed transactions).
@@ -33,8 +33,8 @@ async function syncTenantIndexes(id: string): Promise<void> {
 
 ## Database-per-tenant
 
-A separate MongoDB database per tenant. There is nothing to create — the database materializes on first
-write — so `provision` opens the tenant connection and syncs indexes, and `deprovision` drops the whole
+A separate MongoDB database per tenant. There is nothing to create - the database materializes on first
+write - so `provision` opens the tenant connection and syncs indexes, and `deprovision` drops the whole
 database.
 
 ```ts title="tenancy.config.ts"
@@ -43,7 +43,7 @@ import { defineTenancyRuntime } from "tenancyjs-core";
 export default defineTenancyRuntime({
   manager,
   store,
-  adapters: [tenancy], // createMongooseTenancy({ strategy: "databasePerTenant", ... }) — see the adapter page
+  adapters: [tenancy], // createMongooseTenancy({ strategy: "databasePerTenant", ... }) - see the adapter page
   provisioner: {
     provision: async (tenant) => {
       // No DDL: just ensure the tenant's indexes exist on its own database.
@@ -67,13 +67,13 @@ export default defineTenancyRuntime({
 ## Row-level (shared database)
 
 In row-level mode every tenant shares one database and the same collections, isolated by the tenant field
-the adapter injects. **There is nothing to provision per tenant** — no database, no schema, no separate
+the adapter injects. **There is nothing to provision per tenant** - no database, no schema, no separate
 indexes. Ensure the shared collections' indexes once (including any partial or compound index on the
 tenant field), and leave the provisioner hooks as no-ops or omit them.
 
 ```ts
 provisioner: {
-  provision: async () => {}, // shared database — nothing per-tenant to create
+  provision: async () => {}, // shared database - nothing per-tenant to create
 },
 ```
 
@@ -86,15 +86,15 @@ npx tenancy tenant migrate acme                 # 3. re-sync indexes / data migr
 npx tenancy test:leak --test-file ./leak.mjs    # 4. prove isolation before trusting it
 ```
 
-Unlike the SQL ORMs, `provision` here means "ensure indexes exist", not "create a database" — the database
-appears on first write. Roll a change out to everyone with `npx tenancy tenant migrate --all` — it reports
+Unlike the SQL ORMs, `provision` here means "ensure indexes exist", not "create a database" - the database
+appears on first write. Roll a change out to everyone with `npx tenancy tenant migrate --all` - it reports
 each tenant's outcome and exits non-zero if any fail, so it's safe in CI.
 
 ## Notes
 
-- **Replica set required.** Every tenant connection must reach a replica set — the adapter runs each
+- **Replica set required.** Every tenant connection must reach a replica set - the adapter runs each
   operation inside a session-bound transaction, which standalone `mongod` does not support.
-- Keep `provision` **idempotent** — `syncIndexes()` is safe to repeat, so a half-onboarded tenant is
+- Keep `provision` **idempotent** - `syncIndexes()` is safe to repeat, so a half-onboarded tenant is
   always safe to re-provision, and the CLI may retry.
 - Database-per-tenant with shared credentials is a **routing guarantee**, not a server-side authorization
   boundary. If MongoDB itself must reject access to a sibling tenant's database, issue **per-database
