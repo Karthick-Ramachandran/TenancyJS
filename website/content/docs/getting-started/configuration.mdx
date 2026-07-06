@@ -16,31 +16,48 @@ Export a runtime from your config. It's the single contract the CLI reads - it n
 framework internals.
 
 ```ts title="tenancy.config.ts"
+import { Pool } from "pg";
 import { defineTenancyRuntime } from "tenancyjs-core";
 import { manager, tenancy } from "./tenancy";
 import { store } from "./tenant-store";
+
+// A privileged admin connection the CLI uses to create/drop tenant placements.
+const admin = new Pool({ connectionString: process.env.ADMIN_DATABASE_URL });
 
 export default defineTenancyRuntime({
   manager, // required - your TenancyManager
   store, // optional - powers the registry commands (list/create/…)
   adapters: [tenancy], // optional - powers `tenant check` capability reporting
   provisioner: {
-    // optional - powers provision/deprovision/migrate
+    // These run when you call `tenancy tenant provision|migrate|deprovision`.
+    // This example is schema-per-tenant on Postgres — swap the DDL for your
+    // strategy (database-per-tenant → CREATE DATABASE; row-level → usually a
+    // no-op provision + a migrate that seeds the shared tables).
     provision: async (tenant) => {
-      /* create the tenant's schema/database */
+      await admin.query(`create schema if not exists "tenant_${tenant.id}"`);
     },
     migrate: async (tenant) => {
-      /* run your migrator against the tenant's placement */
+      // Run your ORM's migrator against the tenant's placement. E.g. Knex:
+      //   await knex.migrate.latest({ schemaName: `tenant_${tenant.id}` });
+      // or shell out to your framework's migration command with the schema set.
+      await runMigrationsFor(`tenant_${tenant.id}`);
     },
     deprovision: async (tenant) => {
-      /* drop the tenant's schema/database */
+      await admin.query(`drop schema if exists "tenant_${tenant.id}" cascade`);
     },
   },
   dispose: async () => {
-    /* optional - close connections so the CLI exits cleanly */
+    await admin.end(); // close connections so the CLI exits cleanly
   },
 });
 ```
+
+<Callout type="info">
+  For **database-per-tenant**, `provision` becomes `create database "tenant_${tenant.id}"` (run against a
+  maintenance database), and `deprovision` drops it. For **row-level**, provisioning is often a no-op —
+  all tenants share the tables — and `migrate` just ensures the shared schema + [RLS
+  policies](/docs/strategies/row-level#the-rls-backstop) exist.
+</Callout>
 
 Everything except `manager` is optional; a command that needs an absent piece fails with a clear
 message (e.g. "your runtime has no provisioner") instead of doing something surprising.

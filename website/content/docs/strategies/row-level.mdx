@@ -55,13 +55,46 @@ await manager.runWithTenant({ id: "acme" }, async () => {
 
 ## The RLS backstop
 
-For the SQL adapters, set up a row-level security policy on each tenant table (the CLI scaffold and the
-adapter docs show the exact SQL). The policy checks the session's tenant, so even a query that somehow
-escaped the facade cannot read another tenant's rows - the database refuses.
+For the RLS-backed SQL adapters (Knex, Lucid, TypeORM, Sequelize, Drizzle) on PostgreSQL, each tenant
+table needs a row-level security policy. The adapter validates this contract at startup and **refuses to
+run** (`validate()` fails) until it's in place — so this SQL isn't optional, it's the backstop that makes
+a facade bug non-fatal.
+
+TenancyJS sets two transaction-local settings on every scoped query — `tenancyjs.tenant_id` (the current
+tenant) and `tenancyjs.is_central` (`'true'` only in the central scope). Your policy reads them:
+
+```sql
+-- A non-privileged runtime role — must NOT be able to bypass RLS, and must NOT own the tables.
+create role app_runtime login nosuperuser nobypassrls;
+
+-- Per tenant table:
+alter table posts enable row level security;
+alter table posts force row level security;      -- FORCE so even the table owner is subject to it
+
+create policy tenant_isolation on posts
+  using (
+    current_setting('tenancyjs.is_central', true) = 'true'
+    or tenant_id = nullif(current_setting('tenancyjs.tenant_id', true), '')
+  )
+  with check (
+    current_setting('tenancyjs.is_central', true) = 'true'
+    or tenant_id = nullif(current_setting('tenancyjs.tenant_id', true), '')
+  );
+
+-- Grant the runtime role table access (it must not be the owner):
+grant select, insert, update, delete on posts to app_runtime;
+```
+
+Connect your ORM as `app_runtime` (not a superuser / not the table owner). Now even a query that somehow
+escaped the facade cannot read or write another tenant's rows — the database itself refuses. The `WITH
+CHECK` clause blocks writing a row under the wrong tenant, and `FORCE` ensures the owner can't sidestep
+it. Point the adapter's `policyName` option at your policy (default naming is shown on each adapter page).
 
 <Callout type="warn">
-  Mongoose is **facade-only** - MongoDB has no RLS. See the [Mongoose adapter](/docs/adapters/mongoose)
-  for what that means.
+  The runtime role must be `nobypassrls`, not a superuser, and **not the owner** of the tenant tables —
+  a role that can bypass RLS makes the backstop meaningless. Prisma is facade-only (no RLS layer), and
+  Mongoose is facade-only because MongoDB has no RLS — for those, the adapter facade is the entire
+  guarantee.
 </Callout>
 
 ## Databases

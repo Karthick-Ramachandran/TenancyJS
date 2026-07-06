@@ -69,7 +69,12 @@ import { OrderModel } from "./models";
 
 const app = express();
 
-app.use(createExpressTenancyMiddleware({ manager, resolver }));
+app.use(
+  createExpressTenancyMiddleware({
+    manager,
+    resolver: (req) => ({ id: req.subdomains.at(-1) ?? "" }),
+  }),
+);
 
 app.get("/orders", async (_req, res) => {
   const orders = await tenancy.run((client) =>

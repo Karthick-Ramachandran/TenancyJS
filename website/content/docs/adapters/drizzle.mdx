@@ -18,11 +18,14 @@ Add `pg` for PostgreSQL or `mysql2` for MySQL.
 ## PostgreSQL row-level
 
 ```ts
+import { Pool } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import {
   createDrizzleTenancy,
   createPostgresDrizzleBinding,
 } from "tenancyjs-adapter-drizzle";
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
 const tenancy = createDrizzleTenancy({
   manager,
@@ -79,6 +82,7 @@ escape hatch that returns the native Drizzle transaction. It's **generic** - the
 concrete Drizzle type, so you supply it at the call site:
 
 ```ts
+import { eq, gt } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import * as schema from "./schema";
 
