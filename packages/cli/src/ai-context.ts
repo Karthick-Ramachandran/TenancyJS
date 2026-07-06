@@ -259,6 +259,8 @@ function isolationNotes(orm: InitOrm): string[] {
     "- Add a migration that, for every tenant table: `ENABLE` + `FORCE` row level security under a",
     "  non-owner, non-`BYPASSRLS`, non-superuser runtime role, with a `<table>_tenant_isolation` policy",
     "  whose `USING` and `WITH CHECK` read `tenancyjs.tenant_id` and `tenancyjs.is_central`.",
+    "- Generate that DDL with `npx tenancy policy --table <t> [--table <t> ...] --role <runtime-role>`",
+    "  (it prints SQL and executes nothing); review it, then apply it with your own migration tool.",
     "- Run `validate()` at startup — protected execution stays locked until the policy contract passes.",
   ];
 }

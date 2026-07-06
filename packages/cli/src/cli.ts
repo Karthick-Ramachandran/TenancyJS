@@ -19,6 +19,7 @@ import {
   runProvisionAction,
   type ProvisionAction,
 } from "./commands/provision.js";
+import { runPolicy } from "./commands/policy.js";
 import { runScript, type RunScope } from "./commands/run.js";
 import {
   runTenantActivate,
@@ -104,6 +105,20 @@ export async function runCli(
     }
     if (parsed.command === "run") {
       return await runRun(parsed, root, io);
+    }
+    if (parsed.command === "policy") {
+      const result = runPolicy({
+        tables: parsed.tables ?? [],
+        role: parsed.role ?? "",
+        ...(parsed.tenantColumn === undefined
+          ? {}
+          : { tenantColumn: parsed.tenantColumn }),
+        ...(parsed.out === undefined ? {} : { out: parsed.out }),
+        json: parsed.json,
+        root,
+      });
+      io.writeStdout(parsed.json ? formatJson(result) : result.sql);
+      return 0;
     }
     if (parsed.testFile === undefined) {
       throw new CliUsageError(
@@ -560,7 +575,8 @@ function describeDetection(detection: ProjectDetection): string {
 }
 
 interface ParsedArguments {
-  readonly command: "init" | "doctor" | "test:leak" | "tenant" | "run" | "help";
+  readonly command:
+    "init" | "doctor" | "test:leak" | "tenant" | "run" | "policy" | "help";
   readonly subcommand?: string;
   readonly tenantId?: string;
   readonly script?: string;
@@ -570,6 +586,10 @@ interface ParsedArguments {
   readonly testFile?: string;
   readonly config?: string;
   readonly set?: readonly string[];
+  readonly tables?: readonly string[];
+  readonly role?: string;
+  readonly tenantColumn?: string;
+  readonly out?: string;
   readonly framework?: InitFramework;
   readonly orm?: InitOrm;
   readonly apply: boolean;
@@ -586,6 +606,9 @@ const VALUE_FLAGS = new Set([
   "--orm",
   "--config",
   "--tenant",
+  "--role",
+  "--tenant-column",
+  "--out",
 ]);
 
 const OPERATIONAL_COMMANDS = new Set(["tenant", "run"]);
@@ -612,12 +635,17 @@ function parseArguments(arguments_: readonly string[]): ParsedArguments {
     commandValue !== "doctor" &&
     commandValue !== "test:leak" &&
     commandValue !== "tenant" &&
-    commandValue !== "run"
+    commandValue !== "run" &&
+    commandValue !== "policy"
   ) {
     throw new CliUsageError(`Unknown command: ${commandValue}`);
   }
   const positionals: string[] = [];
   const set: string[] = [];
+  const tables: string[] = [];
+  let role: string | undefined;
+  let tenantColumn: string | undefined;
+  let out: string | undefined;
   let root: string | undefined;
   let testFile: string | undefined;
   let config: string | undefined;
@@ -645,6 +673,13 @@ function parseArguments(arguments_: readonly string[]): ParsedArguments {
       }
       set.push(value);
       index += 1;
+    } else if (argument === "--table") {
+      const value = arguments_[index + 1];
+      if (value === undefined || value.startsWith("--")) {
+        throw new CliUsageError("--table requires a table name.");
+      }
+      tables.push(value);
+      index += 1;
     } else if (VALUE_FLAGS.has(argument)) {
       const value = arguments_[index + 1];
       if (value === undefined || value.startsWith("--")) {
@@ -654,6 +689,9 @@ function parseArguments(arguments_: readonly string[]): ParsedArguments {
       else if (argument === "--test-file") testFile = value;
       else if (argument === "--config") config = value;
       else if (argument === "--tenant") tenant = value;
+      else if (argument === "--role") role = value;
+      else if (argument === "--tenant-column") tenantColumn = value;
+      else if (argument === "--out") out = value;
       else if (argument === "--framework") {
         if (value !== "express" && value !== "adonis" && value !== "next") {
           throw new CliUsageError(
@@ -704,6 +742,16 @@ function parseArguments(arguments_: readonly string[]): ParsedArguments {
     );
   if (all && !(commandValue === "tenant" && positionals[0] === "migrate"))
     throw new CliUsageError("--all is valid only for tenant migrate.");
+  if (
+    commandValue !== "policy" &&
+    (tables.length > 0 ||
+      role !== undefined ||
+      tenantColumn !== undefined ||
+      out !== undefined)
+  )
+    throw new CliUsageError(
+      "--table, --role, --tenant-column, and --out are valid only for the policy command.",
+    );
   return {
     command: commandValue,
     ...(commandValue === "tenant" && positionals[0] !== undefined
@@ -720,6 +768,10 @@ function parseArguments(arguments_: readonly string[]): ParsedArguments {
     ...(testFile === undefined ? {} : { testFile }),
     ...(config === undefined ? {} : { config }),
     ...(set.length === 0 ? {} : { set }),
+    ...(tables.length === 0 ? {} : { tables }),
+    ...(role === undefined ? {} : { role }),
+    ...(tenantColumn === undefined ? {} : { tenantColumn }),
+    ...(out === undefined ? {} : { out }),
     ...(framework === undefined ? {} : { framework }),
     ...(orm === undefined ? {} : { orm }),
     central,
@@ -775,6 +827,7 @@ Usage:
   tenancy tenant deprovision <id> [--config <path>] [--json]
   tenancy tenant migrate (<id> | --all) [--config <path>] [--json]
   tenancy run <script> (--tenant <id> | --central) [--config <path>] [--json]
+  tenancy policy --table <name> [--table <name> ...] --role <runtime-role> [--tenant-column <col>] [--out <file>] [--json]
 
 init previews changes (dry run) unless --apply is present. It detects your stack and, when it cannot,
 asks you to choose one interactively; pass --framework and --orm to skip prompts in CI. Express 5.2
@@ -789,5 +842,10 @@ the TenantStore, manager, and provisioner you passed to defineTenancyRuntime. Pa
 a non-default config path. run executes a script inside a tenant scope (--tenant <id>) or the central
 scope (--central). provision/deprovision/migrate delegate to your runtime's provisioner hooks (the CLI
 never invokes an ORM itself); tenant check reports any adapter/strategy that is not tested-supported.
+
+policy prints review-ready PostgreSQL forced-RLS DDL (ENABLE + FORCE ROW LEVEL SECURITY and a
+<table>_tenant_isolation policy that reads tenancyjs.tenant_id and tenancyjs.is_central) for the tenant
+tables you pass. It executes nothing and opens no connection - review the SQL and apply it with your own
+migration tool. --tenant-column defaults to tenant_id; --out writes the SQL to a file.
 `;
 }

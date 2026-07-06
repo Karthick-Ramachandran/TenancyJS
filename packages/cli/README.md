@@ -53,6 +53,11 @@ tenancy doctor --json
 
 # Run one explicit, contained JavaScript leak test directly with local Node.
 tenancy test:leak --test-file test/tenancy.leak.test.mjs
+
+# Generate review-ready PostgreSQL forced-RLS DDL for your tenant tables.
+# Prints SQL only - it executes nothing. Review it, then apply with your migrator.
+tenancy policy --table posts --table comments --role app_runtime
+tenancy policy --table posts --role app_runtime --tenant-column org_id --out db/rls.sql
 ```
 
 All commands accept `--root <path>`. `init` never overwrites: matching files are unchanged and
