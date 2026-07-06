@@ -1,5 +1,19 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
+// Read the current tenancyjs-core version at build time so the badge never goes
+// stale on a version bump. (This page is a Server Component; the read runs during
+// the static export, with cwd = the website dir.)
+const version = (
+  JSON.parse(
+    readFileSync(
+      join(process.cwd(), "..", "packages", "core", "package.json"),
+      "utf8",
+    ),
+  ) as { version: string }
+).version;
 
 /* ── robust line-based code highlighter (preserves whitespace exactly) ──── */
 const CODE = `// Tenant identity rides AsyncLocalStorage.
@@ -186,7 +200,7 @@ export default function HomePage() {
             className="inline-flex items-center gap-2 rounded-full border border-fd-border bg-fd-card/60 px-4 py-1.5 text-sm text-fd-muted-foreground backdrop-blur transition hover:border-fd-primary/50"
           >
             <span className="size-1.5 rounded-full bg-gradient-to-r from-[#6d64ff] to-[#ec4899]" />
-            <span className="font-medium text-fd-foreground">0.1.1</span>{" "}
+            <span className="font-medium text-fd-foreground">{version}</span>{" "}
             is out - read the docs
             <span aria-hidden>→</span>
           </Link>
