@@ -1,12 +1,13 @@
 {
   "name": "tenancyjs-identifiers",
-  "version": "0.1.0-beta.4",
+  "version": "0.1.0-beta.5",
   "description": "Framework-neutral tenant identifier resolvers and resolution outcomes.",
   "type": "module",
   "license": "MIT",
   "sideEffects": false,
   "files": [
     "dist/**/*.js",
+    "dist/**/package.json",
     "dist/**/*.d.ts",
     "dist/**/*.d.ts.map",
     "README.md",
@@ -15,10 +16,11 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "require": "./dist/cjs/index.js"
     }
   },
-  "main": "./dist/index.js",
+  "main": "./dist/cjs/index.js",
   "types": "./dist/index.d.ts",
   "engines": {
     "node": ">=24"
@@ -52,5 +54,6 @@
     "tenant-resolution",
     "subdomain",
     "header"
-  ]
+  ],
+  "module": "./dist/index.js"
 }

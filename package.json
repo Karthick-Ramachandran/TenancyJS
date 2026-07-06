@@ -16,7 +16,7 @@
     }
   },
   "scripts": {
-    "build": "tsc -b",
+    "build": "tsc -b && node scripts/build-cjs.mjs",
     "benchmark:prisma": "pnpm build && node packages/adapter-prisma/benchmark/operation-policy.mjs",
     "clean": "tsc -b --clean",
     "fixtures:generate": "pnpm --filter tenancyjs-adapter-prisma prisma:generate && pnpm --filter tenancyjs-adapter-prisma prisma:generate:mysql",
@@ -51,6 +51,7 @@
     "@types/supertest": "7.2.0",
     "@vitest/coverage-v8": "4.1.9",
     "drizzle-orm": "0.45.2",
+    "esbuild": "0.28.1",
     "eslint": "10.6.0",
     "express": "5.2.1",
     "fastify": "5.9.0",

@@ -1,12 +1,13 @@
 {
   "name": "tenancyjs-integration-next",
-  "version": "0.1.0-beta.4",
+  "version": "0.1.0-beta.5",
   "description": "Fail-closed Next.js App Router integration for TenancyJS.",
   "type": "module",
   "license": "MIT",
   "sideEffects": false,
   "files": [
     "dist/**/*.js",
+    "dist/**/package.json",
     "dist/**/*.d.ts",
     "dist/**/*.d.ts.map",
     "README.md",
@@ -15,14 +16,16 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "require": "./dist/cjs/index.js"
     },
     "./edge": {
       "types": "./dist/edge.d.ts",
-      "import": "./dist/edge.js"
+      "import": "./dist/edge.js",
+      "require": "./dist/cjs/edge.js"
     }
   },
-  "main": "./dist/index.js",
+  "main": "./dist/cjs/index.js",
   "types": "./dist/index.d.ts",
   "engines": {
     "node": ">=24"
@@ -62,5 +65,6 @@
     "typescript",
     "nextjs",
     "app-router"
-  ]
+  ],
+  "module": "./dist/index.js"
 }

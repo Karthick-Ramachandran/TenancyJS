@@ -1,12 +1,13 @@
 {
   "name": "tenancyjs-integration-adonis",
-  "version": "0.1.0-beta.4",
+  "version": "0.1.0-beta.5",
   "description": "Fail-closed AdonisJS 7 request lifecycle integration for TenancyJS Lucid tenancy.",
   "type": "module",
   "license": "MIT",
   "sideEffects": false,
   "files": [
     "dist/**/*.js",
+    "dist/**/package.json",
     "dist/**/*.d.ts",
     "dist/**/*.d.ts.map",
     "README.md",
@@ -15,18 +16,21 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "require": "./dist/cjs/index.js"
     },
     "./provider": {
       "types": "./dist/provider.d.ts",
-      "import": "./dist/provider.js"
+      "import": "./dist/provider.js",
+      "require": "./dist/cjs/provider.js"
     },
     "./testing": {
       "types": "./dist/testing.d.ts",
-      "import": "./dist/testing.js"
+      "import": "./dist/testing.js",
+      "require": "./dist/cjs/testing.js"
     }
   },
-  "main": "./dist/index.js",
+  "main": "./dist/cjs/index.js",
   "types": "./dist/index.d.ts",
   "engines": {
     "node": ">=24"
@@ -72,5 +76,6 @@
     "typescript",
     "adonisjs",
     "middleware"
-  ]
+  ],
+  "module": "./dist/index.js"
 }
