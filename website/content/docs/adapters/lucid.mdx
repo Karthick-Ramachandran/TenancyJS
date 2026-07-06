@@ -53,6 +53,16 @@ per-query tenant filters:
 const orders = await Order.all();
 ```
 
+<Callout type="warn">
+  **Use instance methods for writes, not bulk query-builder statements.** The adapter scopes model
+  operations through Lucid's hooks — `Model.create`, `Model.all`, `Model.find*`, `.paginate`, and
+  `row.save()` / `row.delete()` (the *instance* delete). A bulk **query-builder** write like
+  `Post.query().delete()` or `Post.query().update({...})` bypasses those hooks, so it runs unscoped (on
+  schema/database-per-tenant it lands on the wrong placement and fails loudly rather than crossing
+  tenants — but it's still wrong). For bulk work inside a scope, iterate instance methods, or use
+  [`scope.unrestricted()`](#full-query-freedom-scopeunrestricted) in a database-per-tenant scope.
+</Callout>
+
 ## Schema per tenant
 
 Each tenant gets its own Postgres schema via a transaction-local `search_path`, with an optional
@@ -118,6 +128,12 @@ const report = await tenancy.run(async (scope) => {
 
 Existing zero-arg callbacks (`tenancy.run(() => Order.all())`) keep working unchanged - the `scope`
 argument is optional.
+
+<Callout type="info">
+  `rawQuery` returns the **driver's** native result, so the shape differs by database: on PostgreSQL
+  (`pg`) it's `{ rows: [...] }`; on MySQL (`mysql2`) it's `[rows, fields]`. Unwrap accordingly, or use
+  the transaction's query builder (`trx.from("posts")…`) for a uniform array of rows.
+</Callout>
 
 <Callout type="warn">
   `scope.unrestricted()` is **fail-closed**. It returns the real transaction **only** in a genuinely

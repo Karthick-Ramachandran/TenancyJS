@@ -122,6 +122,15 @@ const orders = await Order.all();
 - Resolution failures fail closed with the right status before your controller runs.
 - Central-scope work (cross-tenant admin) is opened explicitly, never by accident.
 
+<Callout type="warn">
+  **In Ace commands and scripts, call `tenancy.validate()` yourself.** The provider validates the adapter
+  automatically only in the **`web`** environment (so `migration:run` isn't blocked by the very policies
+  it creates). In an Ace command or a standalone script, run `const { valid } = await tenancy.validate()`
+  (and check it) before your first `tenancy.run(...)` — otherwise the adapter refuses with
+  `LucidPolicyValidationError` ("validate() must pass before protected execution"). This is fail-closed
+  working as designed; it's just a step the request path does for you and a script doesn't.
+</Callout>
+
 ## Next steps
 
 <Cards>

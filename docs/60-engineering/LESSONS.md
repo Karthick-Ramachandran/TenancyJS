@@ -123,3 +123,20 @@ model preferences.
   sets `true` ONLY on the leased-connection path (`databasePerTenant && mode === "tenant"`); the gate keys
   off that, not the strategy. Every capability/freedom flip is per-scope, not per-config. An adversarial
   review caught this before ship; the central-mode gate test now locks it.
+- Real from-npm consumer builds catch doc/UX defects that in-repo tests AND a full docs audit both miss.
+  Building four AdonisJS+Lucid apps from the published `@beta` packages (row-level, schema-, db-per-tenant
+  PG, db-per-tenant MySQL) surfaced: a wrong RLS policy name in the docs (must be
+  `<table>_tenant_isolation`), `tenantTables` vs the real `tenantModels: [{ model }]`, an Adonis resolver
+  store that returned `[]` (404s everything), and Knex-only strategy pages with no Lucid example — none
+  caught by unit/integration tests or the audit. The library itself had zero isolation defects across all
+  four. Lesson: validate docs by building a real app from the published tarballs, not just from source.
+- The Adonis tenancy provider validates the adapter only in the `web` environment (so `migration:run`
+  isn't blocked by the policies it creates). In an Ace command or standalone script, `validated` stays
+  `false` and the first `tenancy.run()` throws `LucidPolicyValidationError` — you must call
+  `await tenancy.validate()` yourself first. Fail-closed working as intended, but non-obvious for the
+  script/command path.
+- Lucid's tenant scoping runs through model hooks, which cover instance operations (`Model.create/all/
+  find*`, `.paginate`, `row.save()/delete()`) but NOT bulk query-builder writes (`Model.query().delete()/
+  .update()`). A bulk query-builder write inside a scope bypasses the hooks and runs on the base
+  connection's default placement — it fails loudly on schema/db-per-tenant (wrong placement) rather than
+  leaking, but users must use instance methods or `scope.unrestricted()` for bulk work.

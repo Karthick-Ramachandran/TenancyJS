@@ -43,9 +43,54 @@ const tenancy = createKnexTenancy({
   knex,
   strategy: "schemaPerTenant",
   schema: (tenant) => `tenant_${tenant.id}`,
-  role: (tenant) => `tenant_${tenant.id}_role`, // database-enforced
+  role: (tenant) => `tenant_${tenant.id}_role`, // optional: database-enforced
 });
 ```
+
+On **Lucid** (AdonisJS) it's the same options via `createLucidTenancy` — register your models with
+`tenantModels`, and your Lucid models are then scoped automatically:
+
+```ts
+const tenancy = createLucidTenancy({
+  manager,
+  database: db, // the Lucid Database service
+  strategy: "schemaPerTenant",
+  schema: (tenant) => `tenant_${tenant.id}`,
+  tenantModels: [{ model: Post }],
+  // role: (tenant) => `tenant_${tenant.id}_role`, // optional: database-enforced
+});
+```
+
+## What the database needs
+
+The adapter's `validate()` **refuses to run** until these hold — set them up before serving. Run the DDL
+as a privileged/admin connection, then connect your app as the non-privileged `app_runtime` role:
+
+```sql
+-- 1. A non-privileged runtime role (no superuser, no RLS bypass):
+create role app_runtime login nosuperuser nobypassrls;
+
+-- 2. The central schema (default `public`) must EXIST and grant USAGE to the role:
+grant usage on schema public to app_runtime;
+
+-- 3. Per tenant: its own schema + tables, granted to the role:
+create schema tenant_acme;
+create table tenant_acme.posts (id text primary key, title text not null);
+grant usage on schema tenant_acme to app_runtime;
+grant select, insert, update, delete
+  on all tables in schema tenant_acme to app_runtime;
+```
+
+Two rules `validate()` enforces, easy to miss:
+
+- **Tenant tables must not exist in the central schema.** A `public.posts` shadows the tenant tables and
+  fails validation (`CENTRAL_SCHEMA_SHADOWS_TENANT_TABLE`).
+- **The runtime role's default `search_path` must not resolve a tenant-table name** — otherwise an
+  unqualified query could hit the wrong place (`DEFAULT_SEARCH_PATH_SHADOWS_TENANT_TABLE`). Keep tenant
+  tables only in their own schemas.
+
+For **database-enforced** isolation, add a per-tenant `role(tenant)` whose role has `USAGE` on only its
+own schema — then the database itself rejects cross-schema access, not just the adapter.
 
 ## Provisioning
 

@@ -36,6 +36,26 @@ const tenancy = createKnexTenancy({
 });
 ```
 
+On **Lucid** (AdonisJS), `create` returns a `{ transaction, destroy }` handle wrapping a named Lucid
+connection — the same shape works for **PostgreSQL and MySQL** (Lucid's one MySQL-capable strategy):
+
+```ts
+const tenancy = createLucidTenancy({
+  manager,
+  database: db,
+  strategy: "databasePerTenant",
+  connection: (tenant) => ({
+    key: tenant.connection, // the named Lucid connection for this tenant
+    create: () => ({
+      transaction: (callback) =>
+        db.connection(tenant.connection).transaction(callback),
+      destroy: () => db.manager.close(tenant.connection),
+    }),
+  }),
+  tenantModels: [{ model: Post }],
+});
+```
+
 Prisma uses `createPrismaDatabaseTenancy`; TypeORM/Sequelize/Drizzle lease tenant ORM resources; Mongoose
 leases tenant-bound replica-set connections. See each adapter guide:
 
