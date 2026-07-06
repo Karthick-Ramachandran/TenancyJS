@@ -1,3 +1,5 @@
+import type { InitFramework, InitOrm, InitStrategy } from "./types.js";
+
 export const EXPRESS_PRISMA_TEMPLATES = Object.freeze([
   Object.freeze({
     path: "tenancy.config.ts",
@@ -234,3 +236,210 @@ export function createTenancy<TTenant extends TenantRecord>(
 `,
   }),
 ]);
+
+// --- Strategy-aware scaffolds (schema-per-tenant, database-per-tenant) --------
+//
+// Row-level keeps the templates above unchanged. For the other two strategies we
+// generate a strategy-specific config + register helper, using each adapter's
+// real factory and option names (the CLI never invents an API). Combos we have
+// not scaffolded yet return undefined so the caller can fail closed.
+
+type Template = Readonly<{ path: string; content: string }>;
+type TemplateSet = readonly Template[];
+
+const NEXT_SERVER_TEMPLATE: Template = NEXT_PRISMA_TEMPLATES[2]!;
+
+interface SqlAdapterMeta {
+  readonly factory: string;
+  readonly importLine: string;
+  readonly resourceType: string;
+  readonly resourceImport: string;
+  readonly resourceParam: string;
+  readonly tenantParam: string;
+  readonly tenantType: string;
+}
+
+const SQL_ADAPTERS: Readonly<
+  Record<"sequelize" | "typeorm" | "drizzle", SqlAdapterMeta>
+> = Object.freeze({
+  sequelize: {
+    factory: "createSequelizeTenancy",
+    importLine: `import { createSequelizeTenancy, type SequelizeTenantModelConfig } from "tenancyjs-adapter-sequelize";`,
+    resourceType: "Sequelize",
+    resourceImport: `import type { Sequelize } from "sequelize";`,
+    resourceParam: "sequelize",
+    tenantParam: "tenantModels",
+    tenantType: "readonly SequelizeTenantModelConfig[]",
+  },
+  typeorm: {
+    factory: "createTypeOrmTenancy",
+    importLine: `import { createTypeOrmTenancy, type TypeOrmTenantEntityConfig } from "tenancyjs-adapter-typeorm";`,
+    resourceType: "DataSource",
+    resourceImport: `import type { DataSource } from "typeorm";`,
+    resourceParam: "dataSource",
+    tenantParam: "tenantEntities",
+    tenantType: "readonly TypeOrmTenantEntityConfig[]",
+  },
+  drizzle: {
+    factory: "createDrizzleTenancy",
+    importLine: `import {
+  createDrizzleTenancy,
+  type DrizzleDatabaseBinding,
+  type DrizzleTenantTableConfig,
+} from "tenancyjs-adapter-drizzle";`,
+    resourceType: "DrizzleDatabaseBinding",
+    resourceImport: "",
+    resourceParam: "database",
+    tenantParam: "tenantTables",
+    tenantType: "readonly DrizzleTenantTableConfig[]",
+  },
+});
+
+function strategyConfigContent(
+  framework: InitFramework,
+  orm: InitOrm,
+  strategy: InitStrategy,
+): string {
+  return `import { defineConfig } from "tenancyjs-core";
+
+export default defineConfig({
+  strategy: "${strategy}",
+  framework: "${framework}",
+  orm: "${orm}",
+});
+`;
+}
+
+function sqlStrategyBlock(
+  meta: SqlAdapterMeta,
+  strategy: InitStrategy,
+): string {
+  if (strategy === "schemaPerTenant") {
+    return `    strategy: "schemaPerTenant",
+    // Each tenant gets its own PostgreSQL schema (isolated via search_path).
+    schema: (tenant) => \`tenant_\${tenant.id}\`,
+`;
+  }
+  return `    strategy: "databasePerTenant",
+    // Lease the tenant's own ${meta.resourceType} per scope; \`key\` must be unique per tenant.
+    connection: (tenant) => ({
+      key: tenant.id,
+      create: () => {
+        // TODO: build a ${meta.resourceType} connected to the tenant's own database.
+        throw new Error(\`configure the ${meta.resourceParam} for tenant \${tenant.id}\`);
+      },
+    }),
+`;
+}
+
+function sqlRegisterContent(
+  meta: SqlAdapterMeta,
+  strategy: InitStrategy,
+): string {
+  const resourceImport =
+    meta.resourceImport === "" ? "" : `\n${meta.resourceImport}`;
+  return `${meta.importLine}
+import type { TenancyManager, TenantRecord } from "tenancyjs-core";${resourceImport}
+
+export function createTenancy<TTenant extends TenantRecord>(
+  manager: TenancyManager<TTenant>,
+  ${meta.resourceParam}: ${meta.resourceType},
+  ${meta.tenantParam}: ${meta.tenantType},
+) {
+  return ${meta.factory}({
+    manager,
+    ${meta.resourceParam},
+    ${meta.tenantParam},
+${sqlStrategyBlock(meta, strategy)}  });
+}
+`;
+}
+
+function prismaRegisterContent(strategy: InitStrategy): string {
+  const isSchema = strategy === "schemaPerTenant";
+  const factory = isSchema
+    ? "createPrismaSchemaTenancy"
+    : "createPrismaDatabaseTenancy";
+  const optionKey = isSchema ? "schema" : "connection";
+  const note = isSchema
+    ? "Each tenant is a PostgreSQL schema. Bind the client's driver adapter to it,\n// e.g. new PrismaClient({ adapter: new PrismaPg(url, { schema }) })."
+    : "Each tenant has its own database. Build a PrismaClient connected to it.";
+  return `import { ${factory} } from "tenancyjs-adapter-prisma";
+import type { PrismaClient } from "@prisma/client";
+import type { TenancyManager, TenantRecord } from "tenancyjs-core";
+
+// ${note}
+export function createTenancy<TTenant extends TenantRecord>(
+  manager: TenancyManager<TTenant>,
+) {
+  return ${factory}<TTenant, PrismaClient>({
+    manager,
+    ${optionKey}: (tenant) => ({
+      key: tenant.id,
+      create: () => {
+        // TODO: build the tenant's PrismaClient.
+        throw new Error(\`configure the Prisma client for tenant \${tenant.id}\`);
+      },
+    }),
+    disconnect: (client) => client.$disconnect(),
+  });
+}
+`;
+}
+
+/**
+ * Templates for schema-per-tenant / database-per-tenant. Returns undefined for
+ * row-level (handled by the static map) and for any combo we have not scaffolded
+ * yet, so the caller fails closed with a docs pointer rather than emitting a
+ * half-right scaffold.
+ */
+export function resolveStrategyTemplates(
+  framework: InitFramework,
+  orm: InitOrm,
+  strategy: InitStrategy,
+): TemplateSet | undefined {
+  if (strategy === "rowLevel") return undefined;
+
+  const config: Template = {
+    path: "tenancy.config.ts",
+    content: strategyConfigContent(framework, orm, strategy),
+  };
+
+  if (
+    framework === "express" &&
+    (orm === "sequelize" || orm === "typeorm" || orm === "drizzle")
+  ) {
+    return Object.freeze([
+      Object.freeze(config),
+      Object.freeze({
+        path: "src/tenancy/register.ts",
+        content: sqlRegisterContent(SQL_ADAPTERS[orm], strategy),
+      }),
+      EXPRESS_MIDDLEWARE_TEMPLATE,
+    ]);
+  }
+
+  if (framework === "express" && orm === "prisma") {
+    return Object.freeze([
+      Object.freeze(config),
+      Object.freeze({
+        path: "src/tenancy/register.ts",
+        content: prismaRegisterContent(strategy),
+      }),
+      EXPRESS_MIDDLEWARE_TEMPLATE,
+    ]);
+  }
+
+  if (framework === "next" && orm === "prisma") {
+    return Object.freeze([
+      Object.freeze(config),
+      Object.freeze({
+        path: "lib/tenancy/register.ts",
+        content: prismaRegisterContent(strategy),
+      }),
+      NEXT_SERVER_TEMPLATE,
+    ]);
+  }
+
+  return undefined;
+}

@@ -41,6 +41,10 @@ tenancy init
 tenancy init --apply
 tenancy init --framework express --orm drizzle --apply
 
+# Scaffold a different isolation strategy (default is row-level).
+tenancy init --framework express --orm sequelize --strategy database-per-tenant --apply
+tenancy init --framework express --orm typeorm --strategy schema-per-tenant --apply
+
 # Also write a stack-specific TENANCY.md and register a TenancyJS block in an
 # existing AGENTS.md/CLAUDE.md. Interactive init offers this; --ai-context opts
 # in non-interactively. It never creates an agent-memory file that is not present.

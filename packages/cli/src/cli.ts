@@ -51,6 +51,7 @@ import { withRuntime } from "./runtime-command.js";
 import type {
   InitFramework,
   InitOrm,
+  InitStrategy,
   ProjectChangePlan,
   ProjectDetection,
 } from "./types.js";
@@ -175,6 +176,7 @@ async function runInit(
     root: detection.root,
     framework,
     orm,
+    ...(parsed.strategy === undefined ? {} : { strategy: parsed.strategy }),
   });
 
   if (parsed.apply) await applyChangePlan(plan);
@@ -592,6 +594,7 @@ interface ParsedArguments {
   readonly out?: string;
   readonly framework?: InitFramework;
   readonly orm?: InitOrm;
+  readonly strategy?: InitStrategy;
   readonly apply: boolean;
   readonly all: boolean;
   readonly json: boolean;
@@ -609,7 +612,17 @@ const VALUE_FLAGS = new Set([
   "--role",
   "--tenant-column",
   "--out",
+  "--strategy",
 ]);
+
+const STRATEGY_ALIASES: Readonly<Record<string, InitStrategy>> = Object.freeze({
+  "row-level": "rowLevel",
+  rowlevel: "rowLevel",
+  "schema-per-tenant": "schemaPerTenant",
+  schema: "schemaPerTenant",
+  "database-per-tenant": "databasePerTenant",
+  database: "databasePerTenant",
+});
 
 const OPERATIONAL_COMMANDS = new Set(["tenant", "run"]);
 
@@ -652,6 +665,7 @@ function parseArguments(arguments_: readonly string[]): ParsedArguments {
   let tenant: string | undefined;
   let framework: InitFramework | undefined;
   let orm: InitOrm | undefined;
+  let strategy: InitStrategy | undefined;
   let apply = false;
   let central = false;
   let all = false;
@@ -692,7 +706,15 @@ function parseArguments(arguments_: readonly string[]): ParsedArguments {
       else if (argument === "--role") role = value;
       else if (argument === "--tenant-column") tenantColumn = value;
       else if (argument === "--out") out = value;
-      else if (argument === "--framework") {
+      else if (argument === "--strategy") {
+        const mapped = STRATEGY_ALIASES[value.toLowerCase()];
+        if (mapped === undefined) {
+          throw new CliUsageError(
+            `Unknown strategy "${value}". Choose row-level, schema-per-tenant, or database-per-tenant.`,
+          );
+        }
+        strategy = mapped;
+      } else if (argument === "--framework") {
         if (value !== "express" && value !== "adonis" && value !== "next") {
           throw new CliUsageError(
             `Unknown framework "${value}". Choose express, adonis, or next.`,
@@ -725,10 +747,14 @@ function parseArguments(arguments_: readonly string[]): ParsedArguments {
     throw new CliUsageError("--apply is valid only for init.");
   if (
     commandValue !== "init" &&
-    (framework !== undefined || orm !== undefined || yes || aiContext)
+    (framework !== undefined ||
+      orm !== undefined ||
+      strategy !== undefined ||
+      yes ||
+      aiContext)
   )
     throw new CliUsageError(
-      "--framework, --orm, --yes, and --ai-context are valid only for init.",
+      "--framework, --orm, --strategy, --yes, and --ai-context are valid only for init.",
     );
   if (!OPERATIONAL_COMMANDS.has(commandValue) && config !== undefined)
     throw new CliUsageError(
@@ -774,6 +800,7 @@ function parseArguments(arguments_: readonly string[]): ParsedArguments {
     ...(out === undefined ? {} : { out }),
     ...(framework === undefined ? {} : { framework }),
     ...(orm === undefined ? {} : { orm }),
+    ...(strategy === undefined ? {} : { strategy }),
     central,
     apply,
     all,
@@ -814,7 +841,7 @@ function helpText(): string {
   return `TenancyJS CLI
 
 Usage:
-  tenancy init [--framework <express|adonis|next>] [--orm <prisma|lucid|typeorm|sequelize|drizzle>] [--root <path>] [--apply] [--ai-context] [--yes] [--json]
+  tenancy init [--framework <express|adonis|next>] [--orm <prisma|lucid|typeorm|sequelize|drizzle>] [--strategy <row-level|schema-per-tenant|database-per-tenant>] [--root <path>] [--apply] [--ai-context] [--yes] [--json]
   tenancy doctor [--root <path>] [--test-file <path>] [--json]
   tenancy test:leak --test-file <path> [--root <path>] [--json]
   tenancy tenant check [--config <path>] [--root <path>] [--json]
@@ -832,7 +859,8 @@ Usage:
 init previews changes (dry run) unless --apply is present. It detects your stack and, when it cannot,
 asks you to choose one interactively; pass --framework and --orm to skip prompts in CI. Express 5.2
 supports Prisma 7.8, TypeORM 1, Sequelize 6.37, and Drizzle 0.45 scaffolds; AdonisJS 7.3 uses Lucid
-22.4 and Next.js 16 uses Prisma 7.8. Init scaffolds row-level and Node.js >= 24 is required. With
+22.4 and Next.js 16 uses Prisma 7.8. Init scaffolds row-level by default; pass --strategy for
+schema-per-tenant or database-per-tenant (Express + any SQL ORM, and Next + Prisma). Node.js >= 24 is required. With
 --apply, init offers to also write a stack-specific TENANCY.md and register a TenancyJS block in an
 existing AGENTS.md/CLAUDE.md; pass --ai-context to opt in non-interactively (it never creates an
 agent-memory file that is not already there).

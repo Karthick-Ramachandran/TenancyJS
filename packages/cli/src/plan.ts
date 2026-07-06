@@ -1,6 +1,6 @@
 import { lstat, readFile } from "node:fs/promises";
 
-import { CliSecurityError } from "./errors.js";
+import { CliSecurityError, CliUsageError } from "./errors.js";
 import {
   assertNoSymlinkPath,
   isMissing,
@@ -13,10 +13,12 @@ import {
   EXPRESS_SEQUELIZE_TEMPLATES,
   EXPRESS_TYPEORM_TEMPLATES,
   NEXT_PRISMA_TEMPLATES,
+  resolveStrategyTemplates,
 } from "./templates.js";
 import type {
   InitFramework,
   InitOrm,
+  InitStrategy,
   ProjectChangeAction,
   ProjectChangePlan,
 } from "./types.js";
@@ -36,16 +38,29 @@ export interface ResolvedInitStack {
   readonly root: string;
   readonly framework: InitFramework;
   readonly orm: InitOrm;
+  readonly strategy?: InitStrategy;
 }
 
 export async function createInitPlan(
   stack: ResolvedInitStack,
 ): Promise<ProjectChangePlan> {
-  const templates = TEMPLATES[`${stack.framework}:${stack.orm}`];
-  if (templates === undefined)
-    throw new TypeError(
-      `Unsupported init stack: ${stack.framework} + ${stack.orm}.`,
-    );
+  const strategy = stack.strategy ?? "rowLevel";
+  let templates: TemplateSet | undefined;
+  if (strategy === "rowLevel") {
+    templates = TEMPLATES[`${stack.framework}:${stack.orm}`];
+    if (templates === undefined)
+      throw new TypeError(
+        `Unsupported init stack: ${stack.framework} + ${stack.orm}.`,
+      );
+  } else {
+    templates = resolveStrategyTemplates(stack.framework, stack.orm, strategy);
+    if (templates === undefined)
+      throw new CliUsageError(
+        `tenancy init does not scaffold ${stack.framework} + ${stack.orm} for ${strategy} yet. ` +
+          `Use --strategy row-level, or follow the setup recipe at ` +
+          `https://tenancyjs.pages.dev/docs/stacks for this stack.`,
+      );
+  }
   const actions = await Promise.all(
     templates.map(async ({ path, content }) =>
       inspectAction(stack.root, path, content),
@@ -56,7 +71,7 @@ export async function createInitPlan(
     root: stack.root,
     framework: stack.framework,
     orm: stack.orm,
-    strategy: "rowLevel",
+    strategy,
     actions: Object.freeze(actions),
   });
 }

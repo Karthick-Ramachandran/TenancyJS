@@ -1,5 +1,6 @@
 export type InitFramework = "express" | "adonis" | "next";
 export type InitOrm = "prisma" | "lucid" | "typeorm" | "sequelize" | "drizzle";
+export type InitStrategy = "rowLevel" | "schemaPerTenant" | "databasePerTenant";
 
 export type DetectedFramework = InitFramework | "unknown";
 export type DetectedOrm = InitOrm | "unknown";
@@ -30,7 +31,7 @@ export interface ProjectChangePlan {
   readonly root: string;
   readonly framework: InitFramework;
   readonly orm: InitOrm;
-  readonly strategy: "rowLevel";
+  readonly strategy: InitStrategy;
   readonly actions: readonly ProjectChangeAction[];
 }
 
