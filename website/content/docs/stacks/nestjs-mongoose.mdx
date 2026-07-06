@@ -13,6 +13,13 @@ so there is no database backstop - the adapter's query facade is the entire boun
 matters most: never touch the native connection, model, or collection inside a scope - only the
 protected facade the adapter hands you.
 
+<Callout type="warn">
+  **TenancyJS is ESM-only; `nest new` scaffolds CommonJS.** The wiring is correct either way, but a
+  CommonJS NestJS project will not start or run Jest against these packages until it is in ESM mode:
+  `"type": "module"` in package.json, `module`/`moduleResolution` set to `"nodenext"` in tsconfig,
+  `.js` extensions on relative imports, and tests on [Vitest](https://vitest.dev) or Jest ESM mode.
+</Callout>
+
 ## Setup-agent prompt
 
 Paste this into an assistant that can edit your repo and run commands (Claude Code, Cursor, …). It

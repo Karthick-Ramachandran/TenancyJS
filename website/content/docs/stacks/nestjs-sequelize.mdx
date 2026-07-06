@@ -19,6 +19,13 @@ query can't escape its tenant scope. The one rule that matters most: only ever c
   [database-per-tenant on MySQL](/docs/stacks/mysql-database-per-tenant) instead.
 </Callout>
 
+<Callout type="warn">
+  **TenancyJS is ESM-only; `nest new` scaffolds CommonJS.** The wiring is correct either way, but a
+  CommonJS NestJS project will not start or run Jest against these packages until it is in ESM mode:
+  `"type": "module"` in package.json, `module`/`moduleResolution` set to `"nodenext"` in tsconfig,
+  `.js` extensions on relative imports, and tests on [Vitest](https://vitest.dev) or Jest ESM mode.
+</Callout>
+
 ## Setup-agent prompt
 
 Paste this into an assistant that can edit your repo and run commands (Claude Code, Cursor, …). It

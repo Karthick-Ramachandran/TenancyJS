@@ -13,6 +13,13 @@ backed by **forced RLS** - the database is the real backstop. That gives you two
 only ever expose the callback facade (keep the base Knex private), and let a non-owner runtime role run
 the queries so the policy actually applies.
 
+<Callout type="warn">
+  **TenancyJS is ESM-only; `nest new` scaffolds CommonJS.** The wiring is correct either way, but a
+  CommonJS NestJS project will not start or run Jest against these packages until it is in ESM mode:
+  `"type": "module"` in package.json, `module`/`moduleResolution` set to `"nodenext"` in tsconfig,
+  `.js` extensions on relative imports, and tests on [Vitest](https://vitest.dev) or Jest ESM mode.
+</Callout>
+
 ## Setup-agent prompt
 
 Paste this into an assistant that can edit your repo and run commands (Claude Code, Cursor, …). It

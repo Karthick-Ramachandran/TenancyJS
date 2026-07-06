@@ -16,6 +16,14 @@ inside it. It works on both the **Express** and **Fastify** platforms.
   few lines). See [Installation](/docs/getting-started/installation).
 </Callout>
 
+<Callout type="warn">
+  **ESM-only.** TenancyJS packages are ESM-only, and `nest new` scaffolds a CommonJS project. The wiring
+  is correct either way, but a CommonJS project won't start or run Jest against these packages until it's
+  in ESM mode: `"type": "module"`, `module`/`moduleResolution` `"nodenext"`, `.js` on relative imports,
+  and tests on [Vitest](https://vitest.dev) or Jest's ESM mode. The
+  [NestJS + Prisma setup](/docs/stacks/nestjs-prisma) has a Step 0 for the conversion.
+</Callout>
+
 ## Install
 
 ```bash

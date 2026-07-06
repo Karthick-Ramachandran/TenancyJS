@@ -145,3 +145,11 @@ model preferences.
   `nspname || '.' || relname` = `"public.posts"` — never matched, → `TENANCY_DRIZZLE_TABLE_MISSING`. Fix:
   default the qualified name to `public` (`${metadata.schema ?? "public"}.${metadata.name}`). Tests hid it
   by defining the table in a dedicated `pgSchema(...)`; always exercise a plain public-schema table.
+
+- NestJS + TenancyJS hits ESM/CJS friction: the `tenancyjs-*` packages are ESM-only, but `nest new`
+  scaffolds CommonJS (ts-node + Jest via ts-jest). The wiring compiles and is correct, but the app won't
+  *start* and Jest won't *run* until the project is ESM: `"type": "module"`, tsconfig
+  `module`/`moduleResolution` = `nodenext`, `.js` extensions on relative imports, and tests on Vitest or
+  Jest's ESM mode. Surfaced by a real consumer running the NestJS+Prisma setup-agent prompt. Docs now
+  warn up front (nestjs stack pages + integration doc; nestjs-prisma prompt has a Step 0). Open question:
+  ship a dual ESM+CJS build so CommonJS Nest works without conversion.

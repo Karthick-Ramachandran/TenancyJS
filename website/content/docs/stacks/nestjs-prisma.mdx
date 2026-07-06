@@ -12,6 +12,15 @@ This is **row-level** on PostgreSQL. Prisma row-level is _facade-enforced_ (the 
 query arguments; there is no RLS backstop), so the one rule that matters most: only ever expose the
 **extended** client - never the base Prisma client.
 
+<Callout type="warn">
+  **TenancyJS ships ESM-only, and `nest new` scaffolds CommonJS.** The wiring below is correct either
+  way, but a CommonJS NestJS project won't *start or run Jest* against these packages until it's in ESM
+  mode. Put the project in ESM first (Step 0 in the prompt): `"type": "module"` in `package.json`,
+  `module`/`moduleResolution` set to `"nodenext"` in `tsconfig.json`, `.js` extensions on relative
+  imports, and tests on [Vitest](https://vitest.dev) or Jest's ESM mode. This is the one real friction
+  on this stack.
+</Callout>
+
 <Callout type="info">
   Running **MySQL**? This page is PostgreSQL (row-level + forced RLS). MySQL has no schema-per-tenant
   and its row-level mode is experimental and facade-only - use
@@ -41,6 +50,18 @@ Source of truth (fetch if a detail is missing, do not guess):
 - Confirm `@nestjs/core` (v11) and `@prisma/client` (v7) are in package.json. Abort if this is not a
   NestJS + Prisma project.
 - Confirm the database is PostgreSQL.
+- Check the module system: TenancyJS packages are **ESM-only**. If `package.json` has no
+  `"type": "module"`, this is a CommonJS project — do Step 0 before anything else, or the app won't
+  start and Jest won't run.
+
+## Step 0 - ESM mode (skip if package.json already has "type": "module")
+TenancyJS is ESM-only; a default `nest new` project is CommonJS and will fail to start or test against
+these packages otherwise. Convert once:
+- Set `"type": "module"` in `package.json`.
+- In `tsconfig.json`, set `"module": "nodenext"` and `"moduleResolution": "nodenext"`.
+- Add `.js` extensions to every relative import path (nodenext requires them).
+- Switch tests to Vitest, or configure Jest for ESM (`ts-jest` ESM preset + `--experimental-vm-modules`).
+Verify `npx nest build` compiles before continuing.
 
 ## Step 1 - Install
 Run:
