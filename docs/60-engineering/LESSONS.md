@@ -140,3 +140,8 @@ model preferences.
   .update()`). A bulk query-builder write inside a scope bypasses the hooks and runs on the base
   connection's default placement — it fails loudly on schema/db-per-tenant (wrong placement) rather than
   leaking, but users must use instance methods or `scope.unrestricted()` for bulk work.
+- Drizzle row-level `validate()` silently failed for any public-schema `pgTable("posts")`: drizzle reports
+  `schema: undefined`, so the config built `qualifiedName = "posts"`, but RLS introspection filters on
+  `nspname || '.' || relname` = `"public.posts"` — never matched, → `TENANCY_DRIZZLE_TABLE_MISSING`. Fix:
+  default the qualified name to `public` (`${metadata.schema ?? "public"}.${metadata.name}`). Tests hid it
+  by defining the table in a dedicated `pgSchema(...)`; always exercise a plain public-schema table.

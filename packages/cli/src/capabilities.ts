@@ -1,3 +1,4 @@
+import { bold, cyan, dim, magenta } from "./style.js";
 import type { InitFramework, InitOrm } from "./types.js";
 
 export const REQUIRED_NODE_MAJOR = 24;
@@ -131,20 +132,20 @@ export function checkNodeVersion(version: string): NodeVersionCheck {
 export function capabilityBanner(nodeVersion: string): string {
   const supported = SUPPORTED_STACKS.map(
     (stack) =>
-      `  - ${stack.frameworkLabel} ${stack.frameworkRange} + ${stack.ormLabel} ${stack.ormRange}`,
+      `     ${bold(stack.frameworkLabel)} ${dim(stack.frameworkRange)} ${dim("+")} ${bold(stack.ormLabel)} ${dim(stack.ormRange)}`,
   ).join("\n");
   return [
-    "TenancyJS init",
     "",
-    "Supported stacks:",
+    `  ${magenta("◆")}  ${bold("TenancyJS")}  ${dim("· scaffold fail-closed tenant isolation")}`,
+    "",
+    `  ${bold("Supported stacks")}`,
     supported,
-    "Isolation strategies (all built and tested):",
-    "  - Row-level (shared schema): forced Postgres RLS or adapter query-scoping.",
-    "  - Schema-per-tenant: Postgres search_path or Prisma driver schema routing.",
-    "  - Database-per-tenant: bounded per-tenant SQL/Mongo resources.",
-    "  init scaffolds row-level; schema/database-per-tenant are wired in code.",
-    "Schema-per-tenant is PostgreSQL-only; MySQL and MongoDB use database-per-tenant.",
-    `Requires Node.js >= ${REQUIRED_NODE_MAJOR} (you have ${nodeVersion}).`,
+    "",
+    `  ${bold("Strategies")}   ${cyan("row-level")} ${dim("·")} ${cyan("schema-per-tenant")} ${dim("·")} ${cyan("database-per-tenant")}`,
+    `               ${dim("init scaffolds row-level; the others are wired in code.")}`,
+    `               ${dim("schema-per-tenant is PostgreSQL-only; MySQL/MongoDB use database-per-tenant.")}`,
+    "",
+    `  ${dim(`Node ${REQUIRED_NODE_MAJOR}+ required · you have ${nodeVersion}`)}`,
     "",
   ].join("\n");
 }

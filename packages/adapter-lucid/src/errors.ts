@@ -17,7 +17,7 @@ export class LucidTenancyConfigurationError extends LucidTenancyError {
 export class LucidPolicyValidationError extends LucidTenancyError {
   constructor() {
     super(
-      "Lucid tenancy isolation validation must pass before protected execution. Run and review adapter.validate() during application startup.",
+      "Call and check `await tenancy.validate()` at startup — the adapter refuses to run queries until the isolation contract (RLS policy / schema / config) is verified. Docs: https://tenancyjs.pages.dev/docs/concepts/security",
       "TENANCY_LUCID_POLICY_VALIDATION",
     );
   }
@@ -46,7 +46,7 @@ export class LucidTenantFieldConflictError extends LucidTenancyError {
 
   constructor(model: string, operation: string) {
     super(
-      `Lucid ${model}.${operation} was rejected because its tenant discriminator conflicts with the active context. Remove the supplied field or use the active tenant id; updates cannot move rows between tenants.`,
+      `${model}.${operation} set a tenant id that doesn't match the current tenant. Omit it (TenancyJS injects it for you) or use the active tenant's id — rows can't move between tenants.`,
       "TENANCY_LUCID_TENANT_FIELD_CONFLICT",
     );
     this.model = model;

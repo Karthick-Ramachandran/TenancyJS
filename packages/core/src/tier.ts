@@ -44,9 +44,10 @@ export function unrestrictedRefusedMessage(context: {
   readonly mode: "tenant" | "central";
 }): string {
   return (
-    "Full, raw query access is only available in a database-enforced scope — a database-per-tenant " +
-    "scope running in tenant mode, where a per-tenant connection was actually leased and the connection " +
-    `is the tenant's own database. The current ${context.adapter} scope (strategy=${context.strategy}, ` +
-    `mode=${context.mode}) is facade-enforced, so full query access is refused (ADR-0033).`
+    "unrestricted() gives full, raw database access, which is only safe in a database-per-tenant scope " +
+    "running in tenant mode — there the connection is the tenant's own database, so no query can reach " +
+    `another tenant. The current ${context.adapter} scope (strategy=${context.strategy}, mode=${context.mode}) ` +
+    "shares one database across tenants and is guarded only by the adapter, so TenancyJS refused it " +
+    "instead of risking a leak (fail-closed, ADR-0033)."
   );
 }

@@ -1,6 +1,7 @@
 import process from "node:process";
 
 import { applyChangePlan } from "./apply.js";
+import { bold, cyan, dim, green } from "./style.js";
 import {
   FRAMEWORK_CHOICES,
   capabilityBanner,
@@ -174,6 +175,18 @@ const ORM_PEER: Record<InitOrm, string> = {
   sequelize: "sequelize",
   drizzle: "drizzle-orm",
 };
+const FRAMEWORK_LABEL: Record<InitFramework, string> = {
+  express: "Express",
+  adonis: "AdonisJS",
+  next: "Next.js",
+};
+const ORM_LABEL: Record<InitOrm, string> = {
+  prisma: "Prisma",
+  lucid: "Lucid",
+  typeorm: "TypeORM",
+  sequelize: "Sequelize",
+  drizzle: "Drizzle",
+};
 
 /** Concrete, copy-pasteable "what to do next" after `init --apply`. */
 function formatNextSteps(framework: InitFramework, orm: InitOrm): string {
@@ -185,48 +198,68 @@ function formatNextSteps(framework: InitFramework, orm: InitOrm): string {
     ORM_PEER[orm],
   ].join(" ");
   const docs = "https://tenancyjs.pages.dev/docs";
-  const lines: string[] = [
+  const step = (n: number, title: string) =>
+    `\n  ${cyan(bold(String(n)))}  ${bold(title)}`;
+  const cmd = (value: string) => `     ${cyan(value)}`;
+  const note = (value: string) => `     ${dim("·")} ${value}`;
+  const link = (value: string) => `     ${dim("→")} ${cyan(value)}`;
+
+  const out: string[] = [
     "",
-    "Next steps:",
-    `  1. Install the packages:`,
-    `       npm install ${packages}`,
-    `  2. Open the scaffolded files and:`,
-    `       - point the resolver's store at your tenant table (it returns the matched tenant)`,
-    `       - register each tenant-scoped model/table with the adapter`,
+    `  ${green("✔")}  Scaffolded ${bold(`${FRAMEWORK_LABEL[framework]} + ${ORM_LABEL[orm]}`)}`,
+    "",
+    `  ${bold("Next steps")}`,
+    step(1, "Install the packages"),
+    cmd(`npm install ${packages}`),
+    step(2, "Fill in the scaffolded files"),
+    note("point the resolver's store at your tenant table"),
+    note("register each tenant-scoped model/table with the adapter"),
   ];
+
   if (framework === "adonis")
-    lines.push(
-      `  3. Register the provider in adonisrc.ts and the tenant middleware in start/kernel.ts`,
-      `       ${docs}/integrations/adonis#register-the-provider-and-middleware`,
+    out.push(
+      step(3, "Register the provider + tenant middleware"),
+      link(`${docs}/integrations/adonis#register-the-provider-and-middleware`),
     );
   else if (framework === "express")
-    lines.push(
-      `  3. Mount the middleware, passing a TenantResolutionChain resolver (from tenancyjs-identifiers):`,
-      `       app.use(createExpressTenancyMiddleware({ manager, resolver }))  —  ${docs}/integrations/express`,
+    out.push(
+      step(3, "Mount the middleware with a TenantResolutionChain resolver"),
+      link(`${docs}/integrations/express`),
     );
   else
-    lines.push(
-      `  3. Add the edge middleware.ts and wrap route handlers with withRouteHandler`,
-      `       ${docs}/integrations/nextjs`,
+    out.push(
+      step(
+        3,
+        "Add the edge middleware.ts, wrap handlers with withRouteHandler",
+      ),
+      link(`${docs}/integrations/nextjs`),
     );
+
   if (orm === "prisma")
-    lines.push(
-      `  4. Prisma row-level is facade-only — no RLS SQL needed; just classify your models.`,
+    out.push(
+      step(
+        4,
+        "Classify your models — Prisma row-level is facade-only (no RLS SQL)",
+      ),
     );
   else
-    lines.push(
-      `  4. Row-level needs forced Postgres RLS: create a non-bypass runtime role and a`,
-      `       <table>_tenant_isolation policy (ENABLE + FORCE), and connect as that role:`,
-      `       ${docs}/strategies/row-level#the-rls-backstop`,
+    out.push(
+      step(4, "Set up forced Postgres RLS"),
+      note(
+        "create a non-bypass runtime role + a <table>_tenant_isolation policy (ENABLE + FORCE)",
+      ),
+      link(`${docs}/strategies/row-level#the-rls-backstop`),
     );
-  lines.push(
-    `  5. Provision + migrate your tenant tables, then prove isolation:`,
-    `       npx tenancy tenant check     npx tenancy test:leak --test-file <path>`,
+
+  out.push(
+    step(5, "Provision, migrate, then prove isolation"),
+    cmd("npx tenancy tenant check"),
+    cmd("npx tenancy test:leak --test-file <path>"),
     "",
-    `Full walkthrough: ${docs}/getting-started/quickstart`,
+    `  ${dim("Full walkthrough")}  ${cyan(`${docs}/getting-started/quickstart`)}`,
     "",
   );
-  return lines.join("\n");
+  return out.join("\n");
 }
 
 async function resolveOrm(

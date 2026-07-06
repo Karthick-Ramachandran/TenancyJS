@@ -128,7 +128,7 @@ export function createDrizzleTenancy<
     if (!validated) throw new DrizzlePolicyValidationError();
     if (typeof callback !== "function")
       throw new DrizzleTenancyConfigurationError(
-        "Drizzle protected execution requires a callback.",
+        "Running a scoped query needs a callback function — pass the function that receives the scoped client.",
       );
     const context = config.manager.getContext();
     if (context === undefined) throw new TenantContextError("missing");

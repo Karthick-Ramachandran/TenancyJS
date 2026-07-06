@@ -160,10 +160,7 @@ export function defineDrizzleTenancyConfig<
     const normalized = Object.freeze({
       ...metadata,
       table: entry.table,
-      qualifiedName:
-        metadata.schema === undefined
-          ? metadata.name
-          : `${metadata.schema}.${metadata.name}`,
+      qualifiedName: `${metadata.schema ?? "public"}.${metadata.name}`,
       tenantProperty,
       tenantColumn,
       policyName,

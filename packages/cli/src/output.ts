@@ -1,3 +1,4 @@
+import { bold, cyan, dim, green, yellow } from "./style.js";
 import type { TenantCheckResult } from "./commands/check.js";
 import type { ProvisionResult } from "./commands/provision.js";
 import type { RunScriptResult } from "./commands/run.js";
@@ -140,13 +141,27 @@ export function formatDoctor(report: DoctorReport): string {
 
 export function formatPlan(plan: ProjectChangePlan, applied: boolean): string {
   const lines = [
+    "",
     applied
-      ? "Tenancy init applied."
-      : "Tenancy init preview (no files written).",
+      ? `  ${green("✔")} Tenancy init ${bold("applied")} ${dim("— files written")}`
+      : `  ${bold("Tenancy init")} ${dim("preview — no files written")}`,
+    "",
   ];
-  for (const action of plan.actions)
-    lines.push(`${action.status.toUpperCase()} ${action.path}`);
-  if (!applied) lines.push("Run with --apply to create non-conflicting files.");
+  for (const action of plan.actions) {
+    const mark =
+      action.status === "create"
+        ? green("✔ create")
+        : action.status === "conflict"
+          ? yellow("• skip  ")
+          : dim(action.status.padEnd(8));
+    lines.push(`    ${mark}  ${action.path}`);
+  }
+  if (!applied)
+    lines.push(
+      "",
+      `  ${dim("Run")} ${cyan("tenancy init --apply")} ${dim("to create the files above.")}`,
+    );
+  lines.push("");
   return `${lines.join("\n")}\n`;
 }
 

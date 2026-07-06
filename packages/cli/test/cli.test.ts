@@ -371,8 +371,8 @@ await prisma.post.findMany({ include: { comments: true } });
     expect(report.status).toBe("errors");
     expect(report.findings.map(({ code }) => code)).toEqual(
       expect.arrayContaining([
-        "UNSUPPORTED_EXPRESS_VERSION",
-        "UNSUPPORTED_PRISMA_VERSION",
+        "UNSUPPORTED_FRAMEWORK_VERSION",
+        "UNSUPPORTED_ORM_VERSION",
         "MISSING_WIRING",
         "INVALID_LEAK_TEST",
       ]),
@@ -761,9 +761,9 @@ describe("CLI v0.1 interactive init", () => {
     const banner = capabilityBanner("24.0.0");
     expect(banner).toContain("Express 5.2 + Prisma 7.8");
     expect(banner).toContain("Next.js 16 + Prisma 7.8");
-    expect(banner).toContain("Row-level (shared schema)");
-    expect(banner).toContain("Database-per-tenant");
-    expect(banner).toContain("Node.js >= 24");
+    expect(banner).toContain("row-level");
+    expect(banner).toContain("database-per-tenant");
+    expect(banner).toContain("Node 24+");
   });
 
   it("detects Next.js 16 + Prisma and plans the Next templates", async () => {
@@ -797,8 +797,8 @@ describe("CLI v0.1 interactive init", () => {
     const root = await fixture();
     const output = captureIo(root, { nodeVersion: "20.11.0" });
     await expect(runCli(["init"], output.io)).resolves.toBe(2);
-    expect(output.stderr.join("")).toContain("Supported stacks:");
-    expect(output.stderr.join("")).toContain("requires Node.js >= 24");
+    expect(output.stderr.join("")).toContain("Supported stacks");
+    expect(output.stderr.join("")).toContain("Node 24+ required");
     await expect(
       readFile(join(root, "tenancy.config.ts"), "utf8"),
     ).rejects.toMatchObject({ code: "ENOENT" });

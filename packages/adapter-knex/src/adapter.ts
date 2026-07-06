@@ -118,7 +118,7 @@ export function createKnexTenancy<TTenant extends TenantRecord = TenantRecord>(
     if (!validated) throw new KnexPolicyValidationError();
     if (typeof callback !== "function") {
       throw new KnexTenancyConfigurationError(
-        "Protected Knex execution requires a callback.",
+        "Running a scoped query needs a callback function — pass the function that receives the scoped client.",
       );
     }
     const context = config.manager.getContext();

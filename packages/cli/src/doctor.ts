@@ -22,7 +22,11 @@ const WIRING_BY_FRAMEWORK: Record<string, readonly string[]> = Object.freeze({
     "src/tenancy/register.ts",
     "src/middleware/tenancy.ts",
   ],
-  next: ["tenancy.config.ts", "lib/tenancy/register.ts", "lib/tenancy/server.ts"],
+  next: [
+    "tenancy.config.ts",
+    "lib/tenancy/register.ts",
+    "lib/tenancy/server.ts",
+  ],
   adonis: ["config/tenancy.ts", "app/middleware/tenant_middleware.ts"],
 });
 const DEFAULT_LEAK_TESTS = [

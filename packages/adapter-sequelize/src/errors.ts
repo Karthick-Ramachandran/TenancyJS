@@ -16,7 +16,7 @@ export class SequelizeTenancyConfigurationError extends SequelizeTenancyError {
 export class SequelizePolicyValidationError extends SequelizeTenancyError {
   constructor() {
     super(
-      "Sequelize tenancy validation must pass before protected execution.",
+      "Call and check `await tenancy.validate()` at startup — the adapter refuses to run queries until the isolation contract (RLS policy / schema / config) is verified. Docs: https://tenancyjs.pages.dev/docs/concepts/security",
       "TENANCY_SEQUELIZE_POLICY_VALIDATION",
     );
   }
@@ -24,7 +24,7 @@ export class SequelizePolicyValidationError extends SequelizeTenancyError {
 export class SequelizeModelUnregisteredError extends SequelizeTenancyError {
   constructor() {
     super(
-      "Sequelize model was rejected because it is not classified.",
+      "This model isn't registered as a tenant model. Add it to `tenantModels` (or `centralModels` if it's shared across tenants) before querying through the scoped client.",
       "TENANCY_SEQUELIZE_MODEL_UNREGISTERED",
     );
   }
@@ -32,7 +32,7 @@ export class SequelizeModelUnregisteredError extends SequelizeTenancyError {
 export class SequelizeTenantFieldConflictError extends SequelizeTenancyError {
   constructor(operation: string) {
     super(
-      `Sequelize ${operation} was rejected because its tenant discriminator conflicts with the active context.`,
+      `${operation} set a tenant id that doesn't match the current tenant. Omit it (TenancyJS injects it for you) or use the active tenant's id — rows can't move between tenants.`,
       "TENANCY_SEQUELIZE_TENANT_FIELD_CONFLICT",
     );
   }
@@ -40,7 +40,7 @@ export class SequelizeTenantFieldConflictError extends SequelizeTenancyError {
 export class SequelizeUnsafeCriteriaError extends SequelizeTenancyError {
   constructor() {
     super(
-      "Sequelize criteria were rejected because the initial protected boundary accepts plain scalar equality only.",
+      "Only plain scalar filters (string, number, boolean, date, id) are allowed. Operators, nested objects, and complex criteria are rejected because they can't be verified tenant-safe. Docs: https://tenancyjs.pages.dev/docs/concepts/limitations",
       "TENANCY_SEQUELIZE_CRITERIA_UNSAFE",
     );
   }

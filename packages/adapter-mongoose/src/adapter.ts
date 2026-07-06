@@ -100,7 +100,7 @@ export function createMongooseTenancy<
     if (!validated) throw new MongooseValidationError();
     if (typeof callback !== "function") {
       throw new MongooseTenancyConfigurationError(
-        "Mongoose protected execution requires a callback.",
+        "Running a scoped query needs a callback function — pass the function that receives the scoped client.",
       );
     }
     const context = config.manager.getContext();

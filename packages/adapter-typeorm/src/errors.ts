@@ -18,7 +18,7 @@ export class TypeOrmTenancyConfigurationError extends TypeOrmTenancyError {
 export class TypeOrmPolicyValidationError extends TypeOrmTenancyError {
   constructor() {
     super(
-      "TypeORM tenancy validation must pass before protected execution.",
+      "Call and check `await tenancy.validate()` at startup — the adapter refuses to run queries until the isolation contract (RLS policy / schema / config) is verified. Docs: https://tenancyjs.pages.dev/docs/concepts/security",
       "TENANCY_TYPEORM_POLICY_VALIDATION",
     );
   }
@@ -27,7 +27,7 @@ export class TypeOrmPolicyValidationError extends TypeOrmTenancyError {
 export class TypeOrmEntityUnregisteredError extends TypeOrmTenancyError {
   constructor() {
     super(
-      "TypeORM entity was rejected because it is not classified.",
+      "This entity isn't registered as a tenant entity. Add it to `tenantEntities` (or `centralEntities` if it's shared across tenants) before querying through the scoped client.",
       "TENANCY_TYPEORM_ENTITY_UNREGISTERED",
     );
   }
@@ -36,7 +36,7 @@ export class TypeOrmEntityUnregisteredError extends TypeOrmTenancyError {
 export class TypeOrmTenantFieldConflictError extends TypeOrmTenancyError {
   constructor(operation: string) {
     super(
-      `TypeORM ${operation} was rejected because its tenant discriminator conflicts with the active context.`,
+      `${operation} set a tenant id that doesn't match the current tenant. Omit it (TenancyJS injects it for you) or use the active tenant's id — rows can't move between tenants.`,
       "TENANCY_TYPEORM_TENANT_FIELD_CONFLICT",
     );
   }
@@ -45,7 +45,7 @@ export class TypeOrmTenantFieldConflictError extends TypeOrmTenancyError {
 export class TypeOrmUnsafeCriteriaError extends TypeOrmTenancyError {
   constructor() {
     super(
-      "TypeORM criteria were rejected because the initial protected boundary accepts plain scalar equality only.",
+      "Only plain scalar filters (string, number, boolean, date, id) are allowed. Operators, nested objects, and complex criteria are rejected because they can't be verified tenant-safe. Docs: https://tenancyjs.pages.dev/docs/concepts/limitations",
       "TENANCY_TYPEORM_CRITERIA_UNSAFE",
     );
   }

@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
-import { pgSchema, pgTable, text } from "drizzle-orm/pg-core";
+import { pgTable, text } from "drizzle-orm/pg-core";
 import { TenancyManager } from "tenancyjs-core";
 import knex, { type Knex } from "knex";
 import pg from "pg";
@@ -29,11 +29,12 @@ function urlFor(database: string): string {
 }
 
 describePostgres("Drizzle PostgreSQL forced-RLS row isolation", () => {
-  const schema = `drizzle_row_${suffix}`;
   const role = `drizzle_row_role_${suffix}`;
-  const tableName = "posts";
-  const policyName = "posts_tenant_isolation";
-  const posts = pgSchema(schema).table(tableName, {
+  // A plain public-schema table (no pgSchema wrapper): this is the natural
+  // Drizzle definition and must pass validate() on the "public.<table>" path.
+  const tableName = `posts_row_${suffix}`;
+  const policyName = `${tableName}_tenant_isolation`;
+  const posts = pgTable(tableName, {
     id: text().notNull(),
     tenantId: text("tenant_id").notNull(),
     title: text().notNull(),
@@ -46,21 +47,16 @@ describePostgres("Drizzle PostgreSQL forced-RLS row isolation", () => {
   beforeAll(async () => {
     admin = knex({ client: "pg", connection: databaseUrl! });
     await admin.raw(`create role ${role} login nosuperuser nobypassrls`);
-    await admin.schema.createSchema(schema);
-    await admin.schema.withSchema(schema).createTable(tableName, (table) => {
+    await admin.schema.createTable(tableName, (table) => {
       table.text("id").notNullable();
       table.text("tenant_id").notNullable();
       table.text("title").notNullable();
       table.primary(["id", "tenant_id"]);
     });
-    await admin.raw(
-      `alter table ${schema}.${tableName} enable row level security`,
-    );
-    await admin.raw(
-      `alter table ${schema}.${tableName} force row level security`,
-    );
+    await admin.raw(`alter table ${tableName} enable row level security`);
+    await admin.raw(`alter table ${tableName} force row level security`);
     await admin.raw(`
-      create policy ${policyName} on ${schema}.${tableName}
+      create policy ${policyName} on ${tableName}
       using (
         current_setting('tenancyjs.is_central', true) = 'true'
         or tenant_id = nullif(current_setting('tenancyjs.tenant_id', true), '')
@@ -70,9 +66,8 @@ describePostgres("Drizzle PostgreSQL forced-RLS row isolation", () => {
         or tenant_id = nullif(current_setting('tenancyjs.tenant_id', true), '')
       )
     `);
-    await admin.raw(`grant usage on schema ${schema} to ${role}`);
     await admin.raw(
-      `grant select, insert, update, delete on ${schema}.${tableName} to ${role}`,
+      `grant select, insert, update, delete on ${tableName} to ${role}`,
     );
     const runtimeUrl = new URL(databaseUrl!);
     runtimeUrl.username = role;
@@ -94,7 +89,7 @@ describePostgres("Drizzle PostgreSQL forced-RLS row isolation", () => {
     await tenancy?.close();
     await pool?.end();
     if (admin !== undefined) {
-      await admin.schema.dropSchemaIfExists(schema, true);
+      await admin.schema.dropTableIfExists(tableName);
       await admin.raw(`drop role if exists ${role}`);
       await admin.destroy();
     }
