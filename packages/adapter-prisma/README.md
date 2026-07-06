@@ -4,7 +4,7 @@ Fail-closed row-level tenant isolation for supported Prisma Client operations.
 
 > **New to TenancyJS? [Start with the docs →](https://tenancyjs.pages.dev/docs/getting-started/installation)** — install, the `npx tenancy` CLI, and how this package fits with an adapter + integration.
 
-> extension rewrites query arguments rather than SQL.
+The extension rewrites query arguments rather than SQL.
 
 ## Security boundary
 

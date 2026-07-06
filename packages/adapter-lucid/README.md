@@ -15,8 +15,6 @@ row-level security (RLS) remains the final isolation boundary. It is separate fr
 because Lucid models, hooks, relationships, transactions, and AdonisJS lifecycle need their own
 contract and evidence.
 
-> lane and reference application pass.
-
 ## Install
 
 ```bash
