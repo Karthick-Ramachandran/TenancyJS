@@ -21,6 +21,8 @@
     "nestjs-drizzle",
     "nestjs-mongoose",
     "adonis-lucid",
+    "schema-per-tenant",
+    "database-per-tenant",
     "mysql-database-per-tenant"
   ]
 }

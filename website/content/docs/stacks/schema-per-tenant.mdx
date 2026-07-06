@@ -1,0 +1,159 @@
+---
+title: Schema-per-tenant setup
+description: One PostgreSQL schema per tenant in a shared database, wired and provisioned. Copy-pasteable setup-agent prompt plus a one-line swap for every ORM.
+---
+
+Schema-per-tenant gives each tenant its **own PostgreSQL schema** inside one shared database:
+`tenant_acme.posts` and `tenant_globex.posts` are genuinely different tables. You get stronger
+separation than row-level without paying for a database per tenant - and TenancyJS wires and
+provisions it for you.
+
+<Callout type="warn">
+  **PostgreSQL only.** A schema is a Postgres namespace with no MySQL equivalent - on MySQL `SCHEMA`
+  is a synonym for `DATABASE`, so there is nothing to route a `search_path` at. If you are on MySQL,
+  use [database-per-tenant](/docs/stacks/database-per-tenant) instead, where each tenant gets a real
+  engine-level database boundary.
+</Callout>
+
+## How it works
+
+For most adapters (Knex, Lucid, TypeORM, Sequelize, Drizzle) schema-per-tenant is **adapter-enforced**:
+inside a tenant scope the adapter sets a **transaction-local `search_path`** to that tenant's schema, so
+it reverts before the pooled connection is reused:
+
+```sql
+select set_config('search_path', 'tenant_acme', true);
+```
+
+Every **unqualified** query then resolves to the tenant's schema, so your registered tables and models
+must use unqualified names (an unqualified `pgTable`, a Lucid model without a schema prefix). The schema
+name is validated as a safe SQL identifier first, and the router proves **one tenant maps to one
+schema** - a tenant that changes schemas, or two tenants resolving to the same schema, is rejected.
+
+Add an optional per-tenant **role** resolver (`role: (tenant) => tenant.role`) for the
+**database-enforced** tier: give each tenant a Postgres role with `USAGE` on only its own schema and the
+database itself - not just the adapter - denies sibling-schema access.
+
+**Prisma is different.** A runtime `search_path` does not route Prisma's generated model queries, so
+`createPrismaSchemaTenancy` leases a **schema-bound PostgreSQL driver client** per tenant
+(`new PrismaClient({ adapter: new PrismaPg({ connectionString }, { schema: tenant.schemaName }) })`)
+instead. Same one-tenant-to-one-placement collision rule; different mechanism.
+
+Either way, creating each tenant's schema (the `CREATE SCHEMA` and its migrations) is **application-owned**
+- run it up front through your [provisioner hooks](/docs/guides/provisioning).
+
+## Placement on the tenant record
+
+Each tenant record carries a `schemaName`, and the adapter's `schema: (tenant) => tenant.schemaName`
+callback reads it. Never build the schema from raw request input; it comes from the resolved tenant.
+
+## Setup-agent prompt
+
+Worked for **Express 5 + Drizzle, schema-per-tenant on PostgreSQL**; the ORM step below shows the
+one-line swap for Knex, Lucid, TypeORM, Sequelize, and Prisma. Paste this into an assistant that can
+edit your repo.
+
+````text
+# TenancyJS Setup Agent - Express 5 + Drizzle, schema-per-tenant (PostgreSQL)
+
+You are a setup agent. Add fail-closed, schema-per-tenant multi-tenancy to this Express + Drizzle app
+on PostgreSQL with TenancyJS - one schema per tenant in a shared database. Execute every step in order
+and verify each before continuing. Do NOT invent API names - fetch the linked doc if unsure.
+
+Source of truth:
+- https://tenancyjs.pages.dev/docs/adapters/drizzle
+- https://tenancyjs.pages.dev/docs/strategies/schema-per-tenant
+- https://tenancyjs.pages.dev/docs/guides/provisioning/drizzle
+- https://tenancyjs.pages.dev/docs/integrations/express
+- https://tenancyjs.pages.dev/docs/guides/testing-isolation
+
+## Pre-flight
+- `node -v` >= 24, else abort.
+- Confirm PostgreSQL and the `pg` driver are available. (Schema-per-tenant is PostgreSQL-only.)
+- Confirm this is an Express 5 + Drizzle project.
+Verify before continuing.
+
+## Step 1 - Install
+`npm install tenancyjs-core@beta tenancyjs-adapter-drizzle@beta tenancyjs-integration-express@beta tenancyjs-identifiers@beta drizzle-orm pg`
+Verify the packages resolve before continuing.
+
+## Step 2 - Placement on the tenant record
+Each tenant row must carry a `schemaName` (e.g. `tenant_acme`). The store's `find(identifier)` returns
+`[{ tenant: { id, schemaName }, status }]`. The schema name comes from the resolved tenant, never from
+raw request input. Verify the store returns `schemaName` before continuing.
+
+## Step 3 - tenancy.ts
+- One exported `TenancyManager<Tenant>`.
+- Define tenant tables as UNQUALIFIED `pgTable` (no schema prefix) - the adapter's transaction-local
+  `search_path` resolves them to the active tenant's schema.
+- The adapter in schema-per-tenant mode:
+  ```
+  const tenancy = createDrizzleTenancy({
+    manager,
+    database: createPostgresDrizzleBinding(drizzle({ client: pool })),
+    strategy: "schemaPerTenant",
+    schema: (t) => t.schemaName,
+    centralSchema: "public",
+    tenantTables: [{ table: posts }],
+    // role: (t) => t.role, // optional: database-enforced sibling-schema denial
+  });
+  ```
+- Keep tenant tables OUT of `centralSchema` (`public`) - a `public.posts` shadows the tenant tables and
+  fails validation.
+- A `TenantResolutionChain` (HeaderTenantResolver + the store above).
+- Call `await tenancy.validate()` at boot; it refuses to run until the schemas and grants exist.
+Verify `tenancy.validate()` passes before continuing.
+
+## Step 4 - Express wiring
+`app.use(createExpressTenancyMiddleware({ manager, resolver }))`; add an error handler for
+`ExpressTenancyResolutionError` (400/404/500). Inside a request,
+`tenancy.run((db) => db.table(posts).findMany())` returns only the current tenant's rows.
+Verify a scoped request works before continuing.
+
+## Step 5 - Provision each tenant's schema
+Implement the provisioner hooks (see the Drizzle provisioning recipe at
+https://tenancyjs.pages.dev/docs/guides/provisioning/drizzle): `provision` runs `CREATE SCHEMA
+tenant_acme` and grants `USAGE` to the runtime role on a privileged admin connection (NOT the runtime
+role); `migrate` runs your Drizzle migrations against that schema; `deprovision` drops it. Then:
+`npx tenancy tenant create acme --set schemaName=tenant_acme` ->
+`npx tenancy tenant provision acme` -> `npx tenancy tenant migrate acme`.
+Verify the schema and its tables exist before continuing.
+
+## Step 6 - Central work
+Cross-tenant/admin work runs against the central schema explicitly via
+`manager.runInCentralContext(...)`. Never run tenant-aware queries with no scope.
+Verify central work does not touch tenant schemas before continuing.
+
+## Step 7 - Prove it (two-schema leak test)
+Two tenants in two schemas, same primary key: write a row under each, assert querying as A never
+returns B's row, and that a tenant query with no scope THROWS. Follow the testing-isolation guide.
+Verify the leak test passes before continuing.
+
+## Step 8 - Verify
+`npm run build`, boot the app, run the two-tenant test. Report every file changed and any issue.
+````
+
+## The one-line swap for other ORMs
+
+Same shape - `strategy: "schemaPerTenant"` plus a `schema(tenant)` resolver reading the tenant's
+`schemaName`. Adapter-enforced adapters route a transaction-local `search_path`; only the factory and
+provisioning DDL differ. Prisma routes schema-bound driver clients instead.
+
+| ORM | Adapter (schema-per-tenant, PostgreSQL) | Provisioning recipe |
+| --- | --- | --- |
+| Knex | `createKnexTenancy({ manager, knex, strategy: "schemaPerTenant", schema: (t) => t.schemaName })` (search_path; `role(t)` optional) | [Knex →](/docs/guides/provisioning/knex) |
+| Lucid | `createLucidTenancy({ manager, database, strategy: "schemaPerTenant", schema: (t) => t.schemaName, tenantModels })` (AdonisJS; search_path) | [Lucid →](/docs/guides/provisioning/lucid) |
+| TypeORM | `createTypeOrmTenancy({ manager, dataSource, strategy: "schemaPerTenant", schema: (t) => t.schemaName, tenantEntities })` (search_path) | [TypeORM →](/docs/guides/provisioning/typeorm) |
+| Sequelize | `createSequelizeTenancy({ manager, sequelize, strategy: "schemaPerTenant", schema: (t) => t.schemaName, tenantModels })` (search_path) | [Sequelize →](/docs/guides/provisioning/sequelize) |
+| Prisma | `createPrismaSchemaTenancy({ manager, schema })` - per-tenant `new PrismaClient({ adapter: new PrismaPg({ connectionString }, { schema: tenant.schemaName }) })` (schema-bound driver client, NOT search_path) | [Prisma →](/docs/guides/provisioning/prisma) |
+
+<Callout type="info">
+  `CREATE SCHEMA` is the isolation boundary here; provisioning creates and migrates it. Add a
+  per-tenant `role(tenant)` (adapter-enforced adapters) or a schema-restricted role (Prisma) when the
+  database itself must reject sibling-schema access.
+</Callout>
+
+For the collision rule, the two enforcement tiers, and what `validate()` requires, see
+[schema-per-tenant](/docs/strategies/schema-per-tenant) and the
+[provisioning recipes](/docs/guides/provisioning). Prove isolation with
+[a two-tenant test](/docs/guides/testing-isolation) before you trust it.

@@ -53,13 +53,16 @@ you, but wiring it into your app - and [provisioning each tenant's storage](/doc
   <Card title="AdonisJS + Lucid" href="/docs/stacks/adonis-lucid" description="Row-level (forced RLS) · PostgreSQL" />
 </Cards>
 
-### MySQL
+## By strategy
 
-MySQL has no schema-per-tenant, and row-level is experimental (facade-only, no backstop). The
-production path is database-per-tenant - one page covers every ORM.
+The stack pages above default to **row-level**. For the other two isolation strategies, one page each
+covers every ORM (worked setup-agent prompt + a per-ORM swap table), and pairs with the
+[provisioning recipes](/docs/guides/provisioning).
 
 <Cards>
-  <Card title="MySQL - database-per-tenant" href="/docs/stacks/mysql-database-per-tenant" description="Prisma · TypeORM · Sequelize · Drizzle · Lucid" />
+  <Card title="Schema-per-tenant" href="/docs/stacks/schema-per-tenant" description="One PostgreSQL schema per tenant · all SQL ORMs" />
+  <Card title="Database-per-tenant" href="/docs/stacks/database-per-tenant" description="A database per tenant · PostgreSQL · MySQL · MongoDB" />
+  <Card title="MySQL — database-per-tenant" href="/docs/stacks/mysql-database-per-tenant" description="The MySQL production path · Prisma · TypeORM · Sequelize · Drizzle · Lucid" />
 </Cards>
 
 <Callout type="info">

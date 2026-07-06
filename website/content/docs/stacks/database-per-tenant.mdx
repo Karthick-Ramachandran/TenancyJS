@@ -1,0 +1,161 @@
+---
+title: Database-per-tenant setup
+description: The hardest isolation, wired and provisioned - a separate database per tenant on PostgreSQL. Copy-pasteable setup-agent prompt plus the one-line swap for every ORM.
+---
+
+Most stack pages here default to PostgreSQL row-level with forced RLS. This page is the other end of
+the spectrum: **a separate database per tenant** - physically separate data, per-tenant backups, no
+noisy neighbours, and the natural fit when tenants are few and heavy or compliance demands separation.
+This is the PostgreSQL-focused guide; for MySQL specifics see
+[MySQL database-per-tenant](/docs/stacks/mysql-database-per-tenant).
+
+<Callout type="info">
+  Database-per-tenant is the **strongest** isolation TenancyJS offers - each tenant scope runs on its
+  own connection, so any query is isolated by construction. It's also the most operational overhead:
+  more databases to provision, migrate, monitor, and back up. Works on **PostgreSQL and MySQL** (and
+  MongoDB via Mongoose).
+</Callout>
+
+## How it works
+
+Each tenant record carries an opaque `databaseKey` - a handle to its database, **never a URL or
+credentials**. You supply a `connection: (tenant) => ({ key, create })` resolver (`database:` on
+Mongoose) that maps that key to a host-created client. TenancyJS routes each tenant scope to its own
+client through a **bounded, single-flight connection cache**:
+
+- **Bounded + LRU** - connections are pooled and evicted, so you don't exhaust the database. Idle
+  connections are disposed on eviction, so **always** provide a `close`/dispose callback.
+- **Single-flight** - concurrent requests for the same tenant share one in-flight creation.
+- **Collision-guarded** - a 1:1 tenant↔placement guard rejects any cross-placement collision, so two
+  tenants can never share a connection.
+- **Fail-closed** - cross-placement access is rejected; `validate()` returns a *warning* here because
+  the connection factories are exercised lazily, not eagerly.
+
+Central (cross-tenant / admin) work runs against the landlord connection explicitly via
+`manager.runInCentralContext`. Creating and migrating each tenant's database
+(`CREATE DATABASE` + migrate) is **application-owned** - run through your
+[provisioner hooks](/docs/guides/provisioning), never by the router at request time.
+
+## Setup-agent prompt
+
+Worked for **Express + TypeORM, database-per-tenant on PostgreSQL**; the ORM section below shows the
+one-line swap for Prisma, Knex, Lucid, Sequelize, Drizzle, and Mongoose. Paste this into an assistant
+that can edit your repo.
+
+````text
+# TenancyJS Setup Agent - Express 5 + TypeORM, database-per-tenant (PostgreSQL)
+
+You are a setup agent. Add fail-closed, database-per-tenant multi-tenancy to this Express + TypeORM app
+on PostgreSQL with TenancyJS. Execute every step in order and verify each before continuing. Do NOT
+invent API names - fetch the linked doc if unsure.
+
+Source of truth:
+- https://tenancyjs.pages.dev/docs/adapters/typeorm
+- https://tenancyjs.pages.dev/docs/strategies/database-per-tenant
+- https://tenancyjs.pages.dev/docs/guides/provisioning/typeorm
+- https://tenancyjs.pages.dev/docs/integrations/express
+- https://tenancyjs.pages.dev/docs/guides/testing-isolation
+
+## Pre-flight
+- `node -v` >= 24, else abort.
+- Confirm PostgreSQL and the `pg` driver are available.
+- Confirm this is an Express 5 + TypeORM project. Verify before continuing.
+
+## Step 1 - Install
+`npm install tenancyjs-core@beta tenancyjs-adapter-typeorm@beta tenancyjs-integration-express@beta tenancyjs-identifiers@beta typeorm pg`
+Verify the install succeeded before continuing.
+
+## Step 2 - Placement on the tenant record
+Each tenant row must carry a `databaseKey` - an opaque handle to its database, NEVER a URL or
+credentials. The store's `find(identifier)` returns `[{ tenant: { id, databaseKey }, status }]`.
+Verify the field exists and is opaque before continuing.
+
+## Step 3 - tenancy.ts
+- One exported `TenancyManager<Tenant>`.
+- A `landlord` TypeORM `DataSource` for central work.
+- A `createInitializedDataSource(databaseKey)` factory that returns a fully INITIALIZED tenant
+  DataSource registering EVERY entity (call `.initialize()` before returning it).
+- The adapter in database-per-tenant mode:
+  ```
+  const tenancy = createTypeOrmTenancy({
+    manager,
+    dataSource: landlord,
+    strategy: "databasePerTenant",
+    tenantEntities: [
+      { entity: Post, table: "posts", tenantProperty: "tenantId", tenantColumn: "tenant_id" },
+    ],
+    connection: (tenant) => ({
+      key: tenant.databaseKey,                       // opaque; never a URL
+      create: () => createInitializedDataSource(tenant.databaseKey),
+    }),
+  });
+  ```
+  ALWAYS provide a dispose (`close`/`destroy`) so the cache evicts idle tenant DataSources. Never use
+  the landlord DataSource inside a tenant scope.
+- A `TenantResolutionChain` (HeaderTenantResolver + the store above).
+Verify the file type-checks before continuing.
+
+## Step 4 - Express wiring
+`app.use(createExpressTenancyMiddleware({ manager, resolver }))`; add an error handler for
+`ExpressTenancyResolutionError` (400/404/500). Inside a request, query INSIDE a scope:
+`tenancy.run((client) => client.repository(Post).findBy({}))`. Verify before continuing.
+
+## Step 5 - Provision each tenant's database
+Implement the provisioner hooks (see the TypeORM provisioning recipe): `provision` runs
+`CREATE DATABASE "tenant_x"` on a privileged admin connection (NOT in a transaction); `migrate` runs
+your TypeORM migrations against the tenant database; `deprovision` drops it. Then:
+`npx tenancy tenant create acme --set databaseKey=tenant_acme` -> `npx tenancy tenant provision acme`
+-> `npx tenancy tenant migrate acme`. Verify each tenant's database exists and is migrated.
+
+## Step 6 - Central work
+Cross-tenant / admin work runs against the landlord explicitly via `manager.runInCentralContext(...)`.
+Never run tenant-aware queries with no scope. Verify before continuing.
+
+## Step 7 - Prove it (two-database leak test)
+Two tenants in two databases, same primary key: write a row under each, assert querying as A never
+returns B's row, and that a tenant query with no scope THROWS. Follow the testing-isolation guide.
+
+## Step 8 - Verify
+`npm run build`, boot the app, run the two-tenant test. Report every file changed and any issue.
+````
+
+## The one-line swap for other ORMs
+
+Same shape - a `connection(tenant)` (or `database(tenant)`) resolver under
+`strategy: "databasePerTenant"`, always with a dispose callback. Only the adapter factory and the
+provisioning DDL change:
+
+| ORM | Adapter (database-per-tenant) | Provisioning recipe | Databases |
+| --- | --- | --- | --- |
+| Prisma | `createPrismaDatabaseTenancy({ manager, connection })` - per-tenant leased `PrismaClient` (`disconnect` disposes) | [Prisma →](/docs/guides/provisioning/prisma) | PostgreSQL · MySQL |
+| Knex | `createKnexTenancy({ manager, knex, strategy: "databasePerTenant", connection })` | [Knex →](/docs/guides/provisioning/knex) | PostgreSQL |
+| Lucid | `createLucidTenancy({ manager, database, strategy: "databasePerTenant", connection })` - `create` returns `{ transaction, destroy }` | [Lucid →](/docs/guides/provisioning/lucid) | PostgreSQL · MySQL |
+| Sequelize | `createSequelizeTenancy({ manager, sequelize, strategy: "databasePerTenant", tenantModels, connection })` | [Sequelize →](/docs/guides/provisioning/sequelize) | PostgreSQL · MySQL |
+| Drizzle | `createDrizzleTenancy({ manager, database, strategy: "databasePerTenant", tenantTables, connection })` - bind with `createPostgresDrizzleBinding` / `createMySqlDrizzleBinding` (supply `close`) | [Drizzle →](/docs/guides/provisioning/drizzle) | PostgreSQL · MySQL |
+| Mongoose | `createMongooseTenancy({ manager, connection, strategy: "databasePerTenant", tenantModels, database: (tenant) => ({ key, create }) })` | [Mongoose →](/docs/guides/provisioning/mongoose) | MongoDB (replica set) |
+
+<Callout type="info">
+  On MySQL, `SCHEMA` is a synonym for `DATABASE`, so database-per-tenant is MySQL's schema-isolation
+  equivalent - see the [MySQL page](/docs/stacks/mysql-database-per-tenant) for `mysql2` /
+  `dialect: "mysql"` specifics. On MongoDB, each tenant is isolated per database and connections must
+  reach a **replica set**. The full create/migrate/drop hooks per ORM live in the
+  [provisioning recipes](/docs/guides/provisioning).
+</Callout>
+
+## Full query freedom
+
+Because each tenant scope runs on its own connection, the facade's raw/join/nested restrictions buy no
+safety - so this is the one strategy where you can reach for the real, tenant-scoped client:
+`client.unrestricted()` (Knex, TypeORM, Sequelize, Drizzle, Mongoose), `scope.unrestricted()` on Lucid,
+and Prisma hands you the leased client directly. It stays fail-closed: it throws unless a per-tenant
+connection was actually leased (so it throws in central mode). See
+[the strategy doc](/docs/strategies/database-per-tenant#full-query-freedom).
+
+## Where to go next
+
+- [Database-per-tenant strategy](/docs/strategies/database-per-tenant) - the cache, collision
+  guarantees, and central behaviour in depth.
+- [MySQL database-per-tenant](/docs/stacks/mysql-database-per-tenant) - the MySQL-specific sibling.
+- [Provisioning recipes](/docs/guides/provisioning) - the create/migrate/drop hooks per ORM.
+- [Testing isolation](/docs/guides/testing-isolation) - prove it with a two-tenant leak test before
+  you trust it.
