@@ -1,0 +1,79 @@
+---
+title: How TenancyJS compares
+description: An honest look at how TenancyJS's fail-closed, proof-first approach differs from common Node multi-tenancy patterns - including where we pay for it.
+---
+
+TenancyJS optimizes for one thing above ergonomics: **provable tenant isolation that fails closed**.
+When tenant context is missing, a scoped access **throws** (a `TenantContextError`) instead of quietly
+running unscoped; on PostgreSQL row-level, the facade is backed by a real database policy so a query
+that slips past application code still can't leak. We are also deliberately honest about the other side
+of that coin - several of our tiers are **facade-only** today (no database backstop), and we publish
+exactly where. This page contrasts that approach with the patterns you'll commonly find across the
+Node.js ecosystem, and admits where our choices cost you.
+
+<Callout type="info">
+  This is an honesty comparison of **design patterns and defaults**, not a takedown of any named
+  library. Where a common pattern is safe, we say so; where we're stricter, we explain the price.
+</Callout>
+
+## At a glance
+
+| Axis | TenancyJS | Common Node multi-tenancy patterns |
+| --- | --- | --- |
+| Default when tenant context is missing | Fail-closed: the scoped access **throws** (`TenantContextError`) | Often fail-open: a missing context lets the query run **unscoped**, which can leak |
+| Database-level backstop | Forced RLS on PostgreSQL row-level (`ENABLE` + `FORCE`, a non-owner runtime role, a `<table>_tenant_isolation` policy validated at startup) | Frequently query-rewriting only - a query that slips the rewriter has no backstop |
+| Tenant resolution vs authorization | Resolution requires an explicit membership decision or trusted transport ([ADR-0035](https://github.com/Karthick-Ramachandran/TenancyJS)) | Often "trust the header/subdomain," which can be spoofed without an ownership check |
+| Proven by real-DB conformance tests | Every supported operation is covered by an adversarial suite on real databases | Support is often asserted from ORM capability, not proven per operation |
+| Honest capability matrix / limitations | Published matrix + limitations page; facade-only weaknesses are admitted | Varies; not always documented |
+| Raw SQL & complex queries | Rejected fail-closed in facade tiers; full freedom in database-per-tenant | Commonly allowed everywhere - ergonomic, but unchecked |
+
+## Where we are deliberately stricter
+
+- **Fail-closed by default.** No tenant context means the scoped access refuses to run. An approach
+  that fails open can return another tenant's rows the moment context is missing; we'd rather throw.
+- **A database-level backstop where we can build one.** On PostgreSQL row-level, isolation is enforced
+  by forced RLS under a runtime role that can't bypass it, with the policy validated at startup - so
+  application-layer mistakes don't automatically become leaks.
+- **Membership before resolution.** Resolving a tenant is not authorization. TenancyJS won't resolve a
+  tenant until an explicit membership-authorization decision or a trusted transport says it may, so a
+  spoofed `x-tenant-id` from a logged-in user can't reach another tenant. See
+  [Resolving tenants](/docs/guides/resolving-tenants).
+- **Proven, not asserted.** "Supported" means we have evidence: a two-tenant adversarial conformance
+  test on a real database, not a theoretical claim about what an ORM can do. See
+  [How we test](/docs/concepts/how-we-test).
+
+## Where you pay for it (honest tradeoffs)
+
+- **Facade tiers restrict queries.** In facade-enforced scopes we **reject** raw SQL, joins, and nested
+  writes fail-closed. That's safe, but it's less ergonomic than libraries that let you run anything.
+  Full query freedom is available in **database-per-tenant** today, and it's on the roadmap for
+  forced-RLS row-level.
+- **Not every tier has a database backstop yet.** Our Prisma row-level, MySQL row-level, and MongoDB
+  enforcement are **facade-only** today - no database backstop, so a bug that bypasses the facade could
+  leak. We publish this plainly in the [Capability matrix](/docs/concepts/capability-matrix) and
+  [Limitations](/docs/concepts/limitations) rather than imply uniform strength.
+- **Central access is explicit.** Reaching across all tenants for admin or reporting is a deliberate
+  call, not an accidental default - convenient for safety, slightly more ceremony for you.
+- **Pre-1.0.** APIs can still change, and coverage is expanding. The capability matrix is the source of
+  truth for what's proven right now.
+
+## When another approach might fit you better
+
+We'd rather you pick the right tool than oversell ours:
+
+- You need **arbitrary raw SQL and complex joins everywhere** on a shared database and you accept the
+  isolation risk that comes with unchecked queries. Our facade tiers will get in your way there.
+- Your framework **already ships tenancy** you trust and you're happy with its guarantees and ergonomics.
+- You want a specific database or strategy combination we haven't proven yet - check the
+  [Capability matrix](/docs/concepts/capability-matrix) first, because we won't claim what we can't show.
+
+TenancyJS is TypeScript-first with broad adapter coverage (Prisma, Knex, TypeORM, Sequelize, Drizzle,
+Lucid, Mongoose) across Express, Next, Nest, and Adonis - so for most shared-database apps that want
+isolation they can prove, the tradeoffs above are the point.
+
+<Cards>
+  <Card title="How we test" href="/docs/concepts/how-we-test" description="The adversarial, real-database conformance suite behind every 'supported'." />
+  <Card title="Capability matrix" href="/docs/concepts/capability-matrix" description="Exactly which databases, adapters, and strategies are proven - and which aren't." />
+  <Card title="Security model" href="/docs/concepts/security" description="Fail-closed defaults, forced RLS, and the enforcement tiers." />
+  <Card title="Resolving tenants" href="/docs/guides/resolving-tenants" description="Why resolution requires membership or a trusted transport." />
+</Cards>

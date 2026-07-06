@@ -1,0 +1,71 @@
+---
+title: Choosing a strategy
+description: Row-level, schema-per-tenant, or database-per-tenant - the tradeoffs in isolation, noisy-neighbor risk, connection scaling, compliance, and query freedom, and how to decide.
+---
+
+Picking a strategy is one decision: **how strong do you want the isolation boundary, and how much
+per-tenant cost and operational overhead are you willing to take on for it?** Stronger isolation buys
+you safety, query freedom, and compliance guarantees, but costs you connections, provisioning, and ops.
+
+You do not have to pick just one. TenancyJS lets you **mix strategies per model** - keep bulk data
+row-level while giving a few heavyweight tenants their own database, for example.
+
+## Decision matrix
+
+| | Row-level | Schema-per-tenant | Database-per-tenant |
+| --- | --- | --- | --- |
+| **Isolation strength** | Weakest - shared tables | Middle - own schema per tenant | Strongest - isolation by construction |
+| **Enforcement tier (Postgres)** | Database-enforced (forced RLS); facade-only on MySQL/Prisma | Facade + search_path; a database-level block needs the optional per-tenant role | Database-enforced (own connection/database) |
+| **Noisy-neighbor risk** | High - shared tables and one connection pool | Moderate - shared server, separate objects | Low - separate database and pool per tenant |
+| **Per-tenant cost / connection scaling** | Cheapest; one shared pool | Low; still one server | Highest; N databases and N pools, leased through a bounded LRU cache - connection scaling is the main constraint at high tenant counts |
+| **Migration & ops overhead** | Lowest - one migration for everyone | Higher - many schemas to migrate and operate | Highest - N databases to provision and migrate |
+| **Query freedom (raw SQL / joins / nested)** | Restricted - raw SQL, joins, and nested writes rejected fail-closed | Restricted - same fail-closed limits as row-level | Full - raw SQL and joins via `unrestricted()` |
+| **Per-tenant backup / delete / residency** | Hard - data is interleaved | Partial - per-schema objects help | Natural - per-tenant backup/restore, encryption keys, residency, hard delete |
+
+<Callout type="info">
+  **Enforcement tiers (ADR-0033).** *Database-enforced* means the database itself refuses cross-tenant
+  rows (database-per-tenant, or Postgres row-level under forced RLS). *Facade-enforced* means the
+  adapter facade is the only guard - raw SQL, joins, and nested writes are rejected fail-closed to stay
+  safe.
+</Callout>
+
+## Choose row-level if ...
+
+- You have many lightweight tenants and want the cheapest per-tenant cost.
+- You are on PostgreSQL, where forced RLS gives a real database-level backstop.
+- One migration for all tenants is a feature, not a limitation.
+- You do not need per-tenant backup, residency, or hard delete.
+
+## Choose schema-per-tenant if ...
+
+- You are on PostgreSQL and want stronger separation than shared tables without running N databases.
+- You want per-tenant objects (schemas, optional per-tenant roles with `USAGE` on only their schema).
+- You can absorb the extra migration and ops overhead of many schemas.
+- Your tenant count is moderate - schema sprawl grows with it.
+
+## Choose database-per-tenant if ...
+
+- You need the strongest isolation - separation by construction, minimal noisy-neighbor risk.
+- Compliance drives you: per-tenant backup/restore, data residency, per-tenant encryption keys, or guaranteed hard delete.
+- You want full query freedom - raw SQL and joins via `unrestricted()`.
+- You can afford N connection pools and heavier provisioning, and your tenant count stays within connection-scaling limits.
+
+<Callout type="warn">
+  **Facade-only placements have no database backstop.** MySQL row-level is experimental and
+  facade-only, MongoDB/Mongoose is facade-only, and Prisma row-level has no RLS backstop - in all of
+  these the adapter facade is the entire guarantee. If you need a hard database-level guarantee on those
+  stacks, prefer **database-per-tenant**. See the
+  [capability matrix](/docs/concepts/capability-matrix) and [limitations](/docs/concepts/limitations).
+</Callout>
+
+## Next steps
+
+Once you have picked a boundary, wire it up per stack ([setup recipes](/docs/stacks)) and provision
+tenants ([provisioning guide](/docs/guides/provisioning)).
+
+<Cards>
+  <Card title="Row-level" href="/docs/strategies/row-level" description="Shared tables keyed by a tenant discriminator, backed by forced Postgres RLS." />
+  <Card title="Schema-per-tenant" href="/docs/strategies/schema-per-tenant" description="A dedicated PostgreSQL schema per tenant via transaction-local search_path." />
+  <Card title="Database-per-tenant" href="/docs/strategies/database-per-tenant" description="A dedicated database and connection per tenant - the strongest isolation." />
+  <Card title="Provisioning" href="/docs/guides/provisioning" description="Create, migrate, and tear down tenants for your chosen strategy." />
+</Cards>

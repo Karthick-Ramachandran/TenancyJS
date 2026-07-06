@@ -1,0 +1,107 @@
+---
+title: Philosophy & how we test
+description: Fail-closed by design, and proven - not assumed - with an adversarial conformance suite that runs against real databases.
+---
+
+TenancyJS is built on two beliefs. First, isolation must **fail closed**: if the library cannot be
+sure a query is scoped to the right tenant, it must refuse to run it rather than guess. Second, we
+don't ask you to trust that - we prove it. Every enforcement claim is backed by an adversarial test
+that runs against a real database and fails if one tenant can ever see another's row. No vibes: we
+verify, so you don't have to.
+
+## The product boundary
+
+The whole design follows from one rule, quoted verbatim from the
+[adapter security contract](/docs/concepts/security):
+
+<Callout type="warn">
+  If an operation cannot be reliably intercepted, transformed, and proven through conformance tests,
+  the secured client must fail before execution.
+</Callout>
+
+This is the fail-closed rule. An operation the adapter can't scope with certainty - a raw query, a
+native handle, a nested write it can't rewrite - is not silently passed through. It is rejected
+**before it executes**, so an un-provable operation can never leak data. "Proven through conformance
+tests" is not aspirational: it is the gate that decides whether an operation is allowed to exist at
+all.
+
+## The adversarial conformance suite
+
+Every row-level adapter must pass one shared, frozen suite. The `tenancyjs-testing` package exposes a
+row-level adapter **contract** (`createRowLevelAdapterContract`) - a fixed set of adversarial cases
+that runs against a **real database**, not a mock. It seeds colliding cross-tenant records (tenant-a
+x2, tenant-b x1) and then attacks the adapter. Among the cases every adapter must survive:
+
+- **adapter isolates reads and counts** - a tenant-a read returns only tenant-a rows, and counts are
+  scoped too.
+- **adapter injects tenant identity on create** - a create tampered with another tenant's id throws.
+- **adapter isolates bulk updates** and **adapter isolates bulk deletes** - a bulk write must never
+  touch another tenant's rows.
+- **adapter fails without tenant context** - context-free access fails, not defaults to "all rows".
+- **adapter transactions retain scope and roll back failures** - scope survives inside a transaction,
+  and failures unwind cleanly.
+
+Because the contract is shared and frozen, "we support this adapter" means "this adapter passed the
+same adversarial suite as every other one" - not that someone eyeballed it.
+
+## We test the tests
+
+A leak detector is only useful if it actually catches leaks. So the suite tests itself. A self-test -
+**detects a cross-tenant read leak** - feeds the contract a deliberately leaky implementation and
+asserts that the contract **rejects it**. If the harness ever stopped catching a real leak, that
+self-test would go red. The thing that guards your data is itself under guard.
+
+## Defense in depth
+
+On the strongest path - PostgreSQL row-level - isolation does not rest on one mechanism:
+
+- **The adapter facade** intercepts and scopes every operation, and rejects what it can't prove.
+- **Forced RLS** (`ENABLE ROW LEVEL SECURITY` + `FORCE ROW LEVEL SECURITY`) makes the database itself
+  filter rows.
+- **A restricted runtime role** - non-owner, non-superuser, no `BYPASSRLS` - means even a policy
+  mistake can't be shrugged off at the connection level.
+- **Startup validation** refuses to run until the policy contract passes, so a misconfigured database
+  never quietly serves traffic.
+
+Real-database integration suites (PostgreSQL / MySQL / MongoDB, gated to run when a database is
+present) push the same adversarial posture per adapter - for example, Prisma
+"cannot update, delete, or upsert across tenant boundaries", "fails without context and rejects tenant
+discriminator tampering", and "rejects raw and nested relation operations on the extended client";
+Knex "does not leak transaction-local identity through the connection pool" and "refuses
+unrestricted() in row-level scope (facade-enforced)"; the adapter-shared suite "validates the full
+forced-RLS contract once for every adapter" and "reports every isolation defect without exposing query
+values"; and Lucid "fails closed on cross-tenant and central-in-tenant run() nesting".
+
+## What "supported" means
+
+<Callout type="info">
+  "Supported" means **evidence, not theory**. A combination is supported when a real-database
+  conformance test proves it isolates - never because an ORM theoretically could.
+</Callout>
+
+[ADR-0033](/docs/concepts/security) draws two enforcement tiers:
+
+- **Database-enforced** - the database or connection itself isolates (database-per-tenant, and
+  Postgres row-level under forced RLS). Here the database is a backstop behind the facade.
+- **Facade-enforced** - the adapter is the only guard. There is no database-level net, so the adapter's
+  restrictions must hold fail-closed on their own.
+
+Both tiers earn "supported" the same way: by passing the adversarial suite on a real database. The tier
+tells you *how many* layers stand behind the guarantee, not *whether* it was proven.
+
+## Keep reading
+
+<Cards>
+  <Card title="Capability matrix" href="/docs/concepts/capability-matrix">
+    Which databases, adapters, and strategies are tested-supported - and which aren't.
+  </Card>
+  <Card title="Limitations" href="/docs/concepts/limitations">
+    The operations the scoped facade deliberately rejects, and why.
+  </Card>
+  <Card title="Test your own isolation" href="/docs/guides/testing-isolation">
+    How to prove isolation in your app with the same adversarial approach.
+  </Card>
+  <Card title="Security model" href="/docs/concepts/security">
+    What TenancyJS guarantees, what it doesn't, and where the boundaries are.
+  </Card>
+</Cards>

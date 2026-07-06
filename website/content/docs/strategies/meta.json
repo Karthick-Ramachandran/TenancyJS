@@ -1,1 +1,1 @@
-{ "title": "Isolation Strategies", "pages": ["row-level", "schema-per-tenant", "database-per-tenant"] }
+{ "title": "Isolation Strategies", "pages": ["choosing", "row-level", "schema-per-tenant", "database-per-tenant"] }
