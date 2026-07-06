@@ -8,11 +8,11 @@ Every example runs a two-tenant adversarial isolation test: both tenants write t
 each reads back only its own row, and unscoped access **throws** (fail-closed). The RLS examples also
 assert the database policy itself denies access with no tenant context set.
 
-| Example           | Stack                          | Isolation   |
-| ----------------- | ------------------------------ | ----------- |
-| `express-prisma`  | Express 5 + Prisma 7           | facade      |
-| `nextjs-prisma`   | Next.js 16 App Router + Prisma 7 | facade    |
-| `nestjs-typeorm`  | NestJS 11 + TypeORM            | forced RLS  |
-| `adonis-lucid`    | AdonisJS 7 + Lucid             | forced RLS  |
+| Example          | Stack                            | Isolation  |
+| ---------------- | -------------------------------- | ---------- |
+| `express-prisma` | Express 5 + Prisma 7             | facade     |
+| `nextjs-prisma`  | Next.js 16 App Router + Prisma 7 | facade     |
+| `nestjs-typeorm` | NestJS 11 + TypeORM              | forced RLS |
+| `adonis-lucid`   | AdonisJS 7 + Lucid               | forced RLS |
 
 This page will carry the public link once the examples repository is pushed.

@@ -1,9 +1,14 @@
 import process from "node:process";
 
+import { applyAiContext, type AiContextResult } from "./ai-context.js";
 import { applyChangePlan } from "./apply.js";
-import { bold, cyan, dim, green } from "./style.js";
+import { bold, cyan, dim, green, yellow } from "./style.js";
 import {
   FRAMEWORK_CHOICES,
+  FRAMEWORK_LABEL,
+  INTEGRATION_PACKAGE,
+  ORM_LABEL,
+  ORM_PEER,
   capabilityBanner,
   checkNodeVersion,
   isSupportedStack,
@@ -146,6 +151,11 @@ async function runInit(
   const detection = await detectProject(root);
   const framework = await resolveFramework(detection, parsed, io);
   const orm = await resolveOrm(detection, framework, parsed, io);
+  // Confirm the opt-in AI context before writing anything, so all prompts happen
+  // together. Only meaningful with --apply, which is what actually writes files.
+  const wantAiContext = parsed.apply
+    ? await resolveAiContext(parsed, io)
+    : false;
   const plan = await createInitPlan({
     root: detection.root,
     framework,
@@ -153,40 +163,69 @@ async function runInit(
   });
 
   if (parsed.apply) await applyChangePlan(plan);
+  const aiContext = wantAiContext
+    ? await applyAiContext({ root: detection.root, framework, orm })
+    : undefined;
   io.writeStdout(
     parsed.json
-      ? formatJson(publicPlan(plan, parsed.apply))
+      ? formatJson(publicPlan(plan, parsed.apply, aiContext))
       : formatPlan(plan, parsed.apply),
   );
-  if (parsed.apply && !parsed.json)
+  if (parsed.apply && !parsed.json) {
     io.writeStdout(formatNextSteps(framework, orm));
+    if (aiContext !== undefined) io.writeStdout(formatAiContext(aiContext));
+  }
   return plan.actions.some(({ status }) => status === "conflict") ? 2 : 0;
 }
 
-const INTEGRATION_PACKAGE: Record<InitFramework, string> = {
-  express: "tenancyjs-integration-express",
-  adonis: "tenancyjs-integration-adonis",
-  next: "tenancyjs-integration-next",
-};
-const ORM_PEER: Record<InitOrm, string> = {
-  prisma: "@prisma/client",
-  lucid: "@adonisjs/lucid",
-  typeorm: "typeorm",
-  sequelize: "sequelize",
-  drizzle: "drizzle-orm",
-};
-const FRAMEWORK_LABEL: Record<InitFramework, string> = {
-  express: "Express",
-  adonis: "AdonisJS",
-  next: "Next.js",
-};
-const ORM_LABEL: Record<InitOrm, string> = {
-  prisma: "Prisma",
-  lucid: "Lucid",
-  typeorm: "TypeORM",
-  sequelize: "Sequelize",
-  drizzle: "Drizzle",
-};
+/** True when the user opted into the AI context file — explicit flag or a yes. */
+async function resolveAiContext(
+  parsed: ParsedArguments,
+  io: CliIo,
+): Promise<boolean> {
+  if (parsed.aiContext) return true;
+  const interactive =
+    io.isInteractive === true &&
+    typeof io.select === "function" &&
+    !parsed.json &&
+    !parsed.yes;
+  if (!interactive) return false;
+  const value = await io.select!(
+    "Also generate an AI context file (TENANCY.md) and register it in AGENTS.md / CLAUDE.md?",
+    [
+      { value: "yes", label: "Yes — write TENANCY.md and update agent memory" },
+      { value: "no", label: "No, skip it" },
+    ],
+  );
+  return value === "yes";
+}
+
+/** Human summary of what the AI-context step wrote. */
+function formatAiContext(result: AiContextResult): string {
+  const lines = [""];
+  if (result.guide === "created")
+    lines.push(
+      `  ${green("✔")}  Wrote ${bold("TENANCY.md")} ${dim("— AI context for this stack")}`,
+    );
+  else if (result.guide === "unchanged")
+    lines.push(
+      `  ${dim("•")}  ${bold("TENANCY.md")} ${dim("already current")}`,
+    );
+  else
+    lines.push(
+      `  ${yellow("•")}  ${bold("TENANCY.md")} ${dim("exists and differs — left unchanged")}`,
+    );
+  for (const update of result.memory)
+    lines.push(
+      `  ${green("✔")}  ${update.action === "added" ? "Added" : "Updated"} the TenancyJS block in ${bold(update.path)}`,
+    );
+  if (result.noMemoryFound)
+    lines.push(
+      `  ${dim("·")} ${dim("No AGENTS.md or CLAUDE.md found — paste TENANCY.md's summary into your agent memory to give AI tools this context.")}`,
+    );
+  lines.push("");
+  return `${lines.join("\n")}\n`;
+}
 
 /** Concrete, copy-pasteable "what to do next" after `init --apply`. */
 function formatNextSteps(framework: InitFramework, orm: InitOrm): string {
@@ -537,6 +576,7 @@ interface ParsedArguments {
   readonly all: boolean;
   readonly json: boolean;
   readonly yes: boolean;
+  readonly aiContext: boolean;
 }
 
 const VALUE_FLAGS = new Set([
@@ -564,6 +604,7 @@ function parseArguments(arguments_: readonly string[]): ParsedArguments {
       all: false,
       json: false,
       yes: false,
+      aiContext: false,
     };
   }
   if (
@@ -588,6 +629,7 @@ function parseArguments(arguments_: readonly string[]): ParsedArguments {
   let all = false;
   let json = false;
   let yes = false;
+  let aiContext = false;
   for (let index = 1; index < arguments_.length; index += 1) {
     const argument = arguments_[index]!;
     if (argument === "--apply") apply = true;
@@ -595,6 +637,7 @@ function parseArguments(arguments_: readonly string[]): ParsedArguments {
     else if (argument === "--central") central = true;
     else if (argument === "--all") all = true;
     else if (argument === "--yes" || argument === "-y") yes = true;
+    else if (argument === "--ai-context") aiContext = true;
     else if (argument === "--set") {
       const value = arguments_[index + 1];
       if (value === undefined || value.startsWith("--")) {
@@ -644,10 +687,10 @@ function parseArguments(arguments_: readonly string[]): ParsedArguments {
     throw new CliUsageError("--apply is valid only for init.");
   if (
     commandValue !== "init" &&
-    (framework !== undefined || orm !== undefined || yes)
+    (framework !== undefined || orm !== undefined || yes || aiContext)
   )
     throw new CliUsageError(
-      "--framework, --orm, and --yes are valid only for init.",
+      "--framework, --orm, --yes, and --ai-context are valid only for init.",
     );
   if (!OPERATIONAL_COMMANDS.has(commandValue) && config !== undefined)
     throw new CliUsageError(
@@ -684,10 +727,15 @@ function parseArguments(arguments_: readonly string[]): ParsedArguments {
     all,
     json,
     yes,
+    aiContext,
   };
 }
 
-function publicPlan(plan: ProjectChangePlan, applied: boolean) {
+function publicPlan(
+  plan: ProjectChangePlan,
+  applied: boolean,
+  aiContext?: AiContextResult,
+) {
   return {
     schemaVersion: 1,
     command: "init",
@@ -696,6 +744,17 @@ function publicPlan(plan: ProjectChangePlan, applied: boolean) {
     orm: plan.orm,
     strategy: plan.strategy,
     actions: plan.actions.map(({ path, status }) => ({ path, status })),
+    ...(aiContext === undefined
+      ? {}
+      : {
+          aiContext: {
+            guide: aiContext.guide,
+            memory: aiContext.memory.map(({ path, action }) => ({
+              path,
+              action,
+            })),
+          },
+        }),
   } as const;
 }
 
@@ -703,7 +762,7 @@ function helpText(): string {
   return `TenancyJS CLI
 
 Usage:
-  tenancy init [--framework <express|adonis|next>] [--orm <prisma|lucid|typeorm|sequelize|drizzle>] [--root <path>] [--apply] [--yes] [--json]
+  tenancy init [--framework <express|adonis|next>] [--orm <prisma|lucid|typeorm|sequelize|drizzle>] [--root <path>] [--apply] [--ai-context] [--yes] [--json]
   tenancy doctor [--root <path>] [--test-file <path>] [--json]
   tenancy test:leak --test-file <path> [--root <path>] [--json]
   tenancy tenant check [--config <path>] [--root <path>] [--json]
@@ -720,7 +779,10 @@ Usage:
 init previews changes (dry run) unless --apply is present. It detects your stack and, when it cannot,
 asks you to choose one interactively; pass --framework and --orm to skip prompts in CI. Express 5.2
 supports Prisma 7.8, TypeORM 1, Sequelize 6.37, and Drizzle 0.45 scaffolds; AdonisJS 7.3 uses Lucid
-22.4 and Next.js 16 uses Prisma 7.8. Init scaffolds row-level and Node.js >= 24 is required.
+22.4 and Next.js 16 uses Prisma 7.8. Init scaffolds row-level and Node.js >= 24 is required. With
+--apply, init offers to also write a stack-specific TENANCY.md and register a TenancyJS block in an
+existing AGENTS.md/CLAUDE.md; pass --ai-context to opt in non-interactively (it never creates an
+agent-memory file that is not already there).
 
 tenant and run commands load your tenancy.config.ts at runtime (Node 24 strips types natively) to reach
 the TenantStore, manager, and provisioner you passed to defineTenancyRuntime. Pass --config to point at

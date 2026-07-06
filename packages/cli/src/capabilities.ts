@@ -63,6 +63,38 @@ export const SUPPORTED_STACKS: readonly SupportedStack[] = Object.freeze([
   }),
 ]);
 
+/** npm package a framework's TenancyJS integration ships as. */
+export const INTEGRATION_PACKAGE: Record<InitFramework, string> = Object.freeze(
+  {
+    express: "tenancyjs-integration-express",
+    adonis: "tenancyjs-integration-adonis",
+    next: "tenancyjs-integration-next",
+  },
+);
+
+/** The ORM's own client package a stack needs installed alongside the adapter. */
+export const ORM_PEER: Record<InitOrm, string> = Object.freeze({
+  prisma: "@prisma/client",
+  lucid: "@adonisjs/lucid",
+  typeorm: "typeorm",
+  sequelize: "sequelize",
+  drizzle: "drizzle-orm",
+});
+
+/** Human display names, shared by the CLI banner, next-steps, and AI context. */
+export const FRAMEWORK_LABEL: Record<InitFramework, string> = Object.freeze({
+  express: "Express",
+  adonis: "AdonisJS",
+  next: "Next.js",
+});
+export const ORM_LABEL: Record<InitOrm, string> = Object.freeze({
+  prisma: "Prisma",
+  lucid: "Lucid",
+  typeorm: "TypeORM",
+  sequelize: "Sequelize",
+  drizzle: "Drizzle",
+});
+
 export interface FrameworkChoice {
   readonly value: InitFramework;
   readonly label: string;

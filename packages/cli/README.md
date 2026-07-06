@@ -10,6 +10,29 @@ the matching row-level wiring. It uses
 Node built-ins only, makes no network calls, reads no `.env` files, and never invokes a shell or remote
 package runner.
 
+## Install & run
+
+The binary is `tenancy`. You don't have to install it — run it straight from your package manager:
+
+```bash
+npx tenancy init            # npm
+pnpm dlx tenancy init       # pnpm
+yarn dlx tenancy init       # yarn
+bunx tenancy init           # bun
+```
+
+During the beta, pin the tag: `npx tenancy@beta init` (npm resolves `tenancyjs-cli`'s `tenancy` bin).
+
+Prefer it installed? Add it globally or as a dev dependency:
+
+```bash
+npm install -g tenancyjs-cli     # then: tenancy init
+# or, per-project:
+npm install -D tenancyjs-cli     # then: npx tenancy init, or a package.json script
+```
+
+Requires Node.js 24+. Every command accepts `--json` for machine-readable, secret-redacted output.
+
 ## Commands
 
 ```bash
@@ -19,6 +42,11 @@ tenancy init
 # Create only non-conflicting files after path and symlink validation.
 tenancy init --apply
 tenancy init --framework express --orm drizzle --apply
+
+# Also write a stack-specific TENANCY.md and register a TenancyJS block in an
+# existing AGENTS.md/CLAUDE.md. Interactive init offers this; --ai-context opts
+# in non-interactively. It never creates an agent-memory file that is not present.
+tenancy init --apply --ai-context
 
 # Inventory wiring, versions, base clients, raw/nested/relation usage,
 # model classification, leak-test evidence, and migration effort.
@@ -47,6 +75,12 @@ AdonisJS + Lucid:
 
 - `config/tenancy.ts`
 - `app/middleware/tenant_middleware.ts`
+
+With `--ai-context` (or by accepting the interactive prompt), init also writes `TENANCY.md` at the
+project root — a stack-specific guide of the commands, wiring notes, and isolation model — and adds an
+idempotent `<!-- tenancyjs:start -->…<!-- tenancyjs:end -->` block to any `AGENTS.md`/`CLAUDE.md`
+already present so AI assistants pick up the fail-closed rules. Neither file is created if absent; if no
+agent-memory file exists, init prints the block for you to paste in.
 
 The generated classification is intentionally empty. Classify every model as tenant or central and add
 a real leak test before Doctor can pass. For AdonisJS, register the provider in `adonisrc.ts`, apply

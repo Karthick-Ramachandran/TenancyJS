@@ -571,6 +571,90 @@ describe("CLI leak test and command runner", () => {
     );
     expect(formatPlan(plan, false)).not.toContain(plan.actions[0]!.content);
   });
+
+  it("writes an opt-in AI context file and registers a block in agent memory", async () => {
+    const root = await fixture();
+    await writeFile(join(root, "AGENTS.md"), "# App\n\nExisting notes.\n");
+    const output = captureIo(root);
+
+    await expect(
+      runCli(["init", "--apply", "--ai-context"], output.io),
+    ).resolves.toBe(0);
+
+    const guide = await readFile(join(root, "TENANCY.md"), "utf8");
+    expect(guide).toContain("Working with TenancyJS — Express + Prisma");
+    expect(guide).toContain("npx tenancy tenant provision");
+    const agents = await readFile(join(root, "AGENTS.md"), "utf8");
+    expect(agents).toContain("Existing notes.");
+    expect(agents).toContain("## TenancyJS");
+    expect(agents.match(/tenancyjs:start/gu)).toHaveLength(1);
+    expect(output.stdout.join("")).toContain("Wrote");
+
+    // Re-running is idempotent: no duplicate block, guide reported unchanged.
+    output.stdout.length = 0;
+    await expect(
+      runCli(["init", "--apply", "--ai-context"], output.io),
+    ).resolves.toBe(0);
+    const agentsAgain = await readFile(join(root, "AGENTS.md"), "utf8");
+    expect(agentsAgain.match(/tenancyjs:start/gu)).toHaveLength(1);
+    expect(output.stdout.join("")).toContain("already current");
+  });
+
+  it("does not write AI context without opt-in, and hints when no agent memory exists", async () => {
+    const withoutFlag = await fixture();
+    const first = captureIo(withoutFlag);
+    await expect(runCli(["init", "--apply"], first.io)).resolves.toBe(0);
+    await expect(
+      readFile(join(withoutFlag, "TENANCY.md"), "utf8"),
+    ).rejects.toThrow();
+
+    const noMemory = await fixture();
+    const second = captureIo(noMemory);
+    await expect(
+      runCli(["init", "--apply", "--ai-context"], second.io),
+    ).resolves.toBe(0);
+    await expect(
+      readFile(join(noMemory, "TENANCY.md"), "utf8"),
+    ).resolves.toContain("TenancyJS");
+    await expect(
+      readFile(join(noMemory, "AGENTS.md"), "utf8"),
+    ).rejects.toThrow();
+    expect(second.stdout.join("")).toContain("No AGENTS.md or CLAUDE.md found");
+  });
+
+  it("prompts for AI context interactively and honors the answer", async () => {
+    const yesRoot = await fixture();
+    const yes = captureIo(yesRoot, { isInteractive: true, answers: ["yes"] });
+    await expect(runCli(["init", "--apply"], yes.io)).resolves.toBe(0);
+    expect(yes.selectQuestions).toHaveLength(1);
+    expect(yes.selectQuestions[0]!.question).toContain("TENANCY.md");
+    await expect(
+      readFile(join(yesRoot, "TENANCY.md"), "utf8"),
+    ).resolves.toContain("TenancyJS");
+
+    const noRoot = await fixture();
+    const no = captureIo(noRoot, { isInteractive: true, answers: ["no"] });
+    await expect(runCli(["init", "--apply"], no.io)).resolves.toBe(0);
+    await expect(
+      readFile(join(noRoot, "TENANCY.md"), "utf8"),
+    ).rejects.toThrow();
+  });
+
+  it("exposes AI context in --json output and rejects the flag off init", async () => {
+    const root = await fixture();
+    await writeFile(join(root, "CLAUDE.md"), "# Claude\n");
+    const output = captureIo(root);
+    await expect(
+      runCli(["init", "--apply", "--ai-context", "--json"], output.io),
+    ).resolves.toBe(0);
+    expect(JSON.parse(output.stdout.join(""))).toMatchObject({
+      aiContext: { guide: "created", memory: [{ path: "CLAUDE.md" }] },
+    });
+
+    await expect(runCli(["doctor", "--ai-context"], output.io)).resolves.toBe(
+      2,
+    );
+  });
 });
 
 async function fixture(): Promise<string> {
@@ -809,9 +893,13 @@ describe("CLI v0.1 interactive init", () => {
     await writeJson(join(root, "package.json"), {
       dependencies: { lodash: "4.17.21", "@prisma/client": "7.8.0" },
     });
-    const output = captureIo(root, { isInteractive: true, answers: ["next"] });
+    const output = captureIo(root, {
+      isInteractive: true,
+      answers: ["next", "no"],
+    });
     await expect(runCli(["init", "--apply"], output.io)).resolves.toBe(0);
-    expect(output.selectQuestions).toHaveLength(1);
+    // Framework prompt first, then the opt-in AI-context prompt (declined here).
+    expect(output.selectQuestions).toHaveLength(2);
     expect(
       output.selectQuestions[0]!.choices.map((choice) => choice.value),
     ).toEqual(["express", "adonis", "next"]);
