@@ -18,6 +18,7 @@ export {
   HeaderTenantResolver,
   HostTenantResolver,
   SubdomainTenantResolver,
+  trustedTransport,
 } from "./resolvers.js";
 export type {
   HeaderTenantResolverOptions,
@@ -29,10 +30,12 @@ export type {
   InvalidIdentifierReason,
   ResolverHeaderValue,
   ResolverInput,
+  TenantAuthorizationInput,
   TenantIdentifier,
   TenantLookupMatch,
   TenantLookupStatus,
   TenantResolutionChainOptions,
+  TenantResolutionContext,
   TenantResolutionOutcome,
   TenantResolver,
   TenantResolverResult,

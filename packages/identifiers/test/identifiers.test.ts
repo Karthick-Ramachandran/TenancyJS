@@ -9,6 +9,8 @@ import {
   SubdomainTenantResolver,
   TenantResolutionChain,
   TenantResolutionError,
+  describeTenantResolutionFailure,
+  trustedTransport,
   normalizeHost,
   normalizeHostValues,
   normalizeIdentifierValues,
@@ -223,6 +225,7 @@ describe("TenantResolutionChain", () => {
     const host = new HostTenantResolver();
     const hostResolve = vi.spyOn(host, "resolve");
     const chain = new TenantResolutionChain({
+      authorize: () => true,
       resolvers: [new HeaderTenantResolver(), host],
       store,
     });
@@ -239,6 +242,7 @@ describe("TenantResolutionChain", () => {
   it("returns no-identifier when every resolver has no match", async () => {
     const store = { find: vi.fn() };
     const chain = new TenantResolutionChain({
+      authorize: () => true,
       resolvers: [new HeaderTenantResolver(), new HostTenantResolver()],
       store,
     });
@@ -258,6 +262,7 @@ describe("TenantResolutionChain", () => {
       },
     };
     const chain = new TenantResolutionChain({
+      authorize: () => true,
       resolvers: [resolver],
       store: { find: vi.fn() },
     });
@@ -269,6 +274,7 @@ describe("TenantResolutionChain", () => {
 
     const storeFailure = new Error("store failed");
     const storeChain = new TenantResolutionChain({
+      authorize: () => true,
       resolvers: [new HeaderTenantResolver()],
       store: {
         find: () => {
@@ -290,6 +296,7 @@ describe("TenantResolutionChain", () => {
       { tenant: tenantA, status: "active" as const },
     ]);
     const chain = new TenantResolutionChain({
+      authorize: () => true,
       resolvers: [
         {
           id: "custom",
@@ -315,6 +322,7 @@ describe("TenantResolutionChain", () => {
     );
 
     const invalid = new TenantResolutionChain({
+      authorize: () => true,
       resolvers: [
         {
           id: "invalid-custom",
@@ -329,6 +337,7 @@ describe("TenantResolutionChain", () => {
     });
 
     const invalidCandidate = new TenantResolutionChain({
+      authorize: () => true,
       resolvers: [
         {
           id: "candidate-custom",
@@ -349,11 +358,16 @@ describe("TenantResolutionChain", () => {
   it("rejects invalid chain configuration and store output", async () => {
     expect(
       () =>
-        new TenantResolutionChain({ resolvers: [], store: { find: vi.fn() } }),
+        new TenantResolutionChain({
+          authorize: () => true,
+          resolvers: [],
+          store: { find: vi.fn() },
+        }),
     ).toThrow(IdentifierConfigurationError);
     expect(
       () =>
         new TenantResolutionChain({
+          authorize: () => true,
           resolvers: [null as never],
           store: { find: vi.fn() },
         }),
@@ -361,12 +375,14 @@ describe("TenantResolutionChain", () => {
     expect(
       () =>
         new TenantResolutionChain({
+          authorize: () => true,
           resolvers: [new HeaderTenantResolver(), new HeaderTenantResolver()],
           store: { find: vi.fn() },
         }),
     ).toThrow(IdentifierConfigurationError);
 
     const chain = new TenantResolutionChain({
+      authorize: () => true,
       resolvers: [new HeaderTenantResolver()],
       store: { find: async () => [{ tenant: { id: "" }, status: "active" }] },
     });
@@ -375,6 +391,7 @@ describe("TenantResolutionChain", () => {
     ).rejects.toBeInstanceOf(TenantResolutionError);
 
     const nonArrayStore = new TenantResolutionChain({
+      authorize: () => true,
       resolvers: [new HeaderTenantResolver()],
       store: { find: async () => null as never },
     });
@@ -388,6 +405,7 @@ function chainWithMatches(
   matches: readonly TenantLookupMatch<TestTenant>[],
 ): TenantResolutionChain<TestTenant> {
   return new TenantResolutionChain({
+    authorize: () => true,
     resolvers: [new HeaderTenantResolver()],
     store: { find: async () => matches },
   });
@@ -402,3 +420,116 @@ function seededGenerator(seed: number): () => number {
     return (state >>> 0) / 0x1_0000_0000;
   };
 }
+
+describe("TenantResolutionChain membership authorization (ADR-0035)", () => {
+  const activeStore: TenantStore<TestTenant> = {
+    find: async () => [{ tenant: tenantA, status: "active" }],
+  };
+  const headers = { "x-tenant-id": "tenant-a" };
+
+  it("refuses to construct without authorize or trustResolution (fail loud, not at runtime)", () => {
+    expect(
+      () =>
+        new TenantResolutionChain<TestTenant>({
+          resolvers: [new HeaderTenantResolver()],
+          store: activeStore,
+        }),
+    ).toThrow(IdentifierConfigurationError);
+  });
+
+  it("refuses both authorize and trustResolution", () => {
+    expect(
+      () =>
+        new TenantResolutionChain<TestTenant>({
+          resolvers: [new HeaderTenantResolver()],
+          store: activeStore,
+          authorize: () => true,
+          trustResolution: true,
+        }),
+    ).toThrow(IdentifierConfigurationError);
+  });
+
+  it("fails closed with 'forbidden' when the principal is not a member", async () => {
+    const chain = new TenantResolutionChain<TestTenant>({
+      resolvers: [new HeaderTenantResolver()],
+      store: activeStore,
+      // The spoof: a real, active tenant — but this principal does not belong to it.
+      authorize: ({ tenant, principal }) =>
+        (principal as { teams: string[] }).teams.includes(tenant.id),
+    });
+    const outcome = await chain.resolve(
+      { headers },
+      { principal: { teams: ["tenant-b"] } },
+    );
+    expect(outcome.status).toBe("forbidden");
+    if (outcome.status === "forbidden")
+      expect(outcome.identifier.value).toBe("tenant-a");
+  });
+
+  it("resolves when the principal is a member, and passes tenant + principal to authorize", async () => {
+    const seen: unknown[] = [];
+    const chain = new TenantResolutionChain<TestTenant>({
+      resolvers: [new HeaderTenantResolver()],
+      store: activeStore,
+      authorize: (input) => {
+        seen.push(input);
+        return (input.principal as { teams: string[] }).teams.includes(
+          input.tenant.id,
+        );
+      },
+    });
+    const outcome = await chain.resolve(
+      { headers },
+      { principal: { teams: ["tenant-a"] } },
+    );
+    expect(outcome.status).toBe("resolved");
+    expect(seen).toEqual([
+      {
+        tenant: tenantA,
+        identifier: expect.objectContaining({ value: "tenant-a" }),
+        principal: { teams: ["tenant-a"] },
+      },
+    ]);
+  });
+
+  it("surfaces an authorize throw as a resolution error, not a silent allow", async () => {
+    const chain = new TenantResolutionChain<TestTenant>({
+      resolvers: [new HeaderTenantResolver()],
+      store: activeStore,
+      authorize: () => {
+        throw new Error("membership lookup failed");
+      },
+    });
+    await expect(chain.resolve({ headers })).rejects.toBeInstanceOf(
+      TenantResolutionError,
+    );
+  });
+
+  it("refuses trustResolution with a spoofable resolver (the insecure shape is unconstructable)", () => {
+    expect(
+      () =>
+        new TenantResolutionChain<TestTenant>({
+          resolvers: [new HeaderTenantResolver()],
+          store: activeStore,
+          trustResolution: true,
+        }),
+    ).toThrow(IdentifierConfigurationError);
+  });
+
+  it("trustResolution works only with a non-spoofable source (trustedTransport)", async () => {
+    const chain = new TenantResolutionChain<TestTenant>({
+      resolvers: [trustedTransport(new HeaderTenantResolver())],
+      store: activeStore,
+      trustResolution: true,
+    });
+    const outcome = await chain.resolve({ headers });
+    expect(outcome.status).toBe("resolved");
+  });
+
+  it("maps 'forbidden' to the same 404 as an unknown tenant (no enumeration leak)", () => {
+    const forbidden = describeTenantResolutionFailure("forbidden");
+    const notFound = describeTenantResolutionFailure("not-found");
+    expect(forbidden.status).toBe(404);
+    expect(forbidden.message).toBe(notFound.message);
+  });
+});

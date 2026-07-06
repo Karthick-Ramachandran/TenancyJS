@@ -27,7 +27,12 @@ export interface NestTenancyOptions<
 }
 
 export type NestTenancyResolutionFailure =
-  "no-identifier" | "invalid" | "not-found" | "suspended" | "ambiguous";
+  | "no-identifier"
+  | "invalid"
+  | "not-found"
+  | "suspended"
+  | "forbidden"
+  | "ambiguous";
 
 export interface NestHttpRequest {
   readonly headers?: Readonly<Record<string, unknown>>;

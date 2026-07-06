@@ -5,17 +5,26 @@ import type {
 } from "tenancyjs-core";
 import type {
   ResolverInput,
+  TenantResolutionContext,
   TenantResolutionOutcome,
 } from "tenancyjs-identifiers";
 
 export interface NextTenantResolver<
   TTenant extends TenantRecord = TenantRecord,
 > {
-  resolve(input: ResolverInput): MaybePromise<TenantResolutionOutcome<TTenant>>;
+  resolve(
+    input: ResolverInput,
+    context?: TenantResolutionContext,
+  ): MaybePromise<TenantResolutionOutcome<TTenant>>;
 }
 
 export type NextTenancyResolutionFailure =
-  "no-identifier" | "invalid" | "not-found" | "suspended" | "ambiguous";
+  | "no-identifier"
+  | "invalid"
+  | "not-found"
+  | "suspended"
+  | "forbidden"
+  | "ambiguous";
 
 export interface NextTenancyOptions<
   TTenant extends TenantRecord = TenantRecord,

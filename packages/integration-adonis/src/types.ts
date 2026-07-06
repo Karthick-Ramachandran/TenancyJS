@@ -41,7 +41,12 @@ export interface AdonisTenancyRunner {
 export type AdonisTenancyRunnerFactory = () => AdonisTenancyRunner;
 
 export type AdonisTenancyResolutionFailure =
-  "no-identifier" | "invalid" | "not-found" | "suspended" | "ambiguous";
+  | "no-identifier"
+  | "invalid"
+  | "not-found"
+  | "suspended"
+  | "forbidden"
+  | "ambiguous";
 
 export type AdonisTenancyErrorHandler = (
   error: AdonisTenancyResolutionError,

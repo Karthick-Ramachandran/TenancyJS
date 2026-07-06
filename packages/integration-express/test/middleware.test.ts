@@ -418,6 +418,7 @@ function resolutionChain(
   suspendedId?: string,
 ): TenantResolutionChain<TestTenant> {
   return new TenantResolutionChain({
+    authorize: () => true,
     resolvers: [new HeaderTenantResolver()],
     store: {
       find(identifier_) {
@@ -467,6 +468,7 @@ function createContractHarness() {
   const middleware = createExpressTenancyMiddleware({
     manager,
     resolver: new TenantResolutionChain({
+      authorize: () => true,
       resolvers: [new HeaderTenantResolver()],
       store: {
         find(identifier_) {

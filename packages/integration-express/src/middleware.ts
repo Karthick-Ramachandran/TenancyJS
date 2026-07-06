@@ -20,6 +20,7 @@ interface ValidatedOptions<TTenant extends TenantRecord> {
   readonly manager: ExpressTenancyMiddlewareOptions<TTenant>["manager"];
   readonly resolver: ExpressTenancyMiddlewareOptions<TTenant>["resolver"];
   readonly onError: ExpressTenancyErrorHandler;
+  readonly principal: ExpressTenancyMiddlewareOptions<TTenant>["principal"];
 }
 
 export function createExpressTenancyMiddleware<
@@ -30,7 +31,9 @@ export function createExpressTenancyMiddleware<
   return async function tenancyMiddleware(request, response, next) {
     let outcome: TenantResolutionOutcome<TTenant>;
     try {
-      outcome = await validated.resolver.resolve(createResolverInput(request));
+      outcome = await validated.resolver.resolve(createResolverInput(request), {
+        principal: validated.principal?.(request),
+      });
     } catch (error) {
       next(error);
       return;
@@ -83,11 +86,20 @@ function validateOptions<TTenant extends TenantRecord>(
       "Express tenancy middleware onError must be a function.",
     );
   }
+  if (
+    options.principal !== undefined &&
+    typeof options.principal !== "function"
+  ) {
+    throw new ExpressTenancyConfigurationError(
+      "Express tenancy middleware principal must be a function.",
+    );
+  }
 
   return Object.freeze({
     manager: options.manager,
     resolver: options.resolver,
     onError: options.onError ?? defaultErrorHandler,
+    principal: options.principal,
   });
 }
 

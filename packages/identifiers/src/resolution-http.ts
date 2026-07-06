@@ -4,7 +4,12 @@
  * cannot drift between Express, Next.js, AdonisJS, and future integrations.
  */
 export type TenantResolutionFailureStatus =
-  "no-identifier" | "invalid" | "not-found" | "suspended" | "ambiguous";
+  | "no-identifier"
+  | "invalid"
+  | "not-found"
+  | "suspended"
+  | "forbidden"
+  | "ambiguous";
 
 export interface TenantResolutionFailureHttp {
   readonly message: string;
@@ -13,8 +18,10 @@ export interface TenantResolutionFailureHttp {
 
 /**
  * Map a resolution failure to a safe HTTP status and message. Deliberately
- * coarse — `not-found` and `suspended` both surface as 404 so a caller cannot
- * distinguish an unknown tenant from a suspended one.
+ * coarse — `not-found`, `suspended`, and `forbidden` (the principal is not a
+ * member) all surface as an identical 404 so a caller cannot distinguish an
+ * unknown tenant from a suspended one, nor probe which tenants exist by
+ * membership.
  */
 export function describeTenantResolutionFailure(
   status: TenantResolutionFailureStatus,
@@ -26,6 +33,7 @@ export function describeTenantResolutionFailure(
       return { message: "Tenant identity is invalid.", status: 400 };
     case "not-found":
     case "suspended":
+    case "forbidden":
       return { message: "Tenant was not found.", status: 404 };
     case "ambiguous":
       return { message: "Tenant resolution is unavailable.", status: 500 };

@@ -5,6 +5,7 @@ import type {
 } from "tenancyjs-core";
 import type {
   ResolverInput,
+  TenantResolutionContext,
   TenantResolutionOutcome,
 } from "tenancyjs-identifiers";
 import type { NextFunction, Request, Response } from "express";
@@ -14,11 +15,19 @@ import type { ExpressTenancyResolutionError } from "./errors.js";
 export interface ExpressTenantResolver<
   TTenant extends TenantRecord = TenantRecord,
 > {
-  resolve(input: ResolverInput): MaybePromise<TenantResolutionOutcome<TTenant>>;
+  resolve(
+    input: ResolverInput,
+    context?: TenantResolutionContext,
+  ): MaybePromise<TenantResolutionOutcome<TTenant>>;
 }
 
 export type ExpressTenancyResolutionFailure =
-  "no-identifier" | "invalid" | "not-found" | "suspended" | "ambiguous";
+  | "no-identifier"
+  | "invalid"
+  | "not-found"
+  | "suspended"
+  | "forbidden"
+  | "ambiguous";
 
 export type ExpressTenancyErrorHandler = (
   error: ExpressTenancyResolutionError,
@@ -33,4 +42,10 @@ export interface ExpressTenancyMiddlewareOptions<
   readonly manager: TenancyManager<TTenant>;
   readonly resolver: ExpressTenantResolver<TTenant>;
   readonly onError?: ExpressTenancyErrorHandler;
+  /**
+   * Extract the authenticated principal from the request (e.g. `(req) => req.user`)
+   * so the resolver's `authorize` hook can verify tenant membership. Run this
+   * middleware after your authentication so the principal is populated.
+   */
+  readonly principal?: (request: Request) => unknown;
 }

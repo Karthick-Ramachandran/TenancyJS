@@ -20,6 +20,7 @@ export interface HeaderTenantResolverOptions {
 
 export class HeaderTenantResolver implements TenantResolver {
   readonly id: string;
+  readonly spoofable = true;
   readonly #headerName: string;
 
   constructor(options: HeaderTenantResolverOptions = {}) {
@@ -55,6 +56,7 @@ export interface HostTenantResolverOptions {
 
 export class HostTenantResolver implements TenantResolver {
   readonly id: string;
+  readonly spoofable = true;
   readonly #centralDomains: ReadonlySet<string>;
 
   constructor(options: HostTenantResolverOptions = {}) {
@@ -81,6 +83,7 @@ export interface SubdomainTenantResolverOptions {
 
 export class SubdomainTenantResolver implements TenantResolver {
   readonly id: string;
+  readonly spoofable = true;
   readonly #centralDomain: string;
 
   constructor(options: SubdomainTenantResolverOptions) {
@@ -114,6 +117,22 @@ export class SubdomainTenantResolver implements TenantResolver {
     }
     return candidate(this.id, "subdomain", subdomain);
   }
+}
+
+/**
+ * Assert that a resolver's transport is trusted in your deployment even though it
+ * reads request data — e.g. an `x-tenant-id` header set by a gateway that strips
+ * the inbound client copy, or service-to-service traffic. Marks the resolver
+ * non-spoofable so it may be used with `trustResolution`. Only reach for this when
+ * you genuinely control the transport; otherwise use `authorize` to check
+ * membership. See ADR-0035.
+ */
+export function trustedTransport(resolver: TenantResolver): TenantResolver {
+  return Object.freeze({
+    id: resolver.id,
+    spoofable: false,
+    resolve: (input: ResolverInput) => resolver.resolve(input),
+  });
 }
 
 function resolveHost(input: ResolverInput) {

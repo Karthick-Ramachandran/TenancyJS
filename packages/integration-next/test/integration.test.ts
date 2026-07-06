@@ -33,6 +33,7 @@ const tenants = new Map<string, Tenant>([
 function createFixture() {
   const manager = new TenancyManager<Tenant>();
   const resolver = new TenantResolutionChain<Tenant>({
+    authorize: () => true,
     resolvers: [new HeaderTenantResolver()],
     store: {
       find: async (identifier) => {
