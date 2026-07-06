@@ -21,8 +21,6 @@ yarn dlx tenancy init       # yarn
 bunx tenancy init           # bun
 ```
 
-During the beta, pin the tag: `npx tenancy@beta init` (npm resolves `tenancyjs-cli`'s `tenancy` bin).
-
 Prefer it installed? Add it globally or as a dev dependency:
 
 ```bash

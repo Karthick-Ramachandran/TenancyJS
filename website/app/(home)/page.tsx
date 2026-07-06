@@ -186,9 +186,7 @@ export default function HomePage() {
             className="inline-flex items-center gap-2 rounded-full border border-fd-border bg-fd-card/60 px-4 py-1.5 text-sm text-fd-muted-foreground backdrop-blur transition hover:border-fd-primary/50"
           >
             <span className="size-1.5 rounded-full bg-gradient-to-r from-[#6d64ff] to-[#ec4899]" />
-            <span className="font-medium text-fd-foreground">
-              0.1.0-beta.2
-            </span>{" "}
+            <span className="font-medium text-fd-foreground">0.1.0</span>{" "}
             is out - read the docs
             <span aria-hidden>→</span>
           </Link>
@@ -220,7 +218,6 @@ export default function HomePage() {
           <div className="mt-6 inline-flex items-center gap-3 rounded-xl border border-fd-border bg-fd-card/60 px-4 py-2.5 font-mono text-sm backdrop-blur">
             <span className="select-none text-fd-muted-foreground">$</span>
             npm install tenancyjs-core
-            <span className="text-xs text-fd-muted-foreground">@beta</span>
           </div>
         </div>
 

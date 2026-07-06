@@ -21,7 +21,7 @@ npm install tenancyjs-core
 npm install tenancyjs-adapter-prisma tenancyjs-integration-express
 ```
 
-During the beta the packages are on the `beta` dist-tag: `npm install tenancyjs-core@beta`.
+TenancyJS is `0.x`: safe for real use, with the API still settling before `1.0`.
 
 ## The CLI — `tenancyjs-cli`
 

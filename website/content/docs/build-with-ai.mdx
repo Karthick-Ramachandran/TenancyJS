@@ -55,7 +55,7 @@ Read first (source of truth - do not guess the API):
 - https://tenancyjs.pages.dev/docs/concepts/limitations         (what is REJECTED)
 - https://tenancyjs.pages.dev/docs/guides/testing-isolation
 
-Install: npm install tenancyjs-core@beta tenancyjs-adapter-prisma@beta tenancyjs-integration-express@beta @prisma/client
+Install: npm install tenancyjs-core tenancyjs-adapter-prisma tenancyjs-integration-express @prisma/client
 
 Build: (1) one exported TenancyManager<Tenant>; (2) the Prisma adapter with strategy "rowLevel",
 registering my tenant models; (3) Express middleware that resolves the tenant from req.subdomains and
@@ -86,7 +86,7 @@ Read first (source of truth - do not guess the API):
 - https://tenancyjs.pages.dev/docs/guides/testing-isolation
 
 Tip: `npx tenancy init` scaffolds AdonisJS + Lucid end to end - use it, then adapt.
-Install: npm install tenancyjs-core@beta tenancyjs-adapter-lucid@beta tenancyjs-integration-adonis@beta
+Install: npm install tenancyjs-core tenancyjs-adapter-lucid tenancyjs-integration-adonis
 
 Build: (1) config/tenancy.ts with a TenancyManager<Tenant> and the Lucid adapter, strategy
 "schemaPerTenant", schema: (tenant) => `tenant_${tenant.id}`; (2) register the integration provider +

@@ -19,6 +19,13 @@ stack forces RLS - the runtime role can't read another tenant's rows no matter w
   [database-per-tenant on MySQL](/docs/stacks/mysql-database-per-tenant) instead.
 </Callout>
 
+<Callout type="info">
+  This page uses **row-level** (the simplest strategy). The same stack also supports
+  [schema-per-tenant](/docs/stacks/schema-per-tenant) and
+  [database-per-tenant](/docs/stacks/database-per-tenant) — switch the adapter’s `strategy` and add the
+  [provisioning recipe](/docs/guides/provisioning) for your ORM.
+</Callout>
+
 ## Setup-agent prompt
 
 Paste this into an assistant that can edit your repo and run commands (Claude Code, Cursor, …). It
@@ -50,7 +57,7 @@ this repo. If the user prefers explicit wiring (or `init` doesn't fit), do Steps
 ## Step 2 - Install
 Run:
 ```sh
-npm install tenancyjs-core@beta tenancyjs-adapter-lucid@beta tenancyjs-integration-adonis@beta tenancyjs-identifiers@beta
+npm install tenancyjs-core tenancyjs-adapter-lucid tenancyjs-integration-adonis tenancyjs-identifiers
 ```
 Verify all four appear in package.json dependencies. `tenancyjs-identifiers` MUST be a direct
 dependency - AdonisJS only resolves it transitively otherwise, and config import fails.
@@ -120,7 +127,7 @@ Prefer to wire it yourself? The same steps, with the code.
 ### Install
 
 ```bash
-npm install tenancyjs-core@beta tenancyjs-adapter-lucid@beta tenancyjs-integration-adonis@beta tenancyjs-identifiers@beta
+npm install tenancyjs-core tenancyjs-adapter-lucid tenancyjs-integration-adonis tenancyjs-identifiers
 ```
 
 `@adonisjs/lucid`, `luxon`, and `pg` are AdonisJS peers - make sure `@adonisjs/lucid` and `pg` are

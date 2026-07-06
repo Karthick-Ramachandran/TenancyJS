@@ -13,6 +13,12 @@ backstop**, so the adapter's query facade is the entire boundary. The one rule t
 touch the native Mongoose connection, model, or collection inside a scope - only ever query through the
 protected facade.
 
+<Callout type="info">
+  This page uses **row-level**. Mongoose also supports
+  [database-per-tenant](/docs/stacks/database-per-tenant) (MongoDB has no schema-per-tenant) — switch
+  the adapter’s `strategy` and add the [provisioning recipe](/docs/guides/provisioning/mongoose).
+</Callout>
+
 ## Setup-agent prompt
 
 Paste this into an assistant that can edit your repo and run commands (Claude Code, Cursor, …). It
@@ -42,7 +48,7 @@ Source of truth (fetch if a detail is missing, do not guess):
 ## Step 1 - Install
 Run:
 ```sh
-npm install tenancyjs-core@beta tenancyjs-adapter-mongoose@beta tenancyjs-integration-next@beta tenancyjs-identifiers@beta mongoose
+npm install tenancyjs-core tenancyjs-adapter-mongoose tenancyjs-integration-next tenancyjs-identifiers mongoose
 ```
 Verify all five appear in package.json dependencies.
 
@@ -126,7 +132,7 @@ Prefer to wire it yourself? The same steps, with the code.
 ### Install
 
 ```bash
-npm install tenancyjs-core@beta tenancyjs-adapter-mongoose@beta tenancyjs-integration-next@beta tenancyjs-identifiers@beta mongoose
+npm install tenancyjs-core tenancyjs-adapter-mongoose tenancyjs-integration-next tenancyjs-identifiers mongoose
 ```
 </Step>
 

@@ -13,11 +13,15 @@ so there is no database backstop - the adapter's query facade is the entire boun
 matters most: never touch the native connection, model, or collection inside a scope - only the
 protected facade the adapter hands you.
 
-<Callout type="warn">
-  **TenancyJS is ESM-only; `nest new` scaffolds CommonJS.** The wiring is correct either way, but a
-  CommonJS NestJS project will not start or run Jest against these packages until it is in ESM mode:
-  `"type": "module"` in package.json, `module`/`moduleResolution` set to `"nodenext"` in tsconfig,
-  `.js` extensions on relative imports, and tests on [Vitest](https://vitest.dev) or Jest ESM mode.
+<Callout type="info">
+  TenancyJS ships **dual ESM + CommonJS** (0.1.0+), so a default CommonJS NestJS project works with no
+  conversion — `require` or import it as usual.
+</Callout>
+
+<Callout type="info">
+  This page uses **row-level**. Mongoose also supports
+  [database-per-tenant](/docs/stacks/database-per-tenant) (MongoDB has no schema-per-tenant) — switch
+  the adapter’s `strategy` and add the [provisioning recipe](/docs/guides/provisioning/mongoose).
 </Callout>
 
 ## Setup-agent prompt
@@ -48,7 +52,7 @@ Source of truth (fetch if a detail is missing, do not guess):
 ## Step 1 - Install
 Run:
 ```sh
-npm install tenancyjs-core@beta tenancyjs-adapter-mongoose@beta tenancyjs-integration-nest@beta tenancyjs-identifiers@beta mongoose
+npm install tenancyjs-core tenancyjs-adapter-mongoose tenancyjs-integration-nest tenancyjs-identifiers mongoose
 ```
 Verify all five appear in package.json dependencies.
 
@@ -123,7 +127,7 @@ Prefer to wire it yourself? The same steps, with the code.
 ### Install
 
 ```bash
-npm install tenancyjs-core@beta tenancyjs-adapter-mongoose@beta tenancyjs-integration-nest@beta tenancyjs-identifiers@beta mongoose
+npm install tenancyjs-core tenancyjs-adapter-mongoose tenancyjs-integration-nest tenancyjs-identifiers mongoose
 ```
 </Step>
 

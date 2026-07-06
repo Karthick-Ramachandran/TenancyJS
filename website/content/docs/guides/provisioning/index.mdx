@@ -14,6 +14,66 @@ for one ORM, wired so `tenancy tenant provision | migrate | deprovision` just wo
 be followed by a human or an AI assistant - paste your `TENANCY.md` context (from
 [`tenancy init --ai-context`](/docs/cli)) and hand your agent the recipe for your stack.
 
+## Setup-agent prompt
+
+Hand this to your AI assistant to wire tenant provisioning end to end — creating and migrating each
+tenant's schema/database through the provisioner hooks — and have it write out everything you still own
+as an action-items checklist.
+
+````text
+# TenancyJS Provisioning Setup Agent
+
+You are a setup agent. Wire tenant provisioning into this project so
+`tenancy tenant provision | migrate | deprovision` create, migrate, and drop each tenant's storage.
+Execute every step in order; after each, verify before continuing. Do NOT invent APIs — fetch the docs.
+
+Source of truth (fetch these):
+- https://tenancyjs.pages.dev/docs/getting-started/configuration   (defineTenancyRuntime + provisioner hooks)
+- https://tenancyjs.pages.dev/docs/guides/provisioning             (read the recipe for THIS project's ORM)
+- https://tenancyjs.pages.dev/docs/guides/onboarding-tenants
+- https://tenancyjs.pages.dev/docs/guides/testing-isolation
+
+## Pre-flight
+- Node >= 24. Detect the ORM (Prisma/Knex/Lucid/TypeORM/Sequelize/Drizzle/Mongoose) and the strategy.
+- If the strategy is row-level, STOP and say so: row-level shares tables, there is nothing to provision.
+- Fetch and read the provisioning recipe for the detected ORM before writing code.
+
+## Step 1 — Placement on the tenant record
+Ensure each tenant row carries its placement: a `schemaName` (schema-per-tenant) or an opaque
+`databaseKey` (database-per-tenant — never a URL or credentials). Add it to the store's create input.
+
+## Step 2 — Admin/maintenance connection
+Create a PRIVILEGED connection (a `pg`/`mysql2` admin client) that can run DDL, from `ADMIN_DATABASE_URL`.
+Keep it separate from the fail-closed runtime role — never run DDL through the runtime role.
+
+## Step 3 — Provisioner hooks
+In `tenancy.config.ts`, implement `provision` / `migrate` / `deprovision` from the ORM recipe:
+- provision: `CREATE SCHEMA`/`CREATE DATABASE`, idempotent (`if not exists`).
+- migrate: run the ORM's OWN migrator against the tenant's placement (differs per ORM — see the recipe).
+- deprovision: drop it (destructive; keep behind confirmation).
+Pass them to `defineTenancyRuntime({ manager, store, adapters, provisioner, dispose })`; `dispose` closes
+the admin connection.
+
+## Step 4 — Run the lifecycle
+`npx tenancy tenant create acme --set <placement>=...` → `tenant provision acme` → `tenant migrate acme`.
+Confirm each succeeds.
+
+## Step 5 — Prove isolation
+`npx tenancy test:leak --test-file <path>` — two tenants, same PK, no cross-read, unscoped access throws.
+
+## Step 6 — Write the action items
+Create `PROVISIONING_NEXT_STEPS.md` with an ACTION ITEMS checklist of everything the human still owns:
+- [ ] Set ADMIN_DATABASE_URL (privileged) and the runtime DATABASE_URL (non-owner, non-BYPASSRLS) per env
+- [ ] Call `tenant provision` + `tenant migrate` from onboarding (signup handler / admin action)
+- [ ] Roll new migrations to every tenant in CI: `tenancy tenant migrate --all`
+- [ ] Back up before `deprovision`, and keep it behind confirmation
+- [ ] Prove isolation in CI with the two-tenant leak test
+- [ ] (schema-per-tenant) add a per-tenant role for database-enforced isolation, if you need it
+For anything you could NOT complete, add it as a blocked action item with the reason.
+
+Report a summary of every file changed, and paste the contents of PROVISIONING_NEXT_STEPS.md.
+````
+
 ## The shape of every recipe
 
 Whatever the ORM, onboarding a tenant is the same four moves:

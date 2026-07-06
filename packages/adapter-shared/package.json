@@ -1,6 +1,6 @@
 {
   "name": "tenancyjs-adapter-shared",
-  "version": "0.1.0-beta.6",
+  "version": "0.1.0",
   "description": "Shared isolation strategy primitives for TenancyJS adapters.",
   "type": "module",
   "license": "MIT",

@@ -4,7 +4,7 @@
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 ![Node](https://img.shields.io/badge/Node.js-%3E%3D24-brightgreen)
-![Status](https://img.shields.io/badge/status-0.1.0--beta-blueviolet)
+![Status](https://img.shields.io/badge/status-0.1.0-blueviolet)
 ![Isolation](https://img.shields.io/badge/isolation-fail--closed-success)
 
 One tenant contract for every framework and ORM you already use - not a replacement for them. Tenant
@@ -19,9 +19,9 @@ await tenancy.runWithTenant(tenant, async () => {
 });
 ```
 
-> **Beta (`0.1.0-beta`).** The API surface is stabilising toward 1.0; safe for evaluation and
-> non-critical workloads. Every "supported" cell below is proven by a two-tenant adversarial isolation
-> test on a real database - nothing is marked supported on faith.
+> **`0.1.0`.** Safe for real use; the API is still settling before `1.0` (semver `0.x`). Every
+> "supported" cell below is proven by a two-tenant adversarial isolation test on a real database -
+> nothing is marked supported on faith.
 
 ## Install
 

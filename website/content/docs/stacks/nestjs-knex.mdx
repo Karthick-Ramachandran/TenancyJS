@@ -13,11 +13,16 @@ backed by **forced RLS** - the database is the real backstop. That gives you two
 only ever expose the callback facade (keep the base Knex private), and let a non-owner runtime role run
 the queries so the policy actually applies.
 
-<Callout type="warn">
-  **TenancyJS is ESM-only; `nest new` scaffolds CommonJS.** The wiring is correct either way, but a
-  CommonJS NestJS project will not start or run Jest against these packages until it is in ESM mode:
-  `"type": "module"` in package.json, `module`/`moduleResolution` set to `"nodenext"` in tsconfig,
-  `.js` extensions on relative imports, and tests on [Vitest](https://vitest.dev) or Jest ESM mode.
+<Callout type="info">
+  TenancyJS ships **dual ESM + CommonJS** (0.1.0+), so a default CommonJS NestJS project works with no
+  conversion — `require` or import it as usual.
+</Callout>
+
+<Callout type="info">
+  This page uses **row-level** (the simplest strategy). The same stack also supports
+  [schema-per-tenant](/docs/stacks/schema-per-tenant) and
+  [database-per-tenant](/docs/stacks/database-per-tenant) — switch the adapter’s `strategy` and add the
+  [provisioning recipe](/docs/guides/provisioning) for your ORM.
 </Callout>
 
 ## Setup-agent prompt
@@ -47,7 +52,7 @@ Source of truth (fetch if a detail is missing, do not guess):
 ## Step 1 - Install
 Run:
 ```sh
-npm install tenancyjs-core@beta tenancyjs-adapter-knex@beta tenancyjs-integration-nest@beta tenancyjs-identifiers@beta knex pg
+npm install tenancyjs-core tenancyjs-adapter-knex tenancyjs-integration-nest tenancyjs-identifiers knex pg
 ```
 Verify all six appear in package.json dependencies.
 
@@ -129,7 +134,7 @@ Prefer to wire it yourself? The same steps, with the code.
 ### Install
 
 ```bash
-npm install tenancyjs-core@beta tenancyjs-adapter-knex@beta tenancyjs-integration-nest@beta tenancyjs-identifiers@beta knex pg
+npm install tenancyjs-core tenancyjs-adapter-knex tenancyjs-integration-nest tenancyjs-identifiers knex pg
 ```
 </Step>
 

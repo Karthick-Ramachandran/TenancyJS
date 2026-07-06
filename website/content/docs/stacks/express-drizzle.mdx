@@ -18,6 +18,13 @@ that matters most: only ever query inside `tenancy.run(...)` - never touch the n
   [database-per-tenant on MySQL](/docs/stacks/mysql-database-per-tenant) instead.
 </Callout>
 
+<Callout type="info">
+  This page uses **row-level** (the simplest strategy). The same stack also supports
+  [schema-per-tenant](/docs/stacks/schema-per-tenant) and
+  [database-per-tenant](/docs/stacks/database-per-tenant) — switch the adapter’s `strategy` and add the
+  [provisioning recipe](/docs/guides/provisioning) for your ORM.
+</Callout>
+
 ## Setup-agent prompt
 
 Paste this into an assistant that can edit your repo and run commands (Claude Code, Cursor, …). It
@@ -45,7 +52,7 @@ Source of truth (fetch if a detail is missing, do not guess):
 ## Step 1 - Install
 Run:
 ```sh
-npm install tenancyjs-core@beta tenancyjs-adapter-drizzle@beta tenancyjs-integration-express@beta tenancyjs-identifiers@beta drizzle-orm pg
+npm install tenancyjs-core tenancyjs-adapter-drizzle tenancyjs-integration-express tenancyjs-identifiers drizzle-orm pg
 ```
 Verify all six appear in package.json dependencies.
 
@@ -130,7 +137,7 @@ Prefer to wire it yourself? The same steps, with the code.
 ### Install
 
 ```bash
-npm install tenancyjs-core@beta tenancyjs-adapter-drizzle@beta tenancyjs-integration-express@beta tenancyjs-identifiers@beta drizzle-orm pg
+npm install tenancyjs-core tenancyjs-adapter-drizzle tenancyjs-integration-express tenancyjs-identifiers drizzle-orm pg
 ```
 </Step>
 

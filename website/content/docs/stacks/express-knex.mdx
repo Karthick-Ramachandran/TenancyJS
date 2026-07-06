@@ -13,6 +13,13 @@ scopes every query; the database enforces isolation independently via a `FORCE R
 under a non-privileged runtime role. That backstop is the point - set it up (Step 4) or you're running on
 the facade alone. Keep the base Knex private; only expose `tenancy.run`.
 
+<Callout type="info">
+  This page uses **row-level** (the simplest strategy). The same stack also supports
+  [schema-per-tenant](/docs/stacks/schema-per-tenant) and
+  [database-per-tenant](/docs/stacks/database-per-tenant) — switch the adapter’s `strategy` and add the
+  [provisioning recipe](/docs/guides/provisioning) for your ORM.
+</Callout>
+
 ## Setup-agent prompt
 
 Paste this into an assistant that can edit your repo and run commands (Claude Code, Cursor, …). It
@@ -39,7 +46,7 @@ Source of truth (fetch if a detail is missing, do not guess):
 ## Step 1 - Install
 Run:
 ```sh
-npm install tenancyjs-core@beta tenancyjs-adapter-knex@beta tenancyjs-integration-express@beta tenancyjs-identifiers@beta knex pg
+npm install tenancyjs-core tenancyjs-adapter-knex tenancyjs-integration-express tenancyjs-identifiers knex pg
 ```
 Verify all six appear in package.json dependencies.
 
@@ -120,7 +127,7 @@ Prefer to wire it yourself? The same steps, with the code.
 ### Install
 
 ```bash
-npm install tenancyjs-core@beta tenancyjs-adapter-knex@beta tenancyjs-integration-express@beta tenancyjs-identifiers@beta knex pg
+npm install tenancyjs-core tenancyjs-adapter-knex tenancyjs-integration-express tenancyjs-identifiers knex pg
 ```
 </Step>
 
