@@ -1,6 +1,6 @@
 {
   "name": "tenancyjs-integration-nest",
-  "version": "0.1.0-beta.2",
+  "version": "0.1.0-beta.3",
   "description": "Fail-closed NestJS 11 request lifecycle integration for TenancyJS.",
   "type": "module",
   "license": "MIT",

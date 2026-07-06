@@ -1,6 +1,6 @@
 {
   "name": "tenancyjs-adapter-knex",
-  "version": "0.1.0-beta.2",
+  "version": "0.1.0-beta.3",
   "description": "Fail-closed PostgreSQL row-level and schema-per-tenant isolation for Knex.",
   "type": "module",
   "license": "MIT",
