@@ -2,6 +2,8 @@
 
 **Fail-closed Lucid 22 row-level, schema-per-tenant, and database-per-tenant isolation for AdonisJS 7 and PostgreSQL 17.**
 
+> **New to TenancyJS? [Start with the docs →](https://tenancyjs.pages.dev/docs/getting-started/installation)** — install, the `npx tenancy` CLI, and how this package fits with an adapter + integration.
+
 ![Node](https://img.shields.io/badge/Node.js-%3E%3D24-brightgreen)
 ![AdonisJS](https://img.shields.io/badge/AdonisJS-7-5A45FF)
 ![Lucid](https://img.shields.io/badge/Lucid-22-5A45FF)
@@ -13,7 +15,6 @@ row-level security (RLS) remains the final isolation boundary. It is separate fr
 because Lucid models, hooks, relationships, transactions, and AdonisJS lifecycle need their own
 contract and evidence.
 
-> **Pre-alpha:** do not claim production support until the hosted AdonisJS 7/Lucid 22/PostgreSQL 17
 > lane and reference application pass.
 
 ## Install

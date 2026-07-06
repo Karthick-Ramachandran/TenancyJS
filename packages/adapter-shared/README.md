@@ -3,6 +3,8 @@
 Internal isolation-strategy primitives shared by TenancyJS ORM adapters. Application code should use
 the public Prisma, Knex, or Lucid adapter package instead.
 
+> **New to TenancyJS? [Start with the docs →](https://tenancyjs.pages.dev/docs/getting-started/installation)** — install, the `npx tenancy` CLI, and how this package fits with an adapter + integration.
+
 This package contains the single audited PostgreSQL RLS and schema-placement implementation. It does
 not resolve tenants, run migrations, or expose unsafe raw-query access.
 

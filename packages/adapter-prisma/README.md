@@ -2,8 +2,8 @@
 
 Fail-closed row-level tenant isolation for supported Prisma Client operations.
 
-> Pre-alpha: implemented and tested against Prisma 7.8 on **PostgreSQL and MySQL** (two-tenant
-> integration suites), but not published for production use. Isolation is database-agnostic because the
+> **New to TenancyJS? [Start with the docs →](https://tenancyjs.pages.dev/docs/getting-started/installation)** — install, the `npx tenancy` CLI, and how this package fits with an adapter + integration.
+
 > extension rewrites query arguments rather than SQL.
 
 ## Security boundary

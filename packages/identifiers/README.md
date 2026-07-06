@@ -2,6 +2,8 @@
 
 Framework-neutral tenant extraction and resolution outcomes for TenancyJS.
 
+> **New to TenancyJS? [Start with the docs →](https://tenancyjs.pages.dev/docs/getting-started/installation)** — install, the `npx tenancy` CLI, and how this package fits with an adapter + integration.
+
 Resolvers extract identifiers from untrusted metadata. A `TenantStore` performs the registry lookup,
 and `TenantResolutionChain` returns an exhaustive result without authenticating user membership or
 selecting central context.

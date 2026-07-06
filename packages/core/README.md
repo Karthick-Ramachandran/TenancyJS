@@ -1,10 +1,86 @@
 # `tenancyjs-core`
 
-Framework-neutral tenant context and lifecycle primitives for TenancyJS.
+The foundation of **TenancyJS** — a fail-closed, TypeScript-first multi-tenancy toolkit for Node.js.
+Tenant identity follows your async scope, and any tenant-aware access without a valid context **throws**
+instead of returning another tenant's data.
 
-> Pre-alpha: implemented in the monorepo but not published for production use.
+> **📚 Full documentation: [tenancyjs.pages.dev](https://tenancyjs.pages.dev)** — start here.
 
-## Core guarantees
+`tenancyjs-core` gives you the framework-neutral tenant context, lifecycle, and adapter contract. You
+compose it with **an adapter** (your ORM) and **an integration** (your framework):
+
+```
+tenancyjs-core  ×  an adapter (Prisma/Knex/Lucid/TypeORM/Sequelize/Drizzle/Mongoose)  ×  an integration (Express/Next.js/NestJS/AdonisJS)
+```
+
+## Install
+
+```bash
+npm install tenancyjs-core
+# …then add the adapter for your ORM and the integration for your framework, e.g.:
+npm install tenancyjs-adapter-prisma tenancyjs-integration-express
+```
+
+During the beta the packages are on the `beta` dist-tag: `npm install tenancyjs-core@beta`.
+
+## Fastest start — the CLI
+
+The `tenancyjs-cli` scaffolds tenant isolation for your stack. Run it with `npx` (no install needed):
+
+```bash
+npx tenancy init        # detects your framework + ORM and scaffolds the wiring
+npx tenancy doctor      # inspects your setup and flags untested combinations
+```
+
+Prefer a global command? `npm install -g tenancyjs-cli`, then run `tenancy init`. See the
+[CLI reference](https://tenancyjs.pages.dev/docs/cli).
+
+**Or let an AI do it:** copy a prompt from
+[Build with AI](https://tenancyjs.pages.dev/docs/build-with-ai) and paste it into your assistant.
+
+## How it works (30 seconds)
+
+1. An **integration** resolves the tenant per request and opens a scope.
+2. Your code queries through the **adapter**'s scoped client — no manual `WHERE tenant_id`.
+3. Outside a valid scope, tenant-aware access **throws** instead of leaking.
+
+```ts
+import { TenancyManager, type TenantRecord } from "tenancyjs-core";
+
+interface Tenant extends TenantRecord {
+  readonly id: string;
+}
+
+const manager = new TenancyManager<Tenant>();
+
+await manager.runWithTenant({ id: "acme" }, async () => {
+  // Every tenant query inside here is scoped to "acme".
+  const tenant = manager.getTenantOrFail();
+});
+
+// Outside a scope? It fails closed.
+manager.getTenantOrFail(); // ✗ throws TenantContextError — never an unscoped read
+```
+
+Full end-to-end wiring is in the [Quickstart](https://tenancyjs.pages.dev/docs/getting-started/quickstart).
+
+## Where to next
+
+| Guide                                                                            |                                                                  |
+| -------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| [Getting started](https://tenancyjs.pages.dev/docs/getting-started/installation) | Install + scaffold for your stack                                |
+| [Adapters](https://tenancyjs.pages.dev/docs/adapters)                            | Prisma · Knex · Lucid · TypeORM · Sequelize · Drizzle · Mongoose |
+| [Integrations](https://tenancyjs.pages.dev/docs/integrations)                    | Express · Next.js · NestJS · AdonisJS                            |
+| [Strategies](https://tenancyjs.pages.dev/docs/strategies/row-level)              | row-level · schema-per-tenant · database-per-tenant              |
+| [The rules & limitations](https://tenancyjs.pages.dev/docs/concepts/limitations) | What's rejected, and why — read before you build                 |
+
+---
+
+## Core API reference
+
+The primitives this package provides directly.
+
+### Guarantees
 
 - Tenant identity is scoped with Node.js `AsyncLocalStorage`, never process-global mutable state.
 - Missing tenant context fails with a typed `TenantContextError`.
@@ -13,96 +89,58 @@ Framework-neutral tenant context and lifecycle primitives for TenancyJS.
 - Bootstrappers set up in registration order and revert in reverse order.
 - Cleanup continues after failures and reports every cleanup error.
 
-## Usage
+### Explicit central context
 
 ```ts
-import { TenancyManager, type TenantRecord } from "tenancyjs-core";
-
-interface Tenant extends TenantRecord {
-  readonly slug: string;
-}
-
-const tenancy = new TenancyManager<Tenant>();
-
-await tenancy.runWithTenant({ id: "tenant_123", slug: "acme" }, async () => {
-  const tenant = tenancy.getTenantOrFail();
-  console.log(tenant.id);
+await manager.runInCentralContext(async () => {
+  // Central (cross-tenant) work is explicit. getTenantOrFail() throws with reason "central" here.
 });
 ```
 
-`runWithTenant` makes a shallow clone and freezes the tenant record. Custom nested values are not
-deep-frozen and remain the application's responsibility.
+Resolver failure never enters central mode — framework integrations decide whether a route is central
+before calling this API.
 
-## Explicit central context
+### Bootstrappers and lifecycle events
 
-```ts
-await tenancy.runInCentralContext(async () => {
-  // Central work is explicit. getTenantOrFail() throws with reason "central" here.
-});
-```
-
-Resolver failure never enters central mode. Framework integrations must decide whether a route is
-central before calling this API.
-
-## Bootstrappers and events
-
-Bootstrappers are fixed when the manager is created:
+Bootstrappers are fixed when the manager is created; each is `{ id, bootstrap, revert }`:
 
 ```ts
-const tenancy = new TenancyManager({
+const manager = new TenancyManager({
   bootstrappers: [
     {
       id: "database",
       async bootstrap(context) {
-        // Prepare context-local resources for context.tenant.
+        /* prime context-local resources for context.tenant */
       },
       async revert(context) {
-        // Release only resources owned by this execution scope.
+        /* release only resources owned by this scope — always runs on teardown */
       },
     },
   ],
 });
 ```
 
-Successful lifecycle order:
+Lifecycle order: `tenancy.initializing` → bootstrap (registration order) → `tenancy.initialized` →
+callback → `tenancy.ending` → revert (reverse order) → `tenancy.ended`. Subscribe with
+`manager.on(event, listener)`; the returned function unsubscribes idempotently.
 
-```txt
-tenancy.initializing
-bootstrap (registration order)
-tenancy.initialized
-application callback
-tenancy.ending
-revert (reverse order)
-tenancy.ended
-```
-
-Subscribe with `tenancy.on(event, listener)`. The returned function unsubscribes idempotently.
-
-## Isolation strategies
-
-`defineConfig` accepts the two committed strategies:
+### Isolation strategy intent
 
 ```ts
 import { defineConfig } from "tenancyjs-core";
 
-export default defineConfig({
-  strategy: "rowLevel", // or "databasePerTenant"
-});
+export default defineConfig({ strategy: "rowLevel" });
 ```
 
-Core carries strategy intent; adapters and later provisioning modules implement the actual database
-isolation behavior.
+Core carries strategy intent; adapters implement the actual database isolation.
 
-## Adapter contract
+### Errors
 
-`TenancyAdapter`, `TenancyAdapterCapabilities`, and validation-result types provide the small,
-ORM-neutral vocabulary used by adapter packages. Core does not import an ORM or implement query
-rewriting.
+- `TenantContextError` — tenant access with no scope, or in central mode.
+- `InvalidTenantError` — a tenant lacks a non-empty string `id`.
+- `InvalidBootstrapperError` / `DuplicateBootstrapperError` — invalid manager configuration.
+- `TenancyLifecycleError` — cleanup failed; inspect `primaryError`, `hasPrimaryError`, `cleanupErrors`.
 
-## Errors
+## License
 
-- `TenantContextError`: tenant access was attempted with no scope or in central mode.
-- `InvalidTenantError`: a tenant does not contain a non-empty string `id`.
-- `InvalidBootstrapperError` / `DuplicateBootstrapperError`: invalid manager configuration.
-- `TenancyLifecycleError`: cleanup failed; inspect `primaryError`, `hasPrimaryError`, and
-  `cleanupErrors`.
+MIT

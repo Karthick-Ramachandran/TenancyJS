@@ -3,6 +3,8 @@
 Fail-closed stable Sequelize 6 isolation for PostgreSQL 17 and MySQL 8 on Node 24. PostgreSQL supports
 all three strategies; MySQL supports adapter-enforced row-level and database-per-tenant.
 
+> **New to TenancyJS? [Start with the docs →](https://tenancyjs.pages.dev/docs/getting-started/installation)** — install, the `npx tenancy` CLI, and how this package fits with an adapter + integration.
+
 The adapter exposes callback-scoped protected plain-value model facades, not native Sequelize models,
 instances, transactions, QueryInterface, or raw queries. Every supported operation receives the
 adapter-owned transaction explicitly; no global CLS configuration is required.

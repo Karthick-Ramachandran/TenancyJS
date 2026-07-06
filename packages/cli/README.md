@@ -2,6 +2,8 @@
 
 Safe, deterministic project initialization and diagnostics for TenancyJS.
 
+> **New to TenancyJS? [Start with the docs →](https://tenancyjs.pages.dev/docs/getting-started/installation)** — install, the `npx tenancy` CLI, and how this package fits with an adapter + integration.
+
 Init supports Express 5.2 with Prisma 7.8, TypeORM 1, Sequelize 6.37, or Drizzle 0.45; AdonisJS 7.3
 with Lucid 22.4; and Next.js 16 with Prisma 7.8. It detects the stack from `package.json` and scaffolds
 the matching row-level wiring. It uses

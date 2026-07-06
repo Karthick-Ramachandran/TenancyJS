@@ -2,6 +2,8 @@
 
 Fail-closed Drizzle 0.45 tenant isolation for PostgreSQL and MySQL on Node.js 24+.
 
+> **New to TenancyJS? [Start with the docs →](https://tenancyjs.pages.dev/docs/getting-started/installation)** — install, the `npx tenancy` CLI, and how this package fits with an adapter + integration.
+
 The adapter returns callback-scoped plain-value table facades. It never exposes the native Drizzle
 database/transaction, SQL expressions, relational query API, joins, migrations, or raw execution.
 
