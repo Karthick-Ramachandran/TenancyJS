@@ -47,6 +47,7 @@ Source of truth (fetch if a detail is missing, do not guess):
 - https://tenancyjs.pages.dev/docs/integrations/nestjs
 - https://tenancyjs.pages.dev/docs/concepts/limitations
 - https://tenancyjs.pages.dev/docs/guides/testing-isolation
+- https://tenancyjs.pages.dev/docs/guides/resolving-tenants
 
 ## Pre-flight
 - Run `node -v`; abort if it is not >= 24.
@@ -78,7 +79,9 @@ Create `src/tenancy.ts`. It must:
   Classify EVERY model: each tenant model as `{ tenantField: "tenantId", relationFields: [...] }`,
   `Tenant` under `centralModels`. Unknown models are rejected at runtime.
 - Build a `TenantResolutionChain` with `new HeaderTenantResolver()` and a store whose `find(identifier)`
-  looks the tenant up via the BASE client and returns `[{ tenant: { id }, status }]` (or `[]`).
+  looks the tenant up via the BASE client and returns `[{ tenant: { id }, status }]` (or `[]`). Include
+  an `authorize({ tenant, principal }) => boolean` membership check that fails closed (a resolved tenant
+  is not an authorized one); the chain refuses to construct without it.
 - Export `manager`, `resolver`, and the EXTENDED client as `prisma`. Do NOT export the base client for
   app use.
 
@@ -88,7 +91,8 @@ Create `src/prisma.service.ts`: an `@Injectable()` provider whose value IS the e
 
 ## Step 5 - Register TenancyModule
 In `app.module.ts`, add `TenancyModule.forRoot({ manager, resolver })` to imports (import both from
-`./tenancy`). Do not register a second guard/interceptor.
+`./tenancy`). Also pass `principal: (req) => req.user` so the guard hands the authenticated user to the
+chain's `authorize` check (register it after your auth). Do not register a second guard/interceptor.
 
 ## Step 6 - Scope the routes
 For every controller handler that touches tenant data:
@@ -179,6 +183,9 @@ export const resolver = new TenantResolutionChain({
       return tenant ? [{ tenant: { id: tenant.id }, status: tenant.status }] : [];
     },
   },
+  // Required: does THIS authenticated user belong to the resolved tenant?
+  authorize: ({ tenant, principal }) =>
+    (principal as { teamIds: string[] }).teamIds.includes(tenant.id),
 });
 ```
 </Step>
@@ -213,7 +220,14 @@ import { manager, resolver } from "./tenancy";
 import { PrismaModule } from "./prisma.service";
 
 @Module({
-  imports: [TenancyModule.forRoot({ manager, resolver }), PrismaModule],
+  imports: [
+    TenancyModule.forRoot({
+      manager,
+      resolver,
+      principal: (req) => (req as { user?: unknown }).user, // the guard runs after auth
+    }),
+    PrismaModule,
+  ],
 })
 export class AppModule {}
 ```

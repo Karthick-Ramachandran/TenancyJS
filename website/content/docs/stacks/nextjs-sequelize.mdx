@@ -40,6 +40,7 @@ does not apply, say so and continue. Do NOT invent API names - if unsure, fetch 
 Source of truth (fetch if a detail is missing, do not guess):
 - https://tenancyjs.pages.dev/docs/adapters/sequelize
 - https://tenancyjs.pages.dev/docs/integrations/nextjs
+- https://tenancyjs.pages.dev/docs/guides/resolving-tenants
 - https://tenancyjs.pages.dev/docs/concepts/limitations
 - https://tenancyjs.pages.dev/docs/guides/testing-isolation
 
@@ -88,8 +89,11 @@ Create `lib/db.ts`. It must:
 In `lib/tenancy.ts`:
 - Build a `TenantResolutionChain` with `new HeaderTenantResolver({ headerName: "x-tenant-id" })` and a
   store whose `find(identifier)` looks the tenant up and returns `[{ tenant: { id }, status }]` (or `[]`).
+- Add an `authorize({ tenant, principal }) => boolean` membership check to the chain (fail closed) - does
+  the authenticated user belong to the resolved tenant? Resolving a tenant is not authorizing it.
 - Create `createNextTenancy({ manager, resolver })` and export it as `nextTenancy`. Name it distinctly
-  from `ormTenancy` - they are different objects.
+  from `ormTenancy` - they are different objects. Pass a `principal` thunk that returns the authenticated
+  user from the session (Next has no `req.user`).
 
 ## Step 6 - Scope the routes (Node runtime)
 For every Route Handler / Server Action that touches tenant data:
@@ -250,10 +254,16 @@ const resolver = new TenantResolutionChain({
       return tenant ? [{ tenant: { id: tenant.id }, status: tenant.status }] : [];
     },
   },
+  // Required: does THIS authenticated user belong to the resolved tenant?
+  authorize: ({ tenant, principal }) => principal.teamIds.includes(tenant.id),
 });
 
 // Distinct from ormTenancy - different object, different job.
-export const nextTenancy = createNextTenancy({ manager, resolver });
+export const nextTenancy = createNextTenancy({
+  manager,
+  resolver,
+  principal: async () => getSessionUser(), // read your session (Node runtime)
+});
 ```
 </Step>
 

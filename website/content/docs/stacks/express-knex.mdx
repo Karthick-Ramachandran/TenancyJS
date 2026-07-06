@@ -35,6 +35,7 @@ apply, say so and continue. Do NOT invent API names - if unsure, fetch the linke
 Source of truth (fetch if a detail is missing, do not guess):
 - https://tenancyjs.pages.dev/docs/adapters/knex
 - https://tenancyjs.pages.dev/docs/integrations/express
+- https://tenancyjs.pages.dev/docs/guides/resolving-tenants
 - https://tenancyjs.pages.dev/docs/concepts/limitations
 - https://tenancyjs.pages.dev/docs/guides/testing-isolation
 
@@ -64,6 +65,8 @@ Create `src/tenancy.ts`. It must:
   List every tenant table. Export it as `tenancy`. Queries run ONLY through `tenancy.run((db) => …)`.
 - Build a `TenantResolutionChain` with `new HeaderTenantResolver()` and a store whose `find(identifier)`
   looks the tenant up and returns `[{ tenant: { id }, status }]` (or `[]`).
+- Pass an `authorize` hook to the chain that checks the authenticated user's membership in the resolved
+  tenant and fails closed - resolving a tenant is not authorizing the user.
 - Export `manager`, `resolver`, `tenancy`. Do NOT export the base Knex for app use.
 
 ## Step 4 - Forced RLS migration (the database backstop) - DO NOT SKIP
@@ -82,7 +85,9 @@ can bypass), log the error and REFUSE to serve - do not fall back to facade-only
 
 ## Step 6 - Middleware
 In `server.ts`, register `app.use(createExpressTenancyMiddleware({ manager, resolver }))` EARLY, before
-routes. The resolver is the `TenantResolutionChain` object - NOT a `(req) => …` function.
+routes. The resolver is the `TenantResolutionChain` object - NOT a `(req) => …` function. Pass
+`principal: (req) => req.user` so the `authorize` hook receives the authenticated user; register it
+AFTER your auth middleware.
 
 ## Step 7 - Scope the routes
 For every handler that touches tenant data, query through `tenancy.run((db) => db.table("posts")…)`.
@@ -169,6 +174,9 @@ export const resolver = new TenantResolutionChain<Tenant>({
       return rows[0] ? [{ tenant: { id: rows[0].id }, status: rows[0].status }] : [];
     },
   },
+  // Verify the authenticated user belongs to the resolved tenant.
+  authorize: ({ tenant, principal }) =>
+    (principal as { teamIds: string[] }).teamIds.includes(tenant.id),
 });
 ```
 </Step>
@@ -223,7 +231,13 @@ import { manager, resolver, tenancy } from "./tenancy";
 
 const app = express();
 
-app.use(createExpressTenancyMiddleware({ manager, resolver }));
+app.use(
+  createExpressTenancyMiddleware({
+    manager,
+    resolver,
+    principal: (req) => (req as { user?: unknown }).user,
+  }),
+);
 
 app.get("/posts", async (_req, res) => {
   const posts = await tenancy.run((db) =>

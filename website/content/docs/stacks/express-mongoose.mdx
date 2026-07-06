@@ -34,6 +34,7 @@ apply, say so and continue. Do NOT invent API names - if unsure, fetch the linke
 Source of truth (fetch if a detail is missing, do not guess):
 - https://tenancyjs.pages.dev/docs/adapters/mongoose
 - https://tenancyjs.pages.dev/docs/integrations/express
+- https://tenancyjs.pages.dev/docs/guides/resolving-tenants
 - https://tenancyjs.pages.dev/docs/concepts/limitations
 - https://tenancyjs.pages.dev/docs/guides/testing-isolation
 
@@ -71,11 +72,15 @@ Create `src/tenancy.ts`. It must:
   enforcement.
 - Build a `TenantResolutionChain` with `new HeaderTenantResolver()` and a store whose `find(identifier)`
   looks the tenant up and returns `[{ tenant: { id }, status }]` (or `[]`).
+- Pass an `authorize` hook to the chain that checks the authenticated user's membership in the resolved
+  tenant and fails closed - resolving a tenant is not authorizing the user.
 - Export `manager`, `resolver`, and `tenancy`. Do NOT export the native `connection`.
 
 ## Step 4 - Wire the middleware
 In `src/server.ts`, register `app.use(createExpressTenancyMiddleware({ manager, resolver }))` BEFORE any
-tenant route. The middleware resolves the tenant per request and opens the scope for its lifetime.
+tenant route. The middleware resolves the tenant per request and opens the scope for its lifetime. Pass
+`principal: (req) => req.user` so the `authorize` hook receives the authenticated user; register it
+AFTER your auth middleware.
 
 ## Step 5 - Query through the facade
 Every tenant-data handler queries via `tenancy.run((client) => client.model(PostModel).find(...))`.
@@ -171,6 +176,9 @@ export const resolver = new TenantResolutionChain<Tenant>({
       return tenant ? [{ tenant: { id: tenant.id }, status: tenant.status }] : [];
     },
   },
+  // Verify the authenticated user belongs to the resolved tenant.
+  authorize: ({ tenant, principal }) =>
+    (principal as { teamIds: string[] }).teamIds.includes(tenant.id),
 });
 ```
 </Step>
@@ -189,7 +197,13 @@ import { manager, resolver } from "./tenancy";
 
 const app = express();
 
-app.use(createExpressTenancyMiddleware({ manager, resolver }));
+app.use(
+  createExpressTenancyMiddleware({
+    manager,
+    resolver,
+    principal: (req) => (req as { user?: unknown }).user,
+  }),
+);
 
 // ...routes...
 

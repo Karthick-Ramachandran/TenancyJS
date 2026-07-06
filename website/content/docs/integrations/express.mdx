@@ -72,9 +72,19 @@ const resolver = new TenantResolutionChain<Tenant>({
       return tenant ? [{ tenant, status: "active" }] : [];
     },
   },
+  // Resolving a tenant is not authorizing it — verify membership (or opt out
+  // with trustResolution). See /docs/guides/resolving-tenants.
+  authorize: ({ tenant, principal }) =>
+    (principal as { teamIds: string[] }).teamIds.includes(tenant.id),
 });
 
-app.use(createExpressTenancyMiddleware({ manager, resolver }));
+app.use(
+  createExpressTenancyMiddleware({
+    manager,
+    resolver,
+    principal: (req) => (req as { user?: unknown }).user,
+  }),
+);
 
 app.get("/orders", async (_req, res) => {
   res.json(await db.order.findMany()); // already scoped to the tenant

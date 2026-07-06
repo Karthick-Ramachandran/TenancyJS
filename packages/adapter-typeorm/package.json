@@ -1,6 +1,6 @@
 {
   "name": "tenancyjs-adapter-typeorm",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Fail-closed TypeORM 1 tenant isolation for PostgreSQL and MySQL.",
   "type": "module",
   "license": "MIT",

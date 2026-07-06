@@ -1,6 +1,6 @@
 {
   "name": "tenancyjs-integration-express",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Fail-closed Express request lifecycle integration for TenancyJS.",
   "type": "module",
   "license": "MIT",

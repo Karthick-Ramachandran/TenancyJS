@@ -41,10 +41,19 @@ import { manager, tenantStore } from "./tenancy";
 const resolver = new TenantResolutionChain({
   resolvers: [new HeaderTenantResolver()],
   store: tenantStore,
+  // Resolving a tenant is not authorizing it — verify membership (or opt out
+  // with trustResolution). See /docs/guides/resolving-tenants.
+  authorize: ({ tenant, principal }) => principal.teamIds.includes(tenant.id),
 });
 
 @Module({
-  imports: [TenancyModule.forRoot({ manager, resolver })],
+  imports: [
+    TenancyModule.forRoot({
+      manager,
+      resolver,
+      principal: (req) => req.user,
+    }),
+  ],
 })
 export class AppModule {}
 ```

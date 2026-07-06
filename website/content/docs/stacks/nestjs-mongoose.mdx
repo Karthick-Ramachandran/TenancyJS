@@ -41,6 +41,7 @@ Source of truth (fetch if a detail is missing, do not guess):
 - https://tenancyjs.pages.dev/docs/integrations/nestjs
 - https://tenancyjs.pages.dev/docs/concepts/limitations
 - https://tenancyjs.pages.dev/docs/guides/testing-isolation
+- https://tenancyjs.pages.dev/docs/guides/resolving-tenants
 
 ## Pre-flight
 - Run `node -v`; abort if it is not >= 24.
@@ -70,7 +71,9 @@ Create `src/tenancy.ts`. It must:
   `createMongooseTenancy({ manager, connection, tenantModels: [{ model: PostModel, tenantField: "tenantId" }] })`.
   Register EVERY tenant-owned model here. This `tenancy` is the ONLY handle the app may query through.
 - Build a `TenantResolutionChain` with `new HeaderTenantResolver()` and a store whose `find(identifier)`
-  looks the tenant up and returns `[{ tenant: { id }, status }]` (or `[]`).
+  looks the tenant up and returns `[{ tenant: { id }, status }]` (or `[]`). Include an
+  `authorize({ tenant, principal }) => boolean` membership check that fails closed (a resolved tenant is
+  not an authorized one); the chain refuses to construct without it.
 - Call `await tenancy.validate()` at boot and REVIEW its output - it reports the enforcement tier and
   warns that Mongoose row-level has no database backstop.
 - Export `manager`, `resolver`, and `tenancy`. Do NOT export the native `connection`, model, or
@@ -78,7 +81,8 @@ Create `src/tenancy.ts`. It must:
 
 ## Step 4 - Register TenancyModule
 In `app.module.ts`, add `TenancyModule.forRoot({ manager, resolver })` to imports (import both from
-`./tenancy`). Do not register a second guard/interceptor.
+`./tenancy`). Also pass `principal: (req) => req.user` so the guard hands the authenticated user to the
+chain's `authorize` check (register it after your auth). Do not register a second guard/interceptor.
 
 ## Step 5 - Scope the routes
 For every controller handler that touches tenant data:
@@ -170,6 +174,9 @@ export const resolver = new TenantResolutionChain({
       return tenant ? [{ tenant: { id: tenant.id }, status: tenant.status }] : [];
     },
   },
+  // Required: does THIS authenticated user belong to the resolved tenant?
+  authorize: ({ tenant, principal }) =>
+    (principal as { teamIds: string[] }).teamIds.includes(tenant.id),
 });
 ```
 </Step>
@@ -183,7 +190,13 @@ import { TenancyModule } from "tenancyjs-integration-nest";
 import { manager, resolver } from "./tenancy";
 
 @Module({
-  imports: [TenancyModule.forRoot({ manager, resolver })],
+  imports: [
+    TenancyModule.forRoot({
+      manager,
+      resolver,
+      principal: (req) => (req as { user?: unknown }).user, // the guard runs after auth
+    }),
+  ],
 })
 export class AppModule {}
 ```

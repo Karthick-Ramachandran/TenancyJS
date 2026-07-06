@@ -50,6 +50,9 @@ export const resolver = new TenantResolutionChain<Tenant>({
       return tenant ? [{ tenant, status: "active" }] : [];
     },
   },
+  // Resolving a tenant is not authorizing it — verify membership (or opt out
+  // with trustResolution). See /docs/guides/resolving-tenants.
+  authorize: ({ tenant, principal }) => principal.teamIds.includes(tenant.id),
 });
 ```
 
@@ -65,7 +68,11 @@ export const db = new PrismaClient().$extends(adapter.extension);
 import { createNextTenancy } from "tenancyjs-integration-next";
 import { manager, resolver } from "./manager";
 
-export const tenancy = createNextTenancy({ manager, resolver });
+export const tenancy = createNextTenancy({
+  manager,
+  resolver,
+  principal: async () => getSessionUser(), // read your session (Node runtime)
+});
 ```
 
 ## Resolve identity at the edge

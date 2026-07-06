@@ -39,10 +39,20 @@ const resolver = new TenantResolutionChain({
         : [];
     },
   },
+  // Verify the authenticated user belongs to the resolved tenant — resolving a
+  // tenant is not authorizing it. Required (or opt out with trustResolution).
+  authorize: ({ tenant, principal }) =>
+    (principal as { teamIds: string[] }).teamIds.includes(tenant.id),
 });
 
 const app = express();
-app.use(createExpressTenancyMiddleware({ manager, resolver }));
+app.use(
+  createExpressTenancyMiddleware({
+    manager,
+    resolver,
+    principal: (req) => (req as { user?: unknown }).user,
+  }),
+);
 app.get("/posts", async (_request, response) => {
   const tenant = manager.getTenantOrFail();
   response.json({ tenantId: tenant.id });

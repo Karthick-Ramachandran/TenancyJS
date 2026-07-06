@@ -24,8 +24,15 @@ const manager = new TenancyManager();
 const resolver = new TenantResolutionChain({
   resolvers: [new HeaderTenantResolver()],
   store: tenantStore,
+  // Verify the authenticated user belongs to the resolved tenant — resolving a
+  // tenant is not authorizing it. Required (or opt out with trustResolution).
+  authorize: ({ tenant, principal }) => principal.teamIds.includes(tenant.id),
 });
-const tenancy = createNextTenancy({ manager, resolver });
+const tenancy = createNextTenancy({
+  manager,
+  resolver,
+  principal: async () => getSessionUser(), // read your session (Node runtime)
+});
 
 export const GET = tenancy.withRouteHandler(async () => {
   const tenant = manager.getTenantOrFail();

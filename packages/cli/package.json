@@ -1,6 +1,6 @@
 {
   "name": "tenancyjs-cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Operational CLI for TenancyJS: scaffold, inspect, and run tenant registry, provisioning, and migration commands against your own tenancy config.",
   "type": "module",
   "license": "MIT",

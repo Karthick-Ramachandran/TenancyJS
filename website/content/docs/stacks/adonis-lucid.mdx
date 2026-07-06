@@ -41,6 +41,7 @@ apply, say so and continue. Do NOT invent API names - if unsure, fetch the linke
 Source of truth (fetch if a detail is missing, do not guess):
 - https://tenancyjs.pages.dev/docs/adapters/lucid
 - https://tenancyjs.pages.dev/docs/integrations/adonis
+- https://tenancyjs.pages.dev/docs/guides/resolving-tenants
 - https://tenancyjs.pages.dev/docs/concepts/limitations
 - https://tenancyjs.pages.dev/docs/guides/testing-isolation
 
@@ -70,7 +71,11 @@ Create `config/tenancy.ts`. It must:
   `{ model: Post, tenantAttribute: "tenantId", tenantColumn: "tenant_id", policyName: "posts_tenant_isolation" }`.
 - Build a `TenantResolutionChain` with `new HeaderTenantResolver()` and a store whose `find(identifier)`
   returns `[{ tenant: { id }, status }]` (or `[]`).
-- Export `defineAdonisTenancyConfig({ manager, resolver, tenancy })` as default, passing `tenancy` as a
+- `x-tenant-id` is client-forgeable, so the chain REQUIRES a membership check: pass an
+  `authorize: ({ tenant, principal }) => principal.teamIds.includes(tenant.id)` hook (it throws to
+  construct without one). Do not use `trustResolution` with a raw header resolver.
+- Export `defineAdonisTenancyConfig({ manager, resolver, principal, tenancy })` as default, passing
+  `principal: (ctx) => ctx.auth.user` (register the tenant middleware AFTER auth) and `tenancy` as a
   lazy factory `() => createLucidTenancy(...)` (config loads before providers boot).
 
 ## Step 4 - Forced-RLS migration
@@ -176,11 +181,15 @@ const resolver = new TenantResolutionChain<Tenant>({
       return row ? [{ tenant: { id: row.id }, status: row.status }] : [];
     },
   },
+  // Required: does THIS authenticated user belong to the resolved tenant? (x-tenant-id is client-forgeable)
+  authorize: ({ tenant, principal }) =>
+    (principal as { teamIds: string[] }).teamIds.includes(tenant.id),
 });
 
 export default defineAdonisTenancyConfig<Tenant>({
   manager,
   resolver,
+  principal: (ctx) => ctx.auth.user, // the authenticated user; run tenant middleware after auth
   tenancy: () => tenancy, // lazy: config loads before providers boot
 });
 ```
@@ -300,3 +309,166 @@ the `/testing` helper does not auto-validate.
 
 Full lifecycle and the security boundary: [AdonisJS integration](/docs/integrations/adonis) ·
 [Lucid adapter](/docs/adapters/lucid) · [Testing isolation](/docs/guides/testing-isolation).
+
+## Setup-agent prompt — schema-per-tenant
+
+Same stack, stronger placement: each tenant gets its **own PostgreSQL schema** (isolated via a
+transaction-local `search_path`) instead of a shared table. Paste this into a repo-editing assistant.
+
+````text
+# TenancyJS Setup Agent — AdonisJS 7 + Lucid, schema-per-tenant (PostgreSQL)
+
+You are a setup agent. Add fail-closed schema-per-tenant multi-tenancy to this AdonisJS + Lucid project
+with TenancyJS: each tenant gets its own Postgres schema, isolated by a transaction-local search_path.
+Execute every step in order and verify each before continuing. Do NOT invent API names - if unsure,
+fetch the linked doc.
+
+Source of truth (fetch if a detail is missing, do not guess):
+- https://tenancyjs.pages.dev/docs/adapters/lucid
+- https://tenancyjs.pages.dev/docs/integrations/adonis
+- https://tenancyjs.pages.dev/docs/guides/resolving-tenants
+- https://tenancyjs.pages.dev/docs/guides/provisioning/lucid
+- https://tenancyjs.pages.dev/docs/guides/testing-isolation
+
+## Pre-flight
+- Run `node -v`; abort if it is not >= 24.
+- Confirm `@adonisjs/core` (v7) and `@adonisjs/lucid` are in package.json, the database is PostgreSQL,
+  and `pg` is installed. Schema-per-tenant is PostgreSQL-only.
+
+## Step 1 - Install
+Run `npm install tenancyjs-core tenancyjs-adapter-lucid tenancyjs-integration-adonis tenancyjs-identifiers`.
+Keep `tenancyjs-identifiers` a DIRECT dependency or `config/tenancy.ts` fails to import.
+
+## Step 2 - config/tenancy.ts (single source of truth)
+- Construct ONE `TenancyManager<Tenant>` where `Tenant` carries a `schemaName`.
+- Build the adapter with the schema-per-tenant strategy:
+  ```ts
+  const tenancy = createLucidTenancy({
+    manager,
+    database: db,
+    strategy: "schemaPerTenant",
+    schema: (t) => t.schemaName,   // one Postgres schema per tenant
+    centralSchema: "public",       // where central/cross-tenant work runs
+    tenantModels: [{ model: Post }],
+  });
+  ```
+  Tenant models use UNQUALIFIED table names (e.g. `posts`) - the adapter sets the per-transaction
+  `search_path`, so never hard-code a schema on the model.
+- Build a `TenantResolutionChain` (`new HeaderTenantResolver({ headerName: "x-tenant-id" })` + a store
+  whose `find(identifier)` returns `[{ tenant, status }]`). `x-tenant-id` is client-forgeable, so the
+  chain REQUIRES a membership check - it throws to construct without one:
+  ```ts
+  // Required: does THIS authenticated user belong to the resolved tenant?
+  authorize: ({ tenant, principal }) =>
+    (principal as { teamIds: string[] }).teamIds.includes(tenant.id),
+  ```
+  Do NOT use `trustResolution` with a raw header resolver.
+- Export
+  `defineAdonisTenancyConfig({ manager, resolver, principal: (ctx) => ctx.auth.user, tenancy: () => tenancy })`
+  as default (`tenancy` lazy; `principal` feeds the authorize check - run the middleware after auth).
+
+## Step 3 - Provision each schema
+Implement the Lucid provisioner hooks so `tenancy tenant provision | migrate | deprovision` create,
+migrate, and drop each tenant's schema: create the schema on the privileged `admin` connection
+(`create schema if not exists`), and run `node ace migration:run --connection <name>` against a
+per-tenant connection whose pg `searchPath` is that schema. DDL runs as admin, never the runtime role.
+Follow https://tenancyjs.pages.dev/docs/guides/provisioning/lucid. Provision + migrate a tenant BEFORE
+you flip it to active - routing validates the schema already exists and fails closed otherwise.
+
+## Step 4 - Register provider + middleware
+Add `() => import("tenancyjs-integration-adonis/provider")` to `adonisrc.ts` providers, re-export
+`TenancyMiddleware` as the `tenant` named middleware, and apply `.use(middleware.tenant())` to tenant
+route GROUPS only - never globally, and only AFTER auth so `principal` is populated.
+
+## Step 5 - Prove it (two-tenant leak test)
+Provision two tenants, write a row with the SAME primary key under each, and assert querying as A never
+returns B's row (they live in different schemas). In tests call `config.tenancy.validate()` yourself -
+the /testing helper does not auto-validate. Follow https://tenancyjs.pages.dev/docs/guides/testing-isolation.
+
+## Verify
+- `node ace build`, boot with `node ace serve`, then `node ace test`; report every result.
+
+Report every file created/changed and any issue found.
+````
+
+## Setup-agent prompt — database-per-tenant
+
+The strongest placement: each tenant lives in its **own PostgreSQL database**, leased as a per-tenant
+connection - isolation by construction. Paste this into a repo-editing assistant.
+
+````text
+# TenancyJS Setup Agent — AdonisJS 7 + Lucid, database-per-tenant (PostgreSQL)
+
+You are a setup agent. Add fail-closed database-per-tenant multi-tenancy to this AdonisJS + Lucid
+project with TenancyJS: each tenant runs against its own Postgres database via a leased per-tenant
+connection. Execute every step in order and verify each before continuing. Do NOT invent API names -
+if unsure, fetch the linked doc.
+
+Source of truth (fetch if a detail is missing, do not guess):
+- https://tenancyjs.pages.dev/docs/adapters/lucid
+- https://tenancyjs.pages.dev/docs/integrations/adonis
+- https://tenancyjs.pages.dev/docs/guides/resolving-tenants
+- https://tenancyjs.pages.dev/docs/guides/provisioning/lucid
+- https://tenancyjs.pages.dev/docs/guides/testing-isolation
+
+## Pre-flight
+- Run `node -v`; abort if it is not >= 24.
+- Confirm `@adonisjs/core` (v7) and `@adonisjs/lucid` are in package.json and `pg` is installed.
+- Identify the landlord (central) connection and how a per-tenant DB connection is opened.
+
+## Step 1 - Install
+Run `npm install tenancyjs-core tenancyjs-adapter-lucid tenancyjs-integration-adonis tenancyjs-identifiers`.
+Keep `tenancyjs-identifiers` a DIRECT dependency or `config/tenancy.ts` fails to import.
+
+## Step 2 - config/tenancy.ts (single source of truth)
+- Construct ONE `TenancyManager<Tenant>` where `Tenant` carries a `connectionName`.
+- Build the adapter with the database-per-tenant strategy (`landlord` is the central connection;
+  `tenantConnection(t)` opens the tenant's own database):
+  ```ts
+  const tenancy = createLucidTenancy({
+    manager,
+    database: landlord,
+    strategy: "databasePerTenant",
+    connection: (t) => ({
+      key: t.connectionName,             // cache key for the leased connection
+      create: () => tenantConnection(t), // open the tenant's own database
+    }),
+    tenantModels: [{ model: Post }],
+  });
+  ```
+- Build a `TenantResolutionChain` (`new HeaderTenantResolver({ headerName: "x-tenant-id" })` + a store
+  whose `find(identifier)` returns `[{ tenant, status }]`). `x-tenant-id` is client-forgeable, so the
+  chain REQUIRES a membership check - it throws to construct without one:
+  ```ts
+  // Required: does THIS authenticated user belong to the resolved tenant?
+  authorize: ({ tenant, principal }) =>
+    (principal as { teamIds: string[] }).teamIds.includes(tenant.id),
+  ```
+  Do NOT use `trustResolution` with a raw header resolver.
+- Export
+  `defineAdonisTenancyConfig({ manager, resolver, principal: (ctx) => ctx.auth.user, tenancy: () => tenancy })`
+  as default (`tenancy` lazy; `principal` feeds the authorize check - run the middleware after auth).
+
+## Step 3 - Provision each database
+Implement the Lucid provisioner hooks so `tenancy tenant provision | migrate | deprovision` create,
+migrate, and drop each tenant's database: `create database` runs on the privileged `admin` connection
+(it cannot run inside a transaction and must target a maintenance DB), then
+`node ace migration:run --connection <name>` against a per-tenant connection pointed at that database.
+Follow https://tenancyjs.pages.dev/docs/guides/provisioning/lucid. Provision + migrate a tenant BEFORE
+you flip it to active - routing validates the database already exists and fails closed otherwise.
+
+## Step 4 - Register provider + middleware
+Add `() => import("tenancyjs-integration-adonis/provider")` to `adonisrc.ts` providers, re-export
+`TenancyMiddleware` as the `tenant` named middleware, and apply `.use(middleware.tenant())` to tenant
+route GROUPS only - never globally, and only AFTER auth so `principal` is populated.
+
+## Step 5 - Prove it (two-tenant leak test)
+Provision two tenants, write a row with the SAME primary key under each, and assert querying as A never
+returns B's row (each lives in its own database). In tests call `config.tenancy.validate()` yourself -
+the /testing helper does not auto-validate. Follow https://tenancyjs.pages.dev/docs/guides/testing-isolation.
+
+## Verify
+- `node ace build`, boot with `node ace serve`, then `node ace test`; report every result.
+
+Report every file created/changed and any issue found.
+````

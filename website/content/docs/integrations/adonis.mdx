@@ -58,11 +58,16 @@ const resolver = new TenantResolutionChain<Tenant>({
         : [];
     },
   },
+  // Resolving a tenant is not authorizing it — verify membership (or opt out
+  // with trustResolution). See /docs/guides/resolving-tenants.
+  authorize: ({ tenant, principal }) =>
+    (principal as { teamIds: string[] }).teamIds.includes(tenant.id),
 });
 
 export default defineAdonisTenancyConfig<Tenant>({
   manager,
   resolver,
+  principal: (ctx) => ctx.auth.user,
   tenancy: () =>
     createLucidTenancy<Tenant>({
       manager,

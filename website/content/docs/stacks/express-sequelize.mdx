@@ -41,6 +41,7 @@ does not apply, say so and continue. Do NOT invent API names - if unsure, fetch 
 Source of truth (fetch if a detail is missing, do not guess):
 - https://tenancyjs.pages.dev/docs/adapters/sequelize
 - https://tenancyjs.pages.dev/docs/integrations/express
+- https://tenancyjs.pages.dev/docs/guides/resolving-tenants
 - https://tenancyjs.pages.dev/docs/concepts/limitations
 - https://tenancyjs.pages.dev/docs/guides/testing-isolation
 
@@ -94,6 +95,8 @@ Create `tenancy.ts`. It must:
   `tenancy`. Classify every tenant model.
 - Build a `TenantResolutionChain` with `new HeaderTenantResolver()` and a store whose `find(identifier)`
   looks the tenant up and returns `[{ tenant: { id }, status }]` (or `[]`).
+- Pass an `authorize` hook to the chain that checks the authenticated user's membership in the resolved
+  tenant and fails closed - resolving a tenant is not authorizing the user.
 - Export `manager`, `resolver`, and `tenancy`.
 
 ## Step 5 - Validate the contract
@@ -102,8 +105,9 @@ policy is actually in place. Abort boot if it throws. Verify before continuing.
 
 ## Step 6 - Wire the middleware
 In `server.ts`, register `app.use(createExpressTenancyMiddleware({ manager, resolver }))` BEFORE your
-routes. The `resolver` is the `TenantResolutionChain` object (NOT a `(req) => …` function). Verify it is
-registered before any tenant route.
+routes. The `resolver` is the `TenantResolutionChain` object (NOT a `(req) => …` function). Pass
+`principal: (req) => req.user` so the `authorize` hook receives the authenticated user; register it
+AFTER your auth middleware. Verify it is registered before any tenant route.
 
 ## Step 7 - Query through the facade
 For every route that touches tenant data, query via
@@ -217,6 +221,9 @@ export const resolver = new TenantResolutionChain<Tenant>({
       return tenant ? [{ tenant: { id: tenant.id }, status: tenant.status }] : [];
     },
   },
+  // Verify the authenticated user belongs to the resolved tenant.
+  authorize: ({ tenant, principal }) =>
+    (principal as { teamIds: string[] }).teamIds.includes(tenant.id),
 });
 ```
 </Step>
@@ -240,7 +247,13 @@ await tenancy.validate(); // aborts boot if forced RLS is not in place
 
 const app = express();
 
-app.use(createExpressTenancyMiddleware({ manager, resolver }));
+app.use(
+  createExpressTenancyMiddleware({
+    manager,
+    resolver,
+    principal: (req) => (req as { user?: unknown }).user,
+  }),
+);
 
 app.get("/posts", async (_req, res) => {
   // Only the protected facade - never the native Post model.

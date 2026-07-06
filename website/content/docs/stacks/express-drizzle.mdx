@@ -40,6 +40,7 @@ apply, say so and continue. Do NOT invent API names - if unsure, fetch the linke
 Source of truth (fetch if a detail is missing, do not guess):
 - https://tenancyjs.pages.dev/docs/adapters/drizzle
 - https://tenancyjs.pages.dev/docs/integrations/express
+- https://tenancyjs.pages.dev/docs/guides/resolving-tenants
 - https://tenancyjs.pages.dev/docs/concepts/limitations
 - https://tenancyjs.pages.dev/docs/guides/testing-isolation
 
@@ -84,6 +85,8 @@ Create `tenancy.ts`. It must:
   (both factories from `tenancyjs-adapter-drizzle`). Export the returned `tenancy`.
 - Build a `TenantResolutionChain` with `new HeaderTenantResolver()` and a store whose `find(identifier)`
   returns `[{ tenant: { id }, status }]` (or `[]`).
+- Pass an `authorize` hook to the chain that checks the authenticated user's membership in the resolved
+  tenant and fails closed - resolving a tenant is not authorizing the user.
 - Export `manager`, `resolver`, and `tenancy`. Do NOT export the native `db`.
 
 ## Step 5 - Validate before serving
@@ -93,7 +96,9 @@ do not start the server.
 
 ## Step 6 - Wire the middleware
 In `server.ts`, register `app.use(createExpressTenancyMiddleware({ manager, resolver }))` BEFORE any
-routes. The `resolver` is the `TenantResolutionChain` object - NOT a `(req) => …` function.
+routes. The `resolver` is the `TenantResolutionChain` object - NOT a `(req) => …` function. Pass
+`principal: (req) => req.user` so the `authorize` hook receives the authenticated user; register it
+AFTER your auth middleware.
 
 ## Step 7 - Query inside a scope
 For every route that touches tenant data, query through `tenancy.run((client) => client.table(posts)...)`.
@@ -228,6 +233,9 @@ export const resolver = new TenantResolutionChain<Tenant>({
       return tenant ? [{ tenant: { id: tenant.id }, status: tenant.status }] : [];
     },
   },
+  // Verify the authenticated user belongs to the resolved tenant.
+  authorize: ({ tenant, principal }) =>
+    (principal as { teamIds: string[] }).teamIds.includes(tenant.id),
 });
 ```
 </Step>
@@ -248,7 +256,13 @@ const app = express();
 
 await tenancy.validate(); // fail closed at startup if the DB isn't locked down
 
-app.use(createExpressTenancyMiddleware({ manager, resolver }));
+app.use(
+  createExpressTenancyMiddleware({
+    manager,
+    resolver,
+    principal: (req) => (req as { user?: unknown }).user,
+  }),
+);
 
 app.get("/posts", async (_req, res) => {
   // Query inside the scope - never the native db. RLS injects the predicate.
