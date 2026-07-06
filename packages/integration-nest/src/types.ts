@@ -7,6 +7,7 @@ import type {
   ResolverInput,
   TenantResolutionContext,
   TenantResolutionOutcome,
+  TenantResolutionFailureStatus,
 } from "tenancyjs-identifiers";
 
 export interface NestTenantResolver<
@@ -36,13 +37,7 @@ export interface NestTenancyOptions<
   readonly principal?: (request: unknown) => unknown;
 }
 
-export type NestTenancyResolutionFailure =
-  | "no-identifier"
-  | "invalid"
-  | "not-found"
-  | "suspended"
-  | "forbidden"
-  | "ambiguous";
+export type NestTenancyResolutionFailure = TenantResolutionFailureStatus;
 
 export interface NestHttpRequest {
   readonly headers?: Readonly<Record<string, unknown>>;

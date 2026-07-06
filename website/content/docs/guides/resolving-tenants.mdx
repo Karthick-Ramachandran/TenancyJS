@@ -64,24 +64,25 @@ resolver: async (req) => {
 };
 ```
 
-## Consistent failure semantics
+## Resolving is not authorizing
 
-`tenancyjs-identifiers` gives you composable resolvers and a single, consistent mapping from resolution
-outcome to HTTP status. Compose the resolvers you need and give the chain a store to look the identifier
-up in:
+<Callout type="warn">
+  **Resolving a tenant proves it exists — never that the user may act as it.** `x-tenant-id` is a value
+  the client sets; any logged-in user can send another tenant's id. Without a membership check, they get
+  scoped to that tenant and read its data. RLS does not help — it scopes to whatever tenant you resolved.
+  This is the single most important thing to get right.
+</Callout>
+
+So resolution has two parts: **identify** the tenant, then **authorize** that this principal belongs to
+it. `TenantResolutionChain` makes the second part mandatory — it **refuses to construct** unless you
+either pass an `authorize` hook or explicitly opt out with `trustResolution`. You cannot ship the
+spoofable default by accident.
 
 ```ts
-import {
-  HeaderTenantResolver,
-  SubdomainTenantResolver,
-  TenantResolutionChain,
-} from "tenancyjs-identifiers";
+import { HeaderTenantResolver, TenantResolutionChain } from "tenancyjs-identifiers";
 
 const chain = new TenantResolutionChain<Tenant>({
-  resolvers: [
-    new HeaderTenantResolver({ headerName: "x-tenant-id" }),
-    new SubdomainTenantResolver({ centralDomain: "app.example.com" }),
-  ],
+  resolvers: [new HeaderTenantResolver({ headerName: "x-tenant-id" })],
   store: {
     // Look the identifier up in YOUR store and return the matches.
     async find(identifier) {
@@ -89,18 +90,43 @@ const chain = new TenantResolutionChain<Tenant>({
       return tenant ? [{ tenant, status: "active" }] : [];
     },
   },
+  // Required: does THIS authenticated user belong to the resolved tenant?
+  authorize: ({ tenant, principal }) =>
+    (principal as User).teamIds.includes(tenant.id),
 });
 
-const outcome = await chain.resolve({ host: req.host, headers: req.headers });
+const outcome = await chain.resolve(
+  { host: req.host, headers: req.headers },
+  { principal: req.user }, // the authenticated user, from your auth middleware
+);
 if (outcome.status === "resolved") {
-  // outcome.tenant - hand it to manager.runWithTenant(...)
+  // outcome.tenant — hand it to manager.runWithTenant(...)
 }
 ```
 
+The integrations extract the principal for you — pass `principal: (req) => req.user` (Express/Nest),
+`(ctx) => ctx.auth.user` (Adonis), or a session thunk (Next.js) — and run the middleware **after** your
+authentication.
+
+### When can you skip the membership check?
+
+Only when the identifier is **not client-forgeable**. Two cases:
+
+- **A signed claim you already verified** (a `tenantId` in a JWT you validated at login, after checking
+  membership). Feed it through a custom resolver and set `trustResolution: true`.
+- **A trusted transport** — service-to-service, or a gateway that strips inbound client headers. Wrap the
+  resolver in `trustedTransport(...)` to assert this, then `trustResolution: true`.
+
+You **cannot** combine `trustResolution` with a raw `HeaderTenantResolver` (or any spoofable resolver) —
+trusting a value the client set is the hole itself, so the chain rejects it. A spoofable resolver must
+go through `authorize`.
+
+## Failure semantics
+
 Outcomes map to a status consistently - **400** for `no-identifier`/`invalid`, **404** for
-`not-found`/`suspended` (deliberately indistinguishable), **500** for `ambiguous` (more than one match) -
-so every framework behaves the same way. The Express/Next/Adonis integrations apply this for you; reach
-for the chain directly when you resolve tenants by hand.
+`not-found`/`suspended`/`forbidden` (all deliberately indistinguishable, so a caller can't enumerate
+tenants or probe membership), **500** for `ambiguous` (more than one match) - so every framework behaves
+the same way. The Express/Next/Nest/Adonis integrations apply this for you.
 
 <Callout type="warn">
   This resolution store - `find(identifier) → { tenant, status }[]` - is **not** the same interface as the

@@ -7,6 +7,7 @@ import type {
   ResolverInput,
   TenantResolutionContext,
   TenantResolutionOutcome,
+  TenantResolutionFailureStatus,
 } from "tenancyjs-identifiers";
 import type { NextFunction, Request, Response } from "express";
 
@@ -21,13 +22,7 @@ export interface ExpressTenantResolver<
   ): MaybePromise<TenantResolutionOutcome<TTenant>>;
 }
 
-export type ExpressTenancyResolutionFailure =
-  | "no-identifier"
-  | "invalid"
-  | "not-found"
-  | "suspended"
-  | "forbidden"
-  | "ambiguous";
+export type ExpressTenancyResolutionFailure = TenantResolutionFailureStatus;
 
 export type ExpressTenancyErrorHandler = (
   error: ExpressTenancyResolutionError,

@@ -7,6 +7,7 @@ import type {
   ResolverInput,
   TenantResolutionContext,
   TenantResolutionOutcome,
+  TenantResolutionFailureStatus,
 } from "tenancyjs-identifiers";
 
 export interface NextTenantResolver<
@@ -18,13 +19,7 @@ export interface NextTenantResolver<
   ): MaybePromise<TenantResolutionOutcome<TTenant>>;
 }
 
-export type NextTenancyResolutionFailure =
-  | "no-identifier"
-  | "invalid"
-  | "not-found"
-  | "suspended"
-  | "forbidden"
-  | "ambiguous";
+export type NextTenancyResolutionFailure = TenantResolutionFailureStatus;
 
 export interface NextTenancyOptions<
   TTenant extends TenantRecord = TenantRecord,

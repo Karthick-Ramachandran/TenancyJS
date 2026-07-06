@@ -8,6 +8,7 @@ import type {
   ResolverInput,
   TenantResolutionContext,
   TenantResolutionOutcome,
+  TenantResolutionFailureStatus,
 } from "tenancyjs-identifiers";
 import type { HttpContext } from "@adonisjs/core/http";
 
@@ -47,13 +48,7 @@ export interface AdonisTenancyRunner {
  */
 export type AdonisTenancyRunnerFactory = () => AdonisTenancyRunner;
 
-export type AdonisTenancyResolutionFailure =
-  | "no-identifier"
-  | "invalid"
-  | "not-found"
-  | "suspended"
-  | "forbidden"
-  | "ambiguous";
+export type AdonisTenancyResolutionFailure = TenantResolutionFailureStatus;
 
 export type AdonisTenancyErrorHandler = (
   error: AdonisTenancyResolutionError,
