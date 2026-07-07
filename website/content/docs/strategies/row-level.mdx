@@ -28,9 +28,14 @@ There are two enforcement layers, depending on your database:
   tenant field into every write through a whitelist facade.
 
 The **RLS-backed adapters (Knex, Lucid, TypeORM, Sequelize, Drizzle on PostgreSQL)** use *both* layers
-(facade + forced RLS), so a bug in one is caught by the other. **Prisma is facade-only** - it has no RLS
-layer on either PostgreSQL or MySQL, so on Prisma the adapter facade is the entire guarantee (like MySQL
-and Mongoose above). Keep all tenant access going through it.
+(facade + forced RLS), so a bug in one is caught by the other. Under forced RLS these adapters also
+allow `unrestricted()` raw SQL: the query runs under a non-`BYPASSRLS` role, so the validated policy
+binds it to the current tenant (in central mode `unrestricted()` is still refused). **Prisma's
+extension path is facade-only** - it has no RLS layer on either PostgreSQL or MySQL, so there the
+adapter facade is the entire guarantee (like MySQL and Mongoose above). Prisma also has an RLS-backed
+path (`createPrismaRowLevelTenancy`, a run-scoped interactive transaction that `SET LOCAL`s the tenant
+GUC) that adds the same PostgreSQL database backstop; it needs a driver adapter (`@prisma/adapter-pg`)
+and forced RLS. Keep all tenant access going through the scoped client.
 
 ## Setup
 
@@ -101,9 +106,10 @@ error.
 
 <Callout type="warn">
   The runtime role must be `nobypassrls`, not a superuser, and **not the owner** of the tenant tables -
-  a role that can bypass RLS makes the backstop meaningless. Prisma is facade-only (no RLS layer), and
-  Mongoose is facade-only because MongoDB has no RLS - for those, the adapter facade is the entire
-  guarantee.
+  a role that can bypass RLS makes the backstop meaningless. Prisma's extension path is facade-only (no
+  RLS layer); its RLS-backed path (`createPrismaRowLevelTenancy`) adds the PostgreSQL backstop. Mongoose
+  is facade-only because MongoDB has no RLS - for those facade-only paths, the adapter facade is the
+  entire guarantee.
 </Callout>
 
 ## Databases

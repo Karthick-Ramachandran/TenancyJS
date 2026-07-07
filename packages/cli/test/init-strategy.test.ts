@@ -67,14 +67,21 @@ describe("init interactive strategy prompt", () => {
       "schemaPerTenant",
       "databasePerTenant",
     ]);
+    // Next.js supports every SQL ORM (server code is Express architecture + React).
+    expect(scaffoldableStrategies("next", "drizzle")).toEqual([
+      "rowLevel",
+      "schemaPerTenant",
+      "databasePerTenant",
+    ]);
     // Adonis + Lucid only scaffolds row-level today.
     expect(scaffoldableStrategies("adonis", "lucid")).toEqual(["rowLevel"]);
   });
 
-  it("prompts for a strategy when the stack has more than one", async () => {
+  it("prompts for the ORM then a strategy when the stack has choices", async () => {
     const dir = await projectDir({ express: "5.2.0", sequelize: "6.37.0" });
-    const io = interactiveIo(dir, ["databasePerTenant"]);
+    const io = interactiveIo(dir, ["sequelize", "databasePerTenant"]);
     expect(await runCli(["init"], io.io)).toBe(0);
+    expect(io.questions).toContain("Which ORM are you using?");
     expect(io.questions).toContain("Which isolation strategy?");
   });
 

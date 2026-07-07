@@ -8,7 +8,7 @@ secured client fails before execution. `Not implemented` makes no compatibility 
 
 | Adapter | ORM/data layer evidence | Row-level status | Schema-per-tenant status | Database-per-tenant status | Detailed matrix |
 | --- | --- | --- | --- | --- | --- |
-| Prisma | Prisma 7.8 + PostgreSQL/MySQL | Supported; adapter-enforced | PostgreSQL supported; driver-routed | PostgreSQL/MySQL supported | `packages/adapter-prisma/README.md` |
+| Prisma | Prisma 7.8 + PostgreSQL/MySQL | Supported; extension path adapter-enforced, `createPrismaRowLevelTenancy` forced-RLS database-enforced on PostgreSQL | PostgreSQL supported; driver-routed | PostgreSQL/MySQL supported | `packages/adapter-prisma/README.md` |
 | Knex | Knex 3.3 + PostgreSQL 17 | Supported; forced-RLS database-enforced | Supported; adapter-enforced | Supported | `packages/adapter-knex/README.md` |
 | Lucid | Lucid 22.4 + PostgreSQL 17 | Supported normal-model matrix; forced-RLS database-enforced | Supported; adapter-enforced | Supported | `packages/adapter-lucid/README.md` |
 | TypeORM | TypeORM 1 + PostgreSQL/MySQL | PostgreSQL database-enforced; MySQL adapter-enforced/experimental | PostgreSQL supported | PostgreSQL/MySQL supported | `packages/adapter-typeorm/README.md` |
@@ -29,7 +29,8 @@ secured client fails before execution. `Not implemented` makes no compatibility 
 | batch/interactive transactions | Supported | extension callback retains transaction and context; rollback tested |
 | explicit central context | Supported | lexical administrative bypass for supported operations |
 | allowlisted central models | Supported | pass-through after operation/relation validation |
-| raw SQL/TypedSQL entry points | Rejected | arbitrary SQL cannot be generically tenant-enforced |
+| raw SQL/TypedSQL entry points | Rejected on the extension path | arbitrary SQL cannot be generically tenant-enforced by the facade |
+| RLS-backed row-level (`createPrismaRowLevelTenancy`) | Supported on PostgreSQL | run-scoped interactive transaction that `SET LOCAL`s the tenant GUC; model, nested, and raw are RLS-enforced, and a raw cross-tenant insert is rejected by `WITH CHECK`. Requires a driver adapter (`@prisma/adapter-pg`) and forced RLS |
 | nested relation reads/writes | Rejected | Prisma query extensions lack reliable nested hooks |
 | fluent relation traversal | Rejected | configured relation selection detected before execution |
 | unknown/unclassified models | Rejected | exhaustive classification required |
@@ -49,6 +50,7 @@ The guarantee conditions and expansion rules are defined in
 | managed transactions/savepoints | Supported | transaction-local context, rollback and pooled cleanup tested |
 | explicit central context/central tables | Supported | adapter-owned central flag and explicit allowlist |
 | raw/schema/migration/client/connection | Rejected | outside callback-scoped protected-client boundary |
+| `unrestricted()` raw SQL (forced RLS, tenant mode) | Supported | full query freedom (raw SQL, joins, nested) runs under the non-`BYPASSRLS` role and is bound to the current tenant by the validated RLS policy; still refused in central mode |
 | OR/clear/join/union/CTE/subquery/stream/truncate | Rejected | mutable composition is not yet proven safe |
 | unclassified tables/unknown operations | Rejected | exhaustive classification and runtime proxy rejection |
 | non-PostgreSQL | Unsupported | PostgreSQL-only adapter |
@@ -65,6 +67,7 @@ The guarantee conditions and expansion rules are defined in
 | managed transactions/savepoints | Supported | transaction-local context/search path and async-local transaction ownership |
 | explicit central context | Supported (row-level) | adapter-owned central RLS setting; tenant models are rejected in schema-mode central context |
 | `.pojo()`/quiet/bulk/direct builder | Rejected/fail-closed | hook-skipping paths receive no protected transaction and forced RLS must deny access |
+| `unrestricted()` raw SQL (forced RLS, tenant mode) | Supported | full query freedom runs under the non-`BYPASSRLS` role and is bound to the current tenant by the validated RLS policy; still refused in central mode |
 | unregistered models/base database service | Outside guarantee | application-retained Lucid surfaces bypass adapter hooks |
 | non-PostgreSQL | Unsupported | PostgreSQL-only adapter |
 | schema-per-tenant normal model operations | Supported | unqualified registered models + validated transaction-local `search_path`; adapter-enforced |
@@ -81,6 +84,7 @@ The guarantee conditions and expansion rules are defined in
 | schema-per-tenant | PostgreSQL supported | unqualified tables + shared validated `search_path`; optional role hardening |
 | database-per-tenant | PostgreSQL/MySQL supported | bounded cache-routed resources with colliding-ID separate-database tests |
 | MySQL row-level | Supported, experimental | protected facade only; no database RLS backstop |
+| `unrestricted()` raw SQL (PostgreSQL forced RLS, tenant mode) | Supported | full query freedom runs under the non-`BYPASSRLS` role and is bound to the current tenant by the validated RLS policy; still refused in central mode, and unavailable on MySQL row-level (no RLS) |
 | raw/native client/query builder/relations/joins | Rejected or absent | outside callback-scoped protected facade |
 | unknown tables/models/entities | Rejected | exhaustive registration required |
 | MySQL schema-per-tenant | Not applicable | MySQL schema and database are the same namespace |

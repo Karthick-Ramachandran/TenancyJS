@@ -624,15 +624,16 @@ describe("CLI leak test and command runner", () => {
 
   it("prompts for AI context interactively and honors the answer", async () => {
     const yesRoot = await fixture();
-    // Interactive init now prompts for a strategy first, then the AI context.
+    // Interactive init (Express) prompts for the ORM, then the strategy, then AI context.
     const yes = captureIo(yesRoot, {
       isInteractive: true,
-      answers: ["rowLevel", "yes"],
+      answers: ["prisma", "rowLevel", "yes"],
     });
     await expect(runCli(["init", "--apply"], yes.io)).resolves.toBe(0);
-    expect(yes.selectQuestions).toHaveLength(2);
-    expect(yes.selectQuestions[0]!.question).toContain("isolation strategy");
-    expect(yes.selectQuestions[1]!.question).toContain("TENANCY.md");
+    expect(yes.selectQuestions).toHaveLength(3);
+    expect(yes.selectQuestions[0]!.question).toContain("ORM");
+    expect(yes.selectQuestions[1]!.question).toContain("isolation strategy");
+    expect(yes.selectQuestions[2]!.question).toContain("TENANCY.md");
     await expect(
       readFile(join(yesRoot, "TENANCY.md"), "utf8"),
     ).resolves.toContain("TenancyJS");
@@ -640,7 +641,7 @@ describe("CLI leak test and command runner", () => {
     const noRoot = await fixture();
     const no = captureIo(noRoot, {
       isInteractive: true,
-      answers: ["rowLevel", "no"],
+      answers: ["prisma", "rowLevel", "no"],
     });
     await expect(runCli(["init", "--apply"], no.io)).resolves.toBe(0);
     await expect(
@@ -851,8 +852,9 @@ describe("CLI v0.1 interactive init", () => {
     });
     expect(checkNodeVersion("20.11.0").ok).toBe(false);
     const banner = capabilityBanner("24.0.0");
-    expect(banner).toContain("Express 5.2 + Prisma 7.8");
-    expect(banner).toContain("Next.js 16 + Prisma 7.8");
+    expect(banner).toContain("Express");
+    expect(banner).toContain("Next.js");
+    expect(banner).toContain("Prisma");
     expect(banner).toContain("row-level");
     expect(banner).toContain("database-per-tenant");
     expect(banner).toContain("Node 24+");
@@ -889,8 +891,8 @@ describe("CLI v0.1 interactive init", () => {
     const root = await fixture();
     const output = captureIo(root, { nodeVersion: "20.11.0" });
     await expect(runCli(["init"], output.io)).resolves.toBe(2);
-    expect(output.stderr.join("")).toContain("Supported stacks");
-    expect(output.stderr.join("")).toContain("Node 24+ required");
+    expect(output.stderr.join("")).toContain("Stacks");
+    expect(output.stderr.join("")).toContain("Node 24+");
     await expect(
       readFile(join(root, "tenancy.config.ts"), "utf8"),
     ).rejects.toMatchObject({ code: "ENOENT" });
@@ -903,15 +905,16 @@ describe("CLI v0.1 interactive init", () => {
     });
     const output = captureIo(root, {
       isInteractive: true,
-      answers: ["next", "rowLevel", "no"],
+      answers: ["next", "prisma", "rowLevel", "no"],
     });
     await expect(runCli(["init", "--apply"], output.io)).resolves.toBe(0);
-    // Framework prompt, then strategy, then the opt-in AI-context prompt.
-    expect(output.selectQuestions).toHaveLength(3);
+    // Framework prompt, then ORM (Next now supports several), strategy, AI context.
+    expect(output.selectQuestions).toHaveLength(4);
     expect(
       output.selectQuestions[0]!.choices.map((choice) => choice.value),
     ).toEqual(["express", "adonis", "next"]);
-    expect(output.selectQuestions[1]!.question).toContain("isolation strategy");
+    expect(output.selectQuestions[1]!.question).toContain("ORM");
+    expect(output.selectQuestions[2]!.question).toContain("isolation strategy");
     expect(output.stderr.join("")).toContain("No supported framework");
     await expect(
       readFile(join(root, "lib/tenancy/server.ts"), "utf8"),

@@ -25,7 +25,7 @@ Node.js ecosystem, and admits where our choices cost you.
 | Tenant resolution vs authorization | Resolution requires an explicit membership decision or trusted transport ([ADR-0035](https://github.com/Karthick-Ramachandran/TenancyJS)) | Often "trust the header/subdomain," which can be spoofed without an ownership check |
 | Proven by real-DB conformance tests | Every supported operation is covered by an adversarial suite on real databases | Support is often asserted from ORM capability, not proven per operation |
 | Honest capability matrix / limitations | Published matrix + limitations page; facade-only weaknesses are admitted | Varies; not always documented |
-| Raw SQL & complex queries | Rejected fail-closed in facade tiers; full freedom in database-per-tenant | Commonly allowed everywhere - ergonomic, but unchecked |
+| Raw SQL & complex queries | Full freedom via `unrestricted()` in database-enforced scopes (database-per-tenant and forced-RLS row-level on Postgres), still bound to the tenant by the DB; rejected fail-closed in facade tiers | Commonly allowed everywhere - ergonomic, but unchecked |
 
 ## Where we are deliberately stricter
 
@@ -44,13 +44,16 @@ Node.js ecosystem, and admits where our choices cost you.
 
 ## Where you pay for it (honest tradeoffs)
 
-- **Facade tiers restrict queries.** In facade-enforced scopes we **reject** raw SQL, joins, and nested
-  writes fail-closed. That's safe, but it's less ergonomic than libraries that let you run anything.
-  Full query freedom is available in **database-per-tenant** today, and it's on the roadmap for
-  forced-RLS row-level.
-- **Not every tier has a database backstop yet.** Our Prisma row-level, MySQL row-level, and MongoDB
-  enforcement are **facade-only** today - no database backstop, so a bug that bypasses the facade could
-  leak. We publish this plainly in the [Capability matrix](/docs/concepts/capability-matrix) and
+- **Facade tiers restrict queries.** In facade-enforced scopes (MySQL row-level, schema-per-tenant,
+  central mode) we **reject** raw SQL, joins, and nested writes fail-closed. That's safe, but less
+  ergonomic than libraries that let you run anything. Full query freedom via `unrestricted()` is
+  available in every **database-enforced** scope - database-per-tenant and forced-RLS row-level on
+  Postgres - where the database itself keeps raw SQL bound to the tenant.
+- **Not every tier has a database backstop.** MySQL row-level and MongoDB are **facade-only** - no
+  database backstop, so a bug that bypasses the facade could leak. Prisma row-level is facade-only in
+  its extension path, but also ships an RLS-backed path
+  ([`createPrismaRowLevelTenancy`](/docs/adapters/prisma)) with a forced-RLS backstop. We publish this
+  plainly in the [Capability matrix](/docs/concepts/capability-matrix) and
   [Limitations](/docs/concepts/limitations) rather than imply uniform strength.
 - **Central access is explicit.** Reaching across all tenants for admin or reporting is a deliberate
   call, not an accidental default - convenient for safety, slightly more ceremony for you.

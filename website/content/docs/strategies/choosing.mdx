@@ -15,18 +15,19 @@ row-level while giving a few heavyweight tenants their own database, for example
 | | Row-level | Schema-per-tenant | Database-per-tenant |
 | --- | --- | --- | --- |
 | **Isolation strength** | Weakest - shared tables | Middle - own schema per tenant | Strongest - isolation by construction |
-| **Enforcement tier (Postgres)** | Database-enforced (forced RLS); facade-only on MySQL/Prisma | Facade + search_path; a database-level block needs the optional per-tenant role | Database-enforced (own connection/database) |
+| **Enforcement tier (Postgres)** | Database-enforced (forced RLS); facade-only on MySQL and Prisma's extension path (Prisma also has an RLS-backed path) | Facade + search_path; a database-level block needs the optional per-tenant role | Database-enforced (own connection/database) |
 | **Noisy-neighbor risk** | High - shared tables and one connection pool | Moderate - shared server, separate objects | Low - separate database and pool per tenant |
 | **Per-tenant cost / connection scaling** | Cheapest; one shared pool | Low; still one server | Highest; N databases and N pools, leased through a bounded LRU cache - connection scaling is the main constraint at high tenant counts |
 | **Migration & ops overhead** | Lowest - one migration for everyone | Higher - many schemas to migrate and operate | Highest - N databases to provision and migrate |
-| **Query freedom (raw SQL / joins / nested)** | Restricted - raw SQL, joins, and nested writes rejected fail-closed | Restricted - same fail-closed limits as row-level | Full - raw SQL and joins via `unrestricted()` |
+| **Query freedom (raw SQL / joins / nested)** | Full via `unrestricted()` under forced RLS on Postgres; restricted (fail-closed) on MySQL and the facade | Restricted - fail-closed (facade) | Full - raw SQL and joins via `unrestricted()` |
 | **Per-tenant backup / delete / residency** | Hard - data is interleaved | Partial - per-schema objects help | Natural - per-tenant backup/restore, encryption keys, residency, hard delete |
 
 <Callout type="info">
-  **Enforcement tiers (ADR-0033).** *Database-enforced* means the database itself refuses cross-tenant
-  rows (database-per-tenant, or Postgres row-level under forced RLS). *Facade-enforced* means the
-  adapter facade is the only guard - raw SQL, joins, and nested writes are rejected fail-closed to stay
-  safe.
+  **Enforcement tiers (ADR-0033 / ADR-0038).** *Database-enforced* means the database itself refuses
+  cross-tenant rows (database-per-tenant, or Postgres row-level under forced RLS) - there raw SQL and
+  joins are available via `unrestricted()`, still bound to the tenant by the database. *Facade-enforced*
+  means the adapter facade is the only guard (MySQL row-level, schema-per-tenant, central mode) - raw
+  SQL, joins, and nested writes are rejected fail-closed.
 </Callout>
 
 ## Choose row-level if ...
@@ -52,9 +53,11 @@ row-level while giving a few heavyweight tenants their own database, for example
 
 <Callout type="warn">
   **Facade-only placements have no database backstop.** MySQL row-level is experimental and
-  facade-only, MongoDB/Mongoose is facade-only, and Prisma row-level has no RLS backstop - in all of
-  these the adapter facade is the entire guarantee. If you need a hard database-level guarantee on those
-  stacks, prefer **database-per-tenant**. See the
+  facade-only, and MongoDB/Mongoose is facade-only - the adapter facade is the entire guarantee. Prisma
+  row-level is facade-only in its extension path, but also has an RLS-backed path
+  ([`createPrismaRowLevelTenancy`](/docs/adapters/prisma)) that adds a forced-RLS database backstop. If
+  you need a hard database-level guarantee on a facade-only stack, prefer **database-per-tenant**. See
+  the
   [capability matrix](/docs/concepts/capability-matrix) and [limitations](/docs/concepts/limitations).
 </Callout>
 

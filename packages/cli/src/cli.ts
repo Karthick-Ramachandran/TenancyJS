@@ -333,14 +333,14 @@ async function resolveOrm(
       );
     return parsed.orm;
   }
-  if (
+  const choices = ormChoicesForFramework(framework);
+  const detected =
     detection.orm.supported &&
     detection.orm.name !== "unknown" &&
     isSupportedStack(framework, detection.orm.name)
-  )
-    return detection.orm.name;
-
-  const choices = ormChoicesForFramework(framework);
+      ? (detection.orm.name as InitOrm)
+      : undefined;
+  // Only one ORM for this framework (Next, Adonis) - nothing to choose.
   if (choices.length === 1) return choices[0]!.value;
   const interactive =
     io.isInteractive === true &&
@@ -348,11 +348,21 @@ async function resolveOrm(
     !parsed.json &&
     !parsed.yes;
   if (interactive) {
-    const value = await io.select!("Which ORM are you setting up?", choices);
+    // Ask even when we detected one - the install may not match what they want
+    // to set up. Put the detected ORM first so Enter keeps it.
+    const ordered =
+      detected === undefined
+        ? choices
+        : [
+            { value: detected, label: `${ORM_LABEL[detected]} (detected)` },
+            ...choices.filter((choice) => choice.value !== detected),
+          ];
+    const value = await io.select!("Which ORM are you using?", ordered);
     if (!isInitOrm(value) || !isSupportedStack(framework, value))
       throw new CliUsageError(`Unknown ORM "${value}" for ${framework}.`);
     return value;
   }
+  if (detected !== undefined) return detected;
   throw new CliUsageError(
     `Could not detect a supported ORM for ${framework}. Pass --orm=${choices.map((choice) => choice.value).join("|")}.`,
   );
@@ -560,11 +570,13 @@ async function resolveFramework(
   if (detection.framework.supported && detection.framework.name !== "unknown") {
     if (!parsed.json) {
       io.writeStderr(
-        `Detected ${detection.framework.name}${
-          detection.framework.version === undefined
-            ? ""
-            : ` ${detection.framework.version}`
-        }.\n`,
+        `  ${dim(
+          `detected ${detection.framework.name}${
+            detection.framework.version === undefined
+              ? ""
+              : ` ${detection.framework.version}`
+          }`,
+        )}\n`,
       );
     }
     return detection.framework.name;
@@ -890,9 +902,9 @@ Usage:
 
 init previews changes (dry run) unless --apply is present. It detects your stack and, when it cannot,
 asks you to choose one interactively; pass --framework and --orm to skip prompts in CI. Express 5.2
-supports Prisma 7.8, TypeORM 1, Sequelize 6.37, and Drizzle 0.45 scaffolds; AdonisJS 7.3 uses Lucid
-22.4 and Next.js 16 uses Prisma 7.8. Init scaffolds row-level by default; pass --strategy for
-schema-per-tenant or database-per-tenant (Express + any SQL ORM, and Next + Prisma). Node.js >= 24 is required. With
+and Next.js 16 both support Prisma 7.8, TypeORM 1, Sequelize 6.37, and Drizzle 0.45 scaffolds; AdonisJS
+7.3 uses Lucid 22.4. Init scaffolds row-level by default; pass --strategy for
+schema-per-tenant or database-per-tenant (Express and Next + any SQL ORM or Prisma). Node.js >= 24 is required. With
 --apply, init offers to also write a stack-specific TENANCY.md and register a TenancyJS block in an
 existing AGENTS.md/CLAUDE.md; pass --ai-context to opt in non-interactively (it never creates an
 agent-memory file that is not already there).

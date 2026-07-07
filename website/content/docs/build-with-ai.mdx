@@ -63,8 +63,11 @@ opens the scope; (4) route all tenant queries through the scoped client (drop ma
 (5) central scope for admin work.
 
 Rules (do not weaken): fail-closed - unscoped tenant access must throw; never touch the native Prisma
-client inside a scope; raw/nested writes are rejected by the facade; registered models + scalar filters
-only. On PostgreSQL row-level, also add the forced RLS policy the adapter doc describes.
+client inside a scope. On the facade/extension path raw/nested writes are rejected and only registered
+models + scalar filters run. For raw SQL/joins bound to the tenant, use the RLS-backed path instead:
+`createPrismaRowLevelTenancy` adds a forced-RLS database backstop and runs tenant work inside
+`run(async (tx) => ...)`, where `unrestricted()`-style raw SQL is allowed and enforced by the database
+(see the adapter doc). On PostgreSQL row-level, always add the forced RLS policy the adapter doc describes.
 
 Deliver the config, the middleware, the converted routes, and a two-tenant colliding-id test proving no
 cross-tenant read and that unscoped access throws. Fetch any linked page rather than inventing an API.

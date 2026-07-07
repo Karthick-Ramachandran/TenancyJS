@@ -26,13 +26,15 @@ not always the case, so TenancyJS classifies every active scope into one of two 
   database-enforced scope can hand you the **real, tenant-scoped client** for full query freedom.
 
 <Callout type="info">
-  **Available today on every adapter:** in a **database-per-tenant** scope, `client.unrestricted()`
-  returns the raw tenant-scoped client - full joins, raw SQL, and nested queries - safe because the
-  connection *is* the tenant's own database. It works on Knex, TypeORM, Sequelize, Drizzle, and Mongoose;
-  on [Lucid](/docs/adapters/lucid) it's `scope.unrestricted()`; **Prisma** database-per-tenant already
-  hands you the raw leased client directly. This is fail-closed: it **throws** in any facade-enforced
-  scope (including a database-per-tenant config used in central mode). Extending it to PostgreSQL
-  forced-RLS and schema-plus-role scopes is [on the roadmap](/docs/concepts/capability-matrix#roadmap).
+  **Available today in every database-enforced scope:** `client.unrestricted()` returns the raw,
+  tenant-scoped client - full joins, raw SQL, and nested queries. This works in **database-per-tenant**
+  (the connection *is* the tenant's own database) **and in forced-RLS row-level on PostgreSQL** (the
+  validated policy under a non-`BYPASSRLS` role keeps every statement bound to the tenant). It works on
+  Knex, TypeORM, Sequelize (which returns `{ sequelize, transaction }`), Drizzle, and Lucid; Prisma's
+  database-per-tenant router and its RLS-backed row-level path
+  ([`createPrismaRowLevelTenancy`](/docs/adapters/prisma)) hand you the tenant-scoped client directly.
+  This is fail-closed: it **throws** in any facade-enforced scope - MySQL row-level, schema-per-tenant,
+  and central mode.
 </Callout>
 
 Everything below describes the **facade-enforced** tier. Read each restriction as "…unless the scope is
@@ -47,9 +49,10 @@ rather than run it unscoped. (In a database-enforced scope the database isolates
 adapter's database-per-tenant scope gives you `client.unrestricted()` for exactly this.)
 
 - **Workaround:** use the scoped query builder / model API the adapter gives you. If you genuinely need
-  arbitrary raw access, use [database-per-tenant](/docs/strategies/database-per-tenant) - a physically
-  separate connection per tenant means raw queries are isolated by construction, and that scope hands you
-  the raw client via [`unrestricted()`](/docs/strategies/database-per-tenant#full-query-freedom).
+  arbitrary raw access, use a database-enforced scope - **forced-RLS row-level on PostgreSQL** or
+  [database-per-tenant](/docs/strategies/database-per-tenant) - where the database keeps raw queries
+  bound to the tenant and the scope hands you the raw client via
+  [`unrestricted()`](/docs/strategies/database-per-tenant#full-query-freedom).
 
 ## Nested writes - not supported (facade-enforced scopes)
 

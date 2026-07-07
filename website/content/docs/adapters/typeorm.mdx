@@ -117,11 +117,13 @@ has no RLS. MySQL schema and database are synonyms, so use `databasePerTenant` i
 
 ## Full query freedom: `unrestricted()`
 
-In every other strategy the protected client rejects native managers, joins, and raw SQL - it's the only
-guard, so it can't let through what it can't prove is tenant-safe (see
-[Limitations](/docs/concepts/limitations)). **Database-per-tenant is different:** the leased connection
-*is* the tenant's own database, so any query is isolated by construction. There, the client gives you an
-escape hatch that returns the leased `EntityManager` - full TypeORM freedom:
+`unrestricted()` returns a tenant-scoped `EntityManager` - full query builder, relations, and raw SQL.
+It's available in the two scopes where the database itself keeps a query inside the tenant:
+**database-per-tenant** (the leased connection *is* the tenant's own database) and **forced-RLS
+row-level on PostgreSQL** (the scoped `EntityManager` runs under a non-BYPASSRLS role bound by the
+validated RLS policy, so it cannot cross tenants). It's still refused in schema-per-tenant, central
+mode, and MySQL row-level (no RLS backstop) - there the protected client is the only guard, so it can't
+let through what it can't prove is tenant-safe (see [Limitations](/docs/concepts/limitations)):
 
 ```ts
 const report = await tenancy.run(async (client) => {
@@ -138,12 +140,14 @@ const report = await tenancy.run(async (client) => {
 ```
 
 <Callout type="warn">
-  `unrestricted()` is **fail-closed**. It returns the real `EntityManager` **only** in a genuinely
-  database-enforced scope - a database-per-tenant config running in tenant mode, where a per-tenant
-  connection was actually leased. It **throws** in row-level and schema-per-tenant scopes, and even in a
-  database-per-tenant config used in central mode (which runs on the shared admin connection, not a
-  tenant's database). The freedom comes from the connection boundary, never from the config name
-  ([ADR-0033](/docs/concepts/limitations#two-enforcement-tiers--and-when-the-restrictions-lift)).
+  `unrestricted()` is **fail-closed**. It returns a real `EntityManager` **only** where the database
+  itself enforces the tenant boundary - a database-per-tenant config in tenant mode (a per-tenant
+  connection was actually leased), or forced-RLS row-level on PostgreSQL (the scoped manager is bound by
+  the validated policy under a non-BYPASSRLS role). It **throws** in schema-per-tenant scopes, in MySQL
+  row-level (no RLS backstop), and in any config used in central mode (which runs on the shared admin
+  connection, not a tenant's database). The freedom comes from a database boundary, never from the
+  config name
+  ([ADR-0038](/docs/concepts/limitations#two-enforcement-tiers--and-when-the-restrictions-lift)).
 </Callout>
 
 ## Use a different framework

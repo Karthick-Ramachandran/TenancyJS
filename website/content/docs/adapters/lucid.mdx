@@ -60,7 +60,8 @@ const orders = await Order.all();
   `Post.query().delete()` or `Post.query().update({...})` bypasses those hooks, so it runs unscoped (on
   schema/database-per-tenant it lands on the wrong placement and fails loudly rather than crossing
   tenants - but it's still wrong). For bulk work inside a scope, iterate instance methods, or use
-  [`scope.unrestricted()`](#full-query-freedom-scopeunrestricted) in a database-per-tenant scope.
+  [`scope.unrestricted()`](#full-query-freedom-scopeunrestricted) in a database-per-tenant or forced-RLS
+  row-level scope.
 </Callout>
 
 ## Schema per tenant
@@ -107,12 +108,15 @@ See [Database per tenant](/docs/strategies/database-per-tenant) and
 
 ## Full query freedom: `scope.unrestricted()`
 
-In every other strategy your Lucid models are constrained to the tenant-safe path - it's the only guard,
-so it can't let through what it can't prove is tenant-safe (see
-[Limitations](/docs/concepts/limitations)). **Database-per-tenant is different:** the leased connection
-*is* the tenant's own database, so any query is isolated by construction. There, the `run` callback's
-**scope** argument gives you an escape hatch that returns the leased `TransactionClientContract` - full
-`rawQuery`, query builder, and nested writes:
+`scope.unrestricted()` returns the tenant-scoped `TransactionClientContract` - full `rawQuery`, query
+builder, and nested writes. It's available in the two scopes where the database itself keeps a query
+inside the tenant: **database-per-tenant** (the leased connection *is* the tenant's own database) and
+**forced-RLS row-level on PostgreSQL** (the transaction runs under a non-BYPASSRLS role bound by the
+validated RLS policy, so it cannot cross tenants). Everywhere else your Lucid models are constrained to
+the tenant-safe path - in schema-per-tenant, central mode, and MySQL row-level (no RLS backstop) that
+path is the only guard, so it can't let through what it can't prove is tenant-safe (see
+[Limitations](/docs/concepts/limitations)). The `run` callback's **scope** argument is where you reach
+it:
 
 ```ts
 const report = await tenancy.run(async (scope) => {
@@ -136,10 +140,12 @@ argument is optional.
 </Callout>
 
 <Callout type="warn">
-  `scope.unrestricted()` is **fail-closed**. It returns the real transaction **only** in a genuinely
-  database-enforced scope - a database-per-tenant config running in tenant mode, where a per-tenant
-  connection was actually leased. It **throws** in row-level and schema-per-tenant scopes, and even in a
-  database-per-tenant config used in central mode (which runs on the shared admin connection, not a
-  tenant's database). The freedom comes from the connection boundary, never from the config name
-  ([ADR-0033](/docs/concepts/limitations#two-enforcement-tiers--and-when-the-restrictions-lift)).
+  `scope.unrestricted()` is **fail-closed**. It returns a real transaction **only** where the database
+  itself enforces the tenant boundary - a database-per-tenant config in tenant mode (a per-tenant
+  connection was actually leased), or forced-RLS row-level on PostgreSQL (the transaction is bound by
+  the validated policy under a non-BYPASSRLS role). It **throws** in schema-per-tenant scopes, in MySQL
+  row-level (no RLS backstop), and in any config used in central mode (which runs on the shared admin
+  connection, not a tenant's database). The freedom comes from a database boundary, never from the
+  config name
+  ([ADR-0038](/docs/concepts/limitations#two-enforcement-tiers--and-when-the-restrictions-lift)).
 </Callout>

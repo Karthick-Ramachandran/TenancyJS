@@ -12,7 +12,10 @@ import {
   EXPRESS_PRISMA_TEMPLATES,
   EXPRESS_SEQUELIZE_TEMPLATES,
   EXPRESS_TYPEORM_TEMPLATES,
+  NEXT_DRIZZLE_TEMPLATES,
   NEXT_PRISMA_TEMPLATES,
+  NEXT_SEQUELIZE_TEMPLATES,
+  NEXT_TYPEORM_TEMPLATES,
   resolveStrategyTemplates,
 } from "./templates.js";
 import type {
@@ -32,6 +35,9 @@ const TEMPLATES: Readonly<Record<string, TemplateSet>> = Object.freeze({
   "express:drizzle": EXPRESS_DRIZZLE_TEMPLATES,
   "adonis:lucid": ADONIS_LUCID_TEMPLATES,
   "next:prisma": NEXT_PRISMA_TEMPLATES,
+  "next:typeorm": NEXT_TYPEORM_TEMPLATES,
+  "next:sequelize": NEXT_SEQUELIZE_TEMPLATES,
+  "next:drizzle": NEXT_DRIZZLE_TEMPLATES,
 });
 
 export interface ResolvedInitStack {

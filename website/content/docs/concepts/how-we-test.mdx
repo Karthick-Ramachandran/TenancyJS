@@ -67,8 +67,9 @@ Real-database integration suites (PostgreSQL / MySQL / MongoDB, gated to run whe
 present) push the same adversarial posture per adapter - for example, Prisma
 "cannot update, delete, or upsert across tenant boundaries", "fails without context and rejects tenant
 discriminator tampering", and "rejects raw and nested relation operations on the extended client";
-Knex "does not leak transaction-local identity through the connection pool" and "refuses
-unrestricted() in row-level scope (facade-enforced)"; the adapter-shared suite "validates the full
+Knex "does not leak transaction-local identity through the connection pool", "allows unrestricted()
+raw SQL under forced RLS, bound to the current tenant", and "still refuses unrestricted() in central
+mode"; the adapter-shared suite "validates the full
 forced-RLS contract once for every adapter" and "reports every isolation defect without exposing query
 values"; and Lucid "fails closed on cross-tenant and central-in-tenant run() nesting".
 

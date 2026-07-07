@@ -8,9 +8,21 @@ gives you two ways to do it: hand the **setup-agent prompt** to your AI assistan
 **manual walkthrough**. Either way, finish by running the two-tenant test - with fail-closed isolation
 you verify, you don't trust.
 
-This is **row-level** on PostgreSQL. Prisma row-level is _facade-enforced_ (the extension rewrites
-query arguments; there is no RLS backstop), so the one rule that matters most: only ever expose the
-**extended** client - never the base Prisma client.
+This is **row-level** on PostgreSQL. Prisma row-level has two modes. This page scaffolds the
+**facade/extension** path (`createPrismaTenancyExtension`): it rewrites query arguments and has no
+database backstop, so the one rule that matters most is only ever expose the **extended** client -
+never the base Prisma client. There is also an **RLS-backed** path
+(`createPrismaRowLevelTenancy`) that adds a forced-RLS database backstop, so even a query that
+bypasses the rewriter cannot cross tenants.
+
+<Callout type="info">
+  Want a database backstop under row-level? `createPrismaRowLevelTenancy({ manager, client, tables })`
+  returns `{ validate, run }`; `run(async (tx) => ...)` opens a Prisma interactive transaction, `SET
+  LOCAL`s the tenant GUC, and hands you a tenant-scoped `tx` (a full PrismaClient) under forced RLS -
+  model queries, nested relations, and raw SQL all run bound to the tenant, so a raw cross-tenant insert
+  is rejected by the policy. It needs a driver adapter (`@prisma/adapter-pg`) and forced-RLS DDL on the
+  tenant tables (generate it with `tenancy policy`). See [Prisma adapter](/docs/adapters/prisma).
+</Callout>
 
 <Callout type="info">
   Running **MySQL**? This page is PostgreSQL (row-level + forced RLS). MySQL has no schema-per-tenant

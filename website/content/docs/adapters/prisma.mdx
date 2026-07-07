@@ -3,8 +3,10 @@ title: Prisma
 description: Row, PostgreSQL schema, and database-per-tenant routing for Prisma 7.
 ---
 
-`tenancyjs-adapter-prisma` scopes Prisma queries to the active tenant via a **Prisma Client extension**.
-It supports **row-level** (PostgreSQL + MySQL 🧪 experimental), PostgreSQL **schema-per-tenant**, and
+`tenancyjs-adapter-prisma` scopes Prisma queries to the active tenant. **Row-level** works two ways: a
+**Prisma Client extension** that rewrites queries (facade-only, PostgreSQL + MySQL 🧪 experimental), or
+an **RLS-backed** path on PostgreSQL where forced RLS is the enforcement and you get full query freedom
+([see below](#rls-backed-row-level-postgresql)). It also supports PostgreSQL **schema-per-tenant** and
 **database-per-tenant** on PostgreSQL and MySQL.
 
 This page shows it wired **end to end with Express**; for another framework, swap only the integration
@@ -73,8 +75,56 @@ app.get("/orders", async (_req, res) => {
 </Steps>
 
 Inside a tenant scope the extension injects the tenant filter on reads and the tenant field on writes;
-outside a scope it fails closed. Row-level Prisma isolation is adapter-enforced query rewriting on both
-databases; using an unextended client bypasses it.
+outside a scope it fails closed. This is the **facade-only** path: isolation is adapter-enforced query
+rewriting with no database backstop, so an unextended client - or a query the rewriter doesn't cover
+(a raw `$queryRaw`, some nested writes) - bypasses it. Use it when you can't run a Prisma driver adapter.
+For a database backstop on PostgreSQL, use the RLS-backed path below.
+
+## RLS-backed row-level (PostgreSQL)
+
+On PostgreSQL you can back row-level isolation with **forced RLS** instead of trusting the facade.
+`createPrismaRowLevelTenancy` returns `{ validate, run }`. `run` opens a Prisma interactive transaction,
+`SET LOCAL`s the tenant GUC the RLS policy reads, and hands your callback a tenant-scoped `tx` (a full
+`PrismaClient`). Model queries, nested relations, **and** raw SQL all run under the policy - so a query
+that slips a rewriter still cannot cross tenants, and a raw cross-tenant write is rejected by the
+policy's `WITH CHECK`. It needs a driver adapter (`@prisma/adapter-pg`) and forced RLS under a
+non-BYPASSRLS role (generate the DDL with `tenancy policy`).
+
+```ts title="tenancy.ts"
+import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { createPrismaRowLevelTenancy } from "tenancyjs-adapter-prisma";
+import { manager } from "./manager";
+
+// A driver adapter is required so the transaction can SET LOCAL the tenant GUC.
+const client = new PrismaClient({
+  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }),
+});
+
+export const tenancy = createPrismaRowLevelTenancy({
+  manager,
+  client,
+  // Each entry maps a Prisma model to its table + tenant column:
+  // { model, table, tenantColumn, tenantField?, schema?, policyName? }.
+  tables: [{ model: "post", table: "posts", tenantColumn: "tenant_id" }],
+});
+
+await tenancy.validate(); // checks forced RLS + the policy contract are in place
+```
+
+```ts
+// inside a request, already resolved to `tenant`
+const posts = await manager.runWithTenant(tenant, () =>
+  tenancy.run(async (tx) => tx.post.findMany()), // full query freedom, RLS-scoped
+);
+```
+
+<Callout type="info">
+  Here **RLS is the enforcement**, not the facade: forced RLS + a non-BYPASSRLS role + the `tenancy
+  policy` DDL. Inside `run` you have full Prisma freedom - model queries, nested relations, and raw SQL -
+  and the tenant is auto-injected on writes. A raw cross-tenant write is rejected by the database, not by
+  a rewriter. The extension path above stays available for setups without a driver adapter.
+</Callout>
 
 ## Database per tenant
 

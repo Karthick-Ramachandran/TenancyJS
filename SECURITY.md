@@ -67,8 +67,10 @@ alternative.
   `docs/20-security/ADAPTER_SECURITY_CONTRACT.md`.
 - **Relying on a facade-only placement against documented guidance.** MySQL
   row-level is experimental / facade-only, MongoDB/Mongoose is facade-only, and
-  Prisma row-level is facade-only with no RLS backstop. For a database backstop
-  use Postgres row-level or database-per-tenant. See
+  Prisma row-level is facade-only in its extension path (no DB backstop); an
+  RLS-backed path (`createPrismaRowLevelTenancy`) exists for a database backstop.
+  For a database backstop use Postgres row-level, the Prisma RLS-backed path, or
+  database-per-tenant. See
   [`/docs/concepts/capability-matrix`](https://tenancyjs.pages.dev/docs/concepts/capability-matrix)
   and [`/docs/concepts/limitations`](https://tenancyjs.pages.dev/docs/concepts/limitations).
 - **Resolving a tenant from a spoofable header** (e.g. `x-tenant-id`) without
@@ -86,9 +88,11 @@ operation cannot be reliably intercepted, transformed, and proven through
 conformance tests, the secured client must fail before execution." On Postgres
 row-level, a forced-RLS backstop (validated at startup) enforces isolation in
 the database even if the application tier is bypassed; database-per-tenant
-isolates by connection. Other placements are enforced at the facade tier only
-and are documented as such (MySQL row-level experimental, MongoDB and Prisma
-row-level facade-only), so they carry no database backstop.
+isolates by connection. Prisma row-level also has an RLS-backed path
+(`createPrismaRowLevelTenancy`) with the same PostgreSQL backstop. Other
+placements are enforced at the facade tier only and are documented as such
+(MySQL row-level experimental, MongoDB facade-only, and the Prisma row-level
+extension path facade-only), so they carry no database backstop.
 
 Full detail: `docs/20-security/SECURITY_MODEL.md`,
 `docs/20-security/ADAPTER_SECURITY_CONTRACT.md`, and the docs site pages

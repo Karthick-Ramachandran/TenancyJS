@@ -93,6 +93,11 @@ only to locally installed, allowlisted ORM executables using argument arrays rat
 - Prisma schema-per-tenant uses a bounded, callback-scoped client whose Prisma 7 PostgreSQL driver
   adapter is bound to one schema. It does not use `search_path`; a shared credential remains an
   adapter-routed guarantee unless its role is restricted to that schema.
+- The extension path above is adapter-enforced and has no database backstop. Prisma row-level also has
+  an RLS-backed path, `createPrismaRowLevelTenancy`: a run-scoped interactive transaction that
+  `SET LOCAL`s the tenant GUC so model, nested, and raw operations are all enforced by forced
+  PostgreSQL RLS, and a raw cross-tenant insert is rejected by `WITH CHECK`. It requires a driver
+  adapter (`@prisma/adapter-pg`) and forced RLS. The extension path remains the facade-only option.
 
 ## Implemented Knex Adapter Controls
 
@@ -175,9 +180,10 @@ only to locally installed, allowlisted ORM executables using argument arrays rat
 
 - Forced PostgreSQL RLS is **database-enforced** for supported row-level Knex/Lucid operations when the
   reviewed runtime-role conditions hold.
-- Prisma query rewriting, schema-bound Prisma clients, and default schema-per-tenant `search_path` are
-  **adapter-enforced**. Retaining a base/raw client bypasses those guarantees. They must not be presented
-  as equivalent to forced RLS.
+- Prisma extension query rewriting, schema-bound Prisma clients, and default schema-per-tenant
+  `search_path` are **adapter-enforced**. Retaining a base/raw client bypasses those guarantees. They
+  must not be presented as equivalent to forced RLS. The separate `createPrismaRowLevelTenancy` path is
+  **database-enforced** by forced PostgreSQL RLS when the reviewed runtime-role conditions hold.
 - A configured per-tenant PostgreSQL role makes schema-per-tenant database-enforced for that scope:
   transaction-local role and search path state revert before a pooled connection is reused.
 - Database-per-tenant always separates storage placement through the protected router. It is also

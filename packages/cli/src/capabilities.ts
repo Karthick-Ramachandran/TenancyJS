@@ -61,6 +61,30 @@ export const SUPPORTED_STACKS: readonly SupportedStack[] = Object.freeze([
     ormLabel: "Prisma",
     ormRange: "7.8",
   }),
+  Object.freeze({
+    framework: "next",
+    frameworkLabel: "Next.js",
+    frameworkRange: "16",
+    orm: "typeorm",
+    ormLabel: "TypeORM",
+    ormRange: "1.x",
+  }),
+  Object.freeze({
+    framework: "next",
+    frameworkLabel: "Next.js",
+    frameworkRange: "16",
+    orm: "sequelize",
+    ormLabel: "Sequelize",
+    ormRange: "6.37",
+  }),
+  Object.freeze({
+    framework: "next",
+    frameworkLabel: "Next.js",
+    frameworkRange: "16",
+    orm: "drizzle",
+    ormLabel: "Drizzle",
+    ormRange: "0.45",
+  }),
 ]);
 
 /** npm package a framework's TenancyJS integration ships as. */
@@ -162,22 +186,21 @@ export function checkNodeVersion(version: string): NodeVersionCheck {
 }
 
 export function capabilityBanner(nodeVersion: string): string {
-  const supported = SUPPORTED_STACKS.map(
-    (stack) =>
-      `     ${bold(stack.frameworkLabel)} ${dim(stack.frameworkRange)} ${dim("+")} ${bold(stack.ormLabel)} ${dim(stack.ormRange)}`,
-  ).join("\n");
+  const sep = ` ${dim("·")} `;
+  const frameworks = [
+    ...new Set(SUPPORTED_STACKS.map((stack) => stack.frameworkLabel)),
+  ].join(sep);
+  const orms = [
+    ...new Set(SUPPORTED_STACKS.map((stack) => stack.ormLabel)),
+  ].join(sep);
   return [
     "",
-    `  ${magenta("◆")}  ${bold("TenancyJS")}  ${dim("· scaffold fail-closed tenant isolation")}`,
+    `  ${magenta("◆")} ${bold("TenancyJS")}  ${dim("fail-closed multi-tenancy")}`,
     "",
-    `  ${bold("Supported stacks")}`,
-    supported,
+    `  ${dim("Stacks")}    ${frameworks}  ${dim("+")}  ${orms}`,
+    `  ${dim("Strategy")}  ${cyan("row-level")} ${dim("(default)")}${sep}${cyan("schema-per-tenant")}${sep}${cyan("database-per-tenant")}   ${dim("— --strategy or pick interactively")}`,
     "",
-    `  ${bold("Strategies")}   ${cyan("row-level")} ${dim("·")} ${cyan("schema-per-tenant")} ${dim("·")} ${cyan("database-per-tenant")}`,
-    `               ${dim("init scaffolds row-level by default; pass --strategy (or pick one interactively)")}`,
-    `               ${dim("for schema-per-tenant or database-per-tenant. schema-per-tenant is PostgreSQL-only.")}`,
-    "",
-    `  ${dim(`Node ${REQUIRED_NODE_MAJOR}+ required · you have ${nodeVersion}`)}`,
+    `  ${dim(`Node ${REQUIRED_NODE_MAJOR}+ · you have ${nodeVersion}`)}`,
     "",
   ].join("\n");
 }

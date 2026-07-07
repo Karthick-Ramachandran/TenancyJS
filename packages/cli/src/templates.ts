@@ -58,30 +58,12 @@ export function createTenancyMiddleware<TTenant extends TenantRecord>(
 `,
 });
 
-function expressOrmTemplates(
-  orm: "typeorm" | "sequelize" | "drizzle",
-  register: string,
-) {
-  return Object.freeze([
-    Object.freeze({
-      path: "tenancy.config.ts",
-      content: `import { defineConfig } from "tenancyjs-core";
-
-export default defineConfig({
-  strategy: "rowLevel",
-  framework: "express",
-  orm: "${orm}",
-});
-`,
-    }),
-    Object.freeze({ path: "src/tenancy/register.ts", content: register }),
-    EXPRESS_MIDDLEWARE_TEMPLATE,
-  ]);
-}
-
-export const EXPRESS_TYPEORM_TEMPLATES = expressOrmTemplates(
-  "typeorm",
-  `import { createTypeOrmTenancy, type TypeOrmTenantEntityConfig } from "tenancyjs-adapter-typeorm";
+// The ORM register wiring is framework-agnostic (Next.js server code is Express
+// architecture + React), so it is shared across Express and Next scaffolds.
+const SQL_ORM_REGISTER: Readonly<
+  Record<"typeorm" | "sequelize" | "drizzle", string>
+> = Object.freeze({
+  typeorm: `import { createTypeOrmTenancy, type TypeOrmTenantEntityConfig } from "tenancyjs-adapter-typeorm";
 import type { TenancyManager, TenantRecord } from "tenancyjs-core";
 import type { DataSource } from "typeorm";
 
@@ -93,11 +75,7 @@ export function createTenancy<TTenant extends TenantRecord>(
   return createTypeOrmTenancy({ manager, dataSource, tenantEntities });
 }
 `,
-);
-
-export const EXPRESS_SEQUELIZE_TEMPLATES = expressOrmTemplates(
-  "sequelize",
-  `import { createSequelizeTenancy, type SequelizeTenantModelConfig } from "tenancyjs-adapter-sequelize";
+  sequelize: `import { createSequelizeTenancy, type SequelizeTenantModelConfig } from "tenancyjs-adapter-sequelize";
 import type { TenancyManager, TenantRecord } from "tenancyjs-core";
 import type { Sequelize } from "sequelize";
 
@@ -109,11 +87,7 @@ export function createTenancy<TTenant extends TenantRecord>(
   return createSequelizeTenancy({ manager, sequelize, tenantModels });
 }
 `,
-);
-
-export const EXPRESS_DRIZZLE_TEMPLATES = expressOrmTemplates(
-  "drizzle",
-  `import {
+  drizzle: `import {
   createDrizzleTenancy,
   type DrizzleDatabaseBinding,
   type DrizzleTenantTableConfig,
@@ -129,7 +103,36 @@ export function createTenancy<TTenant extends TenantRecord>(
   return createDrizzleTenancy({ manager, database, tenantTables });
 }
 `,
-);
+});
+
+function sqlConfigContent(framework: "express" | "next", orm: string): string {
+  return `import { defineConfig } from "tenancyjs-core";
+
+export default defineConfig({
+  strategy: "rowLevel",
+  framework: "${framework}",
+  orm: "${orm}",
+});
+`;
+}
+
+function expressOrmTemplates(orm: "typeorm" | "sequelize" | "drizzle") {
+  return Object.freeze([
+    Object.freeze({
+      path: "tenancy.config.ts",
+      content: sqlConfigContent("express", orm),
+    }),
+    Object.freeze({
+      path: "src/tenancy/register.ts",
+      content: SQL_ORM_REGISTER[orm],
+    }),
+    EXPRESS_MIDDLEWARE_TEMPLATE,
+  ]);
+}
+
+export const EXPRESS_TYPEORM_TEMPLATES = expressOrmTemplates("typeorm");
+export const EXPRESS_SEQUELIZE_TEMPLATES = expressOrmTemplates("sequelize");
+export const EXPRESS_DRIZZLE_TEMPLATES = expressOrmTemplates("drizzle");
 
 export const ADONIS_LUCID_TEMPLATES = Object.freeze([
   Object.freeze({
@@ -248,6 +251,27 @@ type Template = Readonly<{ path: string; content: string }>;
 type TemplateSet = readonly Template[];
 
 const NEXT_SERVER_TEMPLATE: Template = NEXT_PRISMA_TEMPLATES[2]!;
+
+// Next.js server code is Express architecture + React, so it takes any SQL ORM.
+function nextOrmTemplates(
+  orm: "typeorm" | "sequelize" | "drizzle",
+): TemplateSet {
+  return Object.freeze([
+    Object.freeze({
+      path: "tenancy.config.ts",
+      content: sqlConfigContent("next", orm),
+    }),
+    Object.freeze({
+      path: "lib/tenancy/register.ts",
+      content: SQL_ORM_REGISTER[orm],
+    }),
+    NEXT_SERVER_TEMPLATE,
+  ]);
+}
+
+export const NEXT_TYPEORM_TEMPLATES = nextOrmTemplates("typeorm");
+export const NEXT_SEQUELIZE_TEMPLATES = nextOrmTemplates("sequelize");
+export const NEXT_DRIZZLE_TEMPLATES = nextOrmTemplates("drizzle");
 
 interface SqlAdapterMeta {
   readonly factory: string;
@@ -399,49 +423,34 @@ export function resolveStrategyTemplates(
   strategy: InitStrategy,
 ): TemplateSet | undefined {
   if (strategy === "rowLevel") return undefined;
+  // Adonis + Lucid schema/database scaffolds are not built yet - fail closed.
+  if (framework !== "express" && framework !== "next") return undefined;
 
   const config: Template = {
     path: "tenancy.config.ts",
     content: strategyConfigContent(framework, orm, strategy),
   };
+  // Next.js uses lib/ + a server helper; Express uses src/ + middleware.
+  const registerPath =
+    framework === "next"
+      ? "lib/tenancy/register.ts"
+      : "src/tenancy/register.ts";
+  const integration =
+    framework === "next" ? NEXT_SERVER_TEMPLATE : EXPRESS_MIDDLEWARE_TEMPLATE;
 
-  if (
-    framework === "express" &&
-    (orm === "sequelize" || orm === "typeorm" || orm === "drizzle")
-  ) {
-    return Object.freeze([
-      Object.freeze(config),
-      Object.freeze({
-        path: "src/tenancy/register.ts",
-        content: sqlRegisterContent(SQL_ADAPTERS[orm], strategy),
-      }),
-      EXPRESS_MIDDLEWARE_TEMPLATE,
-    ]);
-  }
+  const register =
+    orm === "prisma"
+      ? prismaRegisterContent(strategy)
+      : orm === "sequelize" || orm === "typeorm" || orm === "drizzle"
+        ? sqlRegisterContent(SQL_ADAPTERS[orm], strategy)
+        : undefined;
+  if (register === undefined) return undefined;
 
-  if (framework === "express" && orm === "prisma") {
-    return Object.freeze([
-      Object.freeze(config),
-      Object.freeze({
-        path: "src/tenancy/register.ts",
-        content: prismaRegisterContent(strategy),
-      }),
-      EXPRESS_MIDDLEWARE_TEMPLATE,
-    ]);
-  }
-
-  if (framework === "next" && orm === "prisma") {
-    return Object.freeze([
-      Object.freeze(config),
-      Object.freeze({
-        path: "lib/tenancy/register.ts",
-        content: prismaRegisterContent(strategy),
-      }),
-      NEXT_SERVER_TEMPLATE,
-    ]);
-  }
-
-  return undefined;
+  return Object.freeze([
+    Object.freeze(config),
+    Object.freeze({ path: registerPath, content: register }),
+    integration,
+  ]);
 }
 
 /**

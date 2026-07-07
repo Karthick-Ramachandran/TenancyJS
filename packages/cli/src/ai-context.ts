@@ -178,8 +178,6 @@ export function buildTenancyGuide(
     `npm install ${packages}`,
     "```",
     "",
-    "During the beta the packages are on the `beta` dist-tag (e.g. `npm install tenancyjs-core@beta`).",
-    "",
     "## Everyday commands",
     "",
     "```bash",
@@ -251,8 +249,10 @@ function isolationNotes(orm: InitOrm): string[] {
     return [
       "- `init` scaffolds **row-level** isolation. Prisma row-level is **facade-enforced** — the extension",
       "  rewrites query arguments; there is no PostgreSQL RLS backstop, so never use the base client.",
-      "- For a database-enforced backstop, use schema-per-tenant (schema-bound driver clients) or",
-      "  database-per-tenant. See the adapter docs.",
+      "- An RLS-backed path also exists (`createPrismaRowLevelTenancy`, needs `@prisma/adapter-pg` + forced",
+      "  RLS) that adds a PostgreSQL database backstop; the extension path above stays facade-only.",
+      "- For a database-enforced backstop, use that path, schema-per-tenant (schema-bound driver clients),",
+      "  or database-per-tenant. See the adapter docs.",
     ];
   return [
     "- `init` scaffolds **row-level** isolation backed by **forced PostgreSQL RLS**.",
