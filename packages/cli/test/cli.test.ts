@@ -583,7 +583,7 @@ describe("CLI leak test and command runner", () => {
 
     const guide = await readFile(join(root, "TENANCY.md"), "utf8");
     expect(guide).toContain("Working with TenancyJS — Express + Prisma");
-    expect(guide).toContain("npx tenancy tenant provision");
+    expect(guide).toContain("npx tenancyjs-cli tenant provision");
     const agents = await readFile(join(root, "AGENTS.md"), "utf8");
     expect(agents).toContain("Existing notes.");
     expect(agents).toContain("## TenancyJS");
