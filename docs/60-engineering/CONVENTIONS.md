@@ -37,6 +37,11 @@ preferences.
   implement their own placement maps.
 - `createTenantResourceCache`: canonical bounded database-per-tenant resource lifecycle; adapters use
   its single-flight leases and never create an unbounded per-tenant client map.
+- `createPostgresSchemaProvisioner` / `createPostgresDatabaseProvisioner`: canonical batteries-included
+  `TenancyProvisioner` factories in `tenancyjs-adapter-shared` (ADR-0039). Hosts pass a `pg`-shaped admin
+  connection + a placement resolver; the factory owns the idempotent CREATE/DROP SCHEMA/DATABASE DDL
+  (identifiers validated via `assertSqlIdentifier`) and delegates `migrate` to a host callback. Do not
+  hand-write provision/deprovision DDL in host configs or scaffolds when these apply.
 - `createExpressTenancyMiddleware`: canonical Express 5 request-lifecycle bridge; it composes an
   application-owned `TenancyManager` and tenant resolver and never creates hidden tenant state.
 - `createNextTenancy`: canonical Next.js App Router Node bridge for Route Handlers and Server Actions;

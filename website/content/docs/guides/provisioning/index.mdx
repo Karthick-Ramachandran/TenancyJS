@@ -74,6 +74,35 @@ For anything you could NOT complete, add it as a blocked action item with the re
 Report a summary of every file changed, and paste the contents of PROVISIONING_NEXT_STEPS.md.
 ````
 
+## Batteries-included (PostgreSQL)
+
+For PostgreSQL you don't have to hand-write the `provision`/`deprovision` DDL — pass a ready
+provisioner from `tenancyjs-adapter-shared` and point `migrate` at your own migrator. `admin` is a
+privileged `pg`-shaped connection (its `.query()`), kept separate from the fail-closed runtime role.
+
+```ts title="tenancy.config.ts"
+import { createPostgresSchemaProvisioner } from "tenancyjs-adapter-shared";
+import { Pool } from "pg";
+
+const admin = new Pool({ connectionString: process.env.ADMIN_DATABASE_URL });
+
+export default defineTenancyRuntime({
+  manager,
+  store,
+  provisioner: createPostgresSchemaProvisioner({
+    admin,
+    schema: (tenant) => `tenant_${tenant.id}`,
+    // TenancyJS never runs your ORM — point this at your migrator for the schema.
+    migrate: (tenant, { schema }) => runMyMigrations({ schema }),
+  }),
+});
+```
+
+`createPostgresDatabaseProvisioner({ admin, database, migrate })` is the database-per-tenant twin
+(`admin` connects to a maintenance database like `postgres`). Both validate the placement name as a SQL
+identifier, so a tenant-derived name can't inject DDL. Prefer these over hand-writing the hooks below;
+the manual recipe remains for other databases or custom placement logic.
+
 ## The shape of every recipe
 
 Whatever the ORM, onboarding a tenant is the same four moves:

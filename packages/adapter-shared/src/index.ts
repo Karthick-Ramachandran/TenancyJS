@@ -20,6 +20,15 @@ export {
   validatePostgresRlsPolicies,
 } from "./postgres.js";
 export {
+  createPostgresDatabaseProvisioner,
+  createPostgresSchemaProvisioner,
+} from "./provisioners.js";
+export type {
+  PostgresAdminConnection,
+  PostgresDatabaseProvisionerOptions,
+  PostgresSchemaProvisionerOptions,
+} from "./provisioners.js";
+export {
   TenantResourceCacheError,
   createTenantResourceCache,
 } from "./resource-cache.js";

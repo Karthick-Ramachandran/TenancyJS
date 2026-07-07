@@ -234,6 +234,13 @@ importers:
       tenancyjs-core:
         specifier: workspace:*
         version: link:../core
+    devDependencies:
+      '@types/pg':
+        specifier: 8.15.5
+        version: 8.15.5
+      pg:
+        specifier: 8.16.3
+        version: 8.16.3
 
   packages/adapter-typeorm:
     dependencies:
