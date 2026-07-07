@@ -30,6 +30,7 @@ export {
 export {
   defineTenancyRuntime,
   assertTenancyRuntime,
+  type TenancyAdminConnection,
   type TenancyProvisioner,
   type TenancyRuntime,
   type TenancyRuntimeInput,

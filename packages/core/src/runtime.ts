@@ -24,6 +24,16 @@ export interface TenancyProvisioner<
   migrate?(tenant: TTenant): MaybePromise<void>;
 }
 
+/**
+ * A privileged connection the host provides for DDL the operational CLI applies
+ * on request (e.g. `tenancy policy --apply`). `pg`'s `Pool`/`Client` satisfy its
+ * `.query(sql)`. It must be a higher-privileged connection than the fail-closed
+ * runtime role — DDL never runs through the runtime role (see SECURITY_MODEL).
+ */
+export interface TenancyAdminConnection {
+  query(sql: string): MaybePromise<unknown>;
+}
+
 /** What a host passes to {@link defineTenancyRuntime}. */
 export interface TenancyRuntimeInput<
   TTenant extends TenantRecord = TenantRecord,
@@ -32,6 +42,8 @@ export interface TenancyRuntimeInput<
   readonly store?: TenantStore<TTenant>;
   readonly adapters?: readonly TenancyAdapter[];
   readonly provisioner?: TenancyProvisioner<TTenant>;
+  /** Privileged connection for CLI-applied DDL (`tenancy policy --apply`). */
+  readonly admin?: TenancyAdminConnection;
   /** Closes connections/caches so the CLI process can exit; optional. */
   dispose?(): MaybePromise<void>;
 }
@@ -47,6 +59,7 @@ export interface TenancyRuntime<TTenant extends TenantRecord = TenantRecord> {
   readonly store?: TenantStore<TTenant>;
   readonly adapters: readonly TenancyAdapter[];
   readonly provisioner?: TenancyProvisioner<TTenant>;
+  readonly admin?: TenancyAdminConnection;
   dispose(): Promise<void>;
 }
 
@@ -80,6 +93,14 @@ export function defineTenancyRuntime<
       "defineTenancyRuntime `adapters` must be an array of tenancy adapters.",
     );
   }
+  if (
+    input.admin !== undefined &&
+    (typeof input.admin !== "object" || typeof input.admin.query !== "function")
+  ) {
+    throw new InvalidTenancyRuntimeError(
+      "defineTenancyRuntime `admin` must be a connection with a query(sql) method.",
+    );
+  }
   const dispose = input.dispose;
   return Object.freeze({
     [RUNTIME_BRAND]: true as const,
@@ -91,6 +112,7 @@ export function defineTenancyRuntime<
     ...(input.provisioner === undefined
       ? {}
       : { provisioner: input.provisioner }),
+    ...(input.admin === undefined ? {} : { admin: input.admin }),
     async dispose() {
       if (dispose !== undefined) await dispose();
     },

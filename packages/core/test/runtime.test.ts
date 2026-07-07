@@ -76,6 +76,22 @@ describe("defineTenancyRuntime", () => {
       }),
     ).toThrow(InvalidTenancyRuntimeError);
   });
+
+  it("rejects an admin connection without a query method, and keeps a valid one", () => {
+    expect(() =>
+      defineTenancyRuntime({
+        manager: new TenancyManager<Tenant>(),
+        admin: {} as never,
+      }),
+    ).toThrow(InvalidTenancyRuntimeError);
+
+    const admin = { query: async () => ({ rows: [] }) };
+    const runtime = defineTenancyRuntime({
+      manager: new TenancyManager<Tenant>(),
+      admin,
+    });
+    expect(runtime.admin).toBe(admin);
+  });
 });
 
 describe("assertTenancyRuntime", () => {

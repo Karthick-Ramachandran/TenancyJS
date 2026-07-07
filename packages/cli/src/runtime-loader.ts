@@ -15,7 +15,12 @@ export interface LoadedTenancyRuntime {
   readonly store?: LoadedTenantStore;
   readonly adapters: readonly LoadedAdapter[];
   readonly provisioner?: LoadedProvisioner;
+  readonly admin?: LoadedAdminConnection;
   dispose(): Promise<void>;
+}
+
+export interface LoadedAdminConnection {
+  query(sql: string): Promise<unknown> | unknown;
 }
 
 export interface LoadedTenancyManager {

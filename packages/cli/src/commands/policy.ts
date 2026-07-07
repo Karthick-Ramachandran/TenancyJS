@@ -2,6 +2,7 @@ import { writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { CliUsageError } from "../errors.js";
+import { withRuntime } from "../runtime-command.js";
 
 /**
  * Options for generating the PostgreSQL forced-RLS policy DDL that the shared
@@ -141,4 +142,60 @@ export function runPolicy(options: RunPolicyOptions): RunPolicyResult {
     sql,
     ...(writtenTo === undefined ? {} : { writtenTo }),
   };
+}
+
+export interface ApplyPolicyOptions extends PolicyGenerationOptions {
+  readonly root: string;
+  readonly configPath?: string;
+}
+
+export interface ApplyPolicyResult {
+  readonly schemaVersion: 1;
+  readonly command: "policy";
+  readonly applied: true;
+  readonly tables: readonly string[];
+  readonly role: string;
+  readonly tenantColumn: string;
+}
+
+/**
+ * Apply the generated forced-RLS DDL through the host runtime's privileged
+ * `admin` connection (opt-in `--apply`). It reuses `generatePolicySql` — the
+ * exact SQL `tenancy policy` prints — so generate and apply never drift. The
+ * statements are idempotent (`ENABLE`/`FORCE` RLS, `DROP POLICY IF EXISTS` +
+ * `CREATE POLICY`, `GRANT`); it does NOT create the runtime role. Fails closed
+ * when the runtime exposes no `admin` connection.
+ */
+export async function runPolicyApply(
+  options: ApplyPolicyOptions,
+): Promise<ApplyPolicyResult> {
+  // Generate (and validate identifiers) before touching the database.
+  const sql = generatePolicySql(options);
+  const tenantColumn = options.tenantColumn ?? DEFAULT_TENANT_COLUMN;
+  return withRuntime(
+    {
+      root: options.root,
+      ...(options.configPath === undefined
+        ? {}
+        : { configPath: options.configPath }),
+    },
+    async (runtime) => {
+      if (runtime.admin === undefined) {
+        throw new CliUsageError(
+          "policy --apply needs a privileged admin connection. Add `admin` (e.g. a pg Pool " +
+            "on ADMIN_DATABASE_URL) to defineTenancyRuntime — kept separate from your fail-closed " +
+            "runtime role, which must never run DDL.",
+        );
+      }
+      await runtime.admin.query(sql);
+      return {
+        schemaVersion: 1 as const,
+        command: "policy" as const,
+        applied: true as const,
+        tables: options.tables,
+        role: options.role,
+        tenantColumn,
+      };
+    },
+  );
 }

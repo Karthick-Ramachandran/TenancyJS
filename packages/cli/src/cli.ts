@@ -19,7 +19,7 @@ import {
   runProvisionAction,
   type ProvisionAction,
 } from "./commands/provision.js";
-import { runPolicy } from "./commands/policy.js";
+import { runPolicy, runPolicyApply } from "./commands/policy.js";
 import { runScript, type RunScope } from "./commands/run.js";
 import {
   runTenantActivate,
@@ -109,6 +109,23 @@ export async function runCli(
       return await runRun(parsed, root, io);
     }
     if (parsed.command === "policy") {
+      if (parsed.apply) {
+        const applied = await runPolicyApply({
+          tables: parsed.tables ?? [],
+          role: parsed.role ?? "",
+          ...(parsed.tenantColumn === undefined
+            ? {}
+            : { tenantColumn: parsed.tenantColumn }),
+          ...(parsed.config === undefined ? {} : { configPath: parsed.config }),
+          root,
+        });
+        io.writeStdout(
+          parsed.json
+            ? formatJson(applied)
+            : `\n  ${green("✔")} Applied forced-RLS policy to ${applied.tables.length} table(s) as role ${bold(applied.role)}.\n`,
+        );
+        return 0;
+      }
       const result = runPolicy({
         tables: parsed.tables ?? [],
         role: parsed.role ?? "",
@@ -844,8 +861,8 @@ function parseArguments(arguments_: readonly string[]): ParsedArguments {
   // silently ignoring them.
   if (commandValue === "tenant" && positionals.length > 2)
     throw new CliUsageError(`Unexpected argument: ${positionals[2]}`);
-  if (commandValue !== "init" && apply)
-    throw new CliUsageError("--apply is valid only for init.");
+  if (commandValue !== "init" && commandValue !== "policy" && apply)
+    throw new CliUsageError("--apply is valid only for init and policy.");
   if (
     commandValue !== "init" &&
     (framework !== undefined ||
@@ -857,9 +874,13 @@ function parseArguments(arguments_: readonly string[]): ParsedArguments {
     throw new CliUsageError(
       "--framework, --orm, --strategy, --yes, and --ai-context are valid only for init.",
     );
-  if (!OPERATIONAL_COMMANDS.has(commandValue) && config !== undefined)
+  if (
+    !OPERATIONAL_COMMANDS.has(commandValue) &&
+    commandValue !== "policy" &&
+    config !== undefined
+  )
     throw new CliUsageError(
-      "--config is valid only for tenant and run commands.",
+      "--config is valid only for tenant, run, and policy --apply commands.",
     );
   if (commandValue !== "tenant" && set.length > 0)
     throw new CliUsageError("--set is valid only for tenant create.");
@@ -955,7 +976,7 @@ Usage:
   tenancyjs-cli tenant deprovision <id> [--config <path>] [--json]
   tenancyjs-cli tenant migrate (<id> | --all) [--config <path>] [--json]
   tenancyjs-cli run <script> (--tenant <id> | --central) [--config <path>] [--json]
-  tenancyjs-cli policy --table <name> [--table <name> ...] --role <runtime-role> [--tenant-column <col>] [--out <file>] [--json]
+  tenancyjs-cli policy --table <name> [--table <name> ...] --role <runtime-role> [--tenant-column <col>] [--out <file>] [--apply] [--config <path>] [--json]
 
 init previews changes (dry run) unless --apply is present. It detects your stack and, when it cannot,
 asks you to choose one interactively; pass --framework and --orm to skip prompts in CI. Express 5.2
@@ -976,6 +997,8 @@ never invokes an ORM itself); tenant check reports any adapter/strategy that is 
 policy prints review-ready PostgreSQL forced-RLS DDL (ENABLE + FORCE ROW LEVEL SECURITY and a
 <table>_tenant_isolation policy that reads tenancyjs.tenant_id and tenancyjs.is_central) for the tenant
 tables you pass. It executes nothing and opens no connection - review the SQL and apply it with your own
-migration tool. --tenant-column defaults to tenant_id; --out writes the SQL to a file.
+migration tool. --tenant-column defaults to tenant_id; --out writes the SQL to a file. --apply executes
+the exact same DDL through the privileged admin connection on your runtime (defineTenancyRuntime), kept
+separate from the fail-closed runtime role; it is idempotent and does not create the role.
 `;
 }

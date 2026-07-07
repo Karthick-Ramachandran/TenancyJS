@@ -131,6 +131,26 @@ npx tenancyjs-cli policy --table posts --table comments --role app_runtime
 npx tenancyjs-cli policy --table posts --role app_runtime --tenant-column org_id --out db/rls.sql
 ```
 
+Prefer not to hand-run it? Add `--apply` and the CLI executes the **exact same** DDL through a
+privileged `admin` connection you put on your runtime — so review-then-apply is one command:
+
+```ts title="tenancy.config.ts"
+import { Pool } from "pg";
+export default defineTenancyRuntime({
+  manager,
+  // A privileged connection for CLI-applied DDL, separate from your fail-closed runtime role.
+  admin: new Pool({ connectionString: process.env.ADMIN_DATABASE_URL }),
+});
+```
+
+```bash
+npx tenancyjs-cli policy --table posts --table comments --role app_runtime --apply
+```
+
+`--apply` is idempotent (`DROP POLICY IF EXISTS` + `CREATE POLICY`) and applies **only** the RLS
+contract — it does not create the runtime role (the printed DDL shows the `CREATE ROLE` for you). Without
+an `admin` on the runtime it fails closed.
+
 ## Every command
 
 | Command | Does |
