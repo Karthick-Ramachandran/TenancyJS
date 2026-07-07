@@ -248,22 +248,20 @@ describePostgres("Sequelize PostgreSQL database-per-tenant isolation", () => {
       client.model(post).create({ id: "u", title: "B" }),
     );
     const titlesA = await run(tenantA, async (client) => {
-      const rows = (await client
-        .unrestricted()
-        .query("select title from posts where id = :id", {
-          replacements: { id: "u" },
-          type: QueryTypes.SELECT,
-        })) as { title: string }[];
+      const { sequelize, transaction } = client.unrestricted();
+      const rows = (await sequelize.query(
+        "select title from posts where id = :id",
+        { replacements: { id: "u" }, type: QueryTypes.SELECT, transaction },
+      )) as { title: string }[];
       return rows.map((row) => row.title);
     });
     expect(titlesA).toEqual(["A"]); // never tenant B's colliding row
     const joinB = await run(tenantB, async (client) => {
-      const rows = (await client
-        .unrestricted()
-        .query(
-          "select p1.title from posts p1 join posts p2 on p1.id = p2.id where p1.id = :id",
-          { replacements: { id: "u" }, type: QueryTypes.SELECT },
-        )) as { title: string }[];
+      const { sequelize, transaction } = client.unrestricted();
+      const rows = (await sequelize.query(
+        "select p1.title from posts p1 join posts p2 on p1.id = p2.id where p1.id = :id",
+        { replacements: { id: "u" }, type: QueryTypes.SELECT, transaction },
+      )) as { title: string }[];
       return rows.map((row) => row.title);
     });
     expect(joinB).toEqual(["B"]);

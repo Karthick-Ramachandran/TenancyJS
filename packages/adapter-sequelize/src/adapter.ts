@@ -171,8 +171,19 @@ export function createSequelizeTenancy<
         (sequelize) => runScope(sequelize, true),
       );
     }
-    // Shared base instance (central mode / facade-enforced strategies).
-    return runScope(config.sequelize, false);
+    // ADR-0038: forced-RLS row-level on PostgreSQL in tenant mode is also
+    // database-enforced. `validated` is guaranteed true here (run() throws
+    // otherwise), and for row-level PostgreSQL that means validatePostgresRlsPolicies
+    // passed: RLS is forced, the runtime role is non-BYPASSRLS, and the tenant GUC
+    // is SET LOCAL in this transaction (below). So raw SQL on this transaction
+    // cannot cross tenants. Never derive this from the strategy name: MySQL
+    // row-level has no RLS backstop and central mode is cross-tenant, so both
+    // stay facade-enforced.
+    const forcedRlsRowLevel =
+      config.strategy === "rowLevel" &&
+      config.dialect === "postgresql" &&
+      context.mode === "tenant";
+    return runScope(config.sequelize, forcedRlsRowLevel);
   }
 
   return Object.freeze({
@@ -197,11 +208,13 @@ function createProtectedClient<TTenant extends TenantRecord>(
   databaseEnforced: boolean,
 ): ProtectedSequelizeClient {
   return Object.freeze({
-    unrestricted(): Sequelize {
-      // ADR-0033: the raw, tenant-scoped Sequelize instance — full query freedom
-      // (raw SQL, includes, associations). Available only in a database-enforced
-      // scope (database-per-tenant, tenant mode), where this instance connects
-      // solely to the tenant's own leased database. Fail closed otherwise.
+    unrestricted() {
+      // ADR-0033/ADR-0038: full query freedom, scoped to the current tenant.
+      // Return the transaction (not the bare instance): for database-per-tenant
+      // it runs on the tenant's own leased connection; for forced-RLS row-level
+      // it carries the SET LOCAL tenant GUC set at the top of this transaction,
+      // so raw SQL is bound by the validated policy. Fail closed everywhere the
+      // boundary isn't proven (facade scopes, central mode, MySQL row-level).
       if (!databaseEnforced) {
         throw new SequelizeTenancyConfigurationError(
           unrestrictedRefusedMessage({
@@ -211,7 +224,7 @@ function createProtectedClient<TTenant extends TenantRecord>(
           }),
         );
       }
-      return sequelize;
+      return Object.freeze({ sequelize, transaction });
     },
     model(model: ModelStatic<Model>) {
       const policy = config.classify(model);

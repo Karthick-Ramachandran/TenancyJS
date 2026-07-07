@@ -1,11 +1,12 @@
 import { TenancyManager, TenantContextError } from "tenancyjs-core";
 import knex, { type Knex } from "knex";
-import { DataTypes, Model, Sequelize } from "sequelize";
+import { DataTypes, Model, QueryTypes, Sequelize } from "sequelize";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import {
   SequelizeModelUnregisteredError,
   SequelizePolicyValidationError,
+  SequelizeTenancyConfigurationError,
   SequelizeTenantFieldConflictError,
   SequelizeUnsafeCriteriaError,
   createSequelizeTenancy,
@@ -203,5 +204,38 @@ describePostgres("Sequelize PostgreSQL row-level isolation", () => {
       run(tenantA, (client) => client.model(Post).count()),
     ).resolves.toBe(0);
     await expect(Post.findAll({ raw: true })).resolves.toEqual([]);
+  });
+
+  // ADR-0038: forced-RLS row-level is database-enforced, so unrestricted() raw
+  // SQL is allowed - and the validated policy under a non-BYPASSRLS role binds it
+  // to the current tenant even though every tenant shares one table.
+  it("allows unrestricted() raw SQL under forced RLS, bound to the tenant (ADR-0038)", async () => {
+    await run(tenantA, (client) =>
+      client.model(Post).create({ id: "u", title: "A" }),
+    );
+    await run(tenantB, (client) =>
+      client.model(Post).create({ id: "u", title: "B" }),
+    );
+    // Raw SQL runs on the transaction that holds the SET LOCAL tenant GUC.
+    const titlesA = await run(tenantA, async (client) => {
+      const { sequelize, transaction } = client.unrestricted();
+      const rows = (await sequelize.query(`select title from ${schema}.posts`, {
+        type: QueryTypes.SELECT,
+        transaction,
+      })) as { title: string }[];
+      return rows.map((row) => row.title);
+    });
+    // Only tenant A's row - RLS refused tenant B's colliding row for the raw query.
+    expect(titlesA).toEqual(["A"]);
+  });
+
+  it("still refuses unrestricted() in central mode on row-level", async () => {
+    // Central mode is cross-tenant by design and stays facade-enforced: the raw
+    // handle must fail closed, so admin/reporting goes through an explicit path.
+    await expect(
+      manager.runInCentralContext(() =>
+        tenancy.run(async (client) => client.unrestricted()),
+      ),
+    ).rejects.toBeInstanceOf(SequelizeTenancyConfigurationError);
   });
 });

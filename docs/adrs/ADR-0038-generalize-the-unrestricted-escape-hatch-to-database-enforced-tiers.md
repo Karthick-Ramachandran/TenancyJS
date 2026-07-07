@@ -62,6 +62,17 @@ change (Knex/Sequelize/TypeORM/Drizzle/Lucid) and must land behind the adversari
 only the `databaseEnforced` boolean without the tx-bound handle would ship a broken (though not leaking)
 escape hatch, so the boolean and the handle change must land together.
 
+**Decided API shape (2026-07-07): native transaction-bound handle.** On inspection, 4 of the 5 SQL
+adapters already return a transaction-scoped native handle from `unrestricted()` — Knex (`Knex.Transaction`),
+Lucid (`TransactionClientContract`), TypeORM (the scoped `EntityManager`), and Drizzle (`session.native`,
+the tx) — so for those the change is the `databaseEnforced` flag plus a test that the handle is tx-bound in
+row-level mode. Only **Sequelize** returns the base `Sequelize` instance; its `unrestricted()` changes to
+return `{ sequelize, transaction }` (both tiers), so raw SQL runs as `sequelize.query(sql, { transaction })`
+on the GUC-bound transaction. This is a **breaking change** to `tenancyjs-adapter-sequelize`'s
+`unrestricted()` return type (acceptable pre-1.0, minor bump). Rejected the uniform `{ native, sql() }`
+wrapper (churns the 4 already-correct adapters, less idiomatic) and the additive `rawScoped()` method
+(leaves `unrestricted()` misleadingly unavailable on a database-enforced tier).
+
 ## Alternatives Considered
 
 - **Keep strategy-gated (status quo).** Rejected — it refuses provably-safe operations and is the top
