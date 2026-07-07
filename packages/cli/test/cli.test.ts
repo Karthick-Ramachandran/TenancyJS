@@ -624,16 +624,24 @@ describe("CLI leak test and command runner", () => {
 
   it("prompts for AI context interactively and honors the answer", async () => {
     const yesRoot = await fixture();
-    const yes = captureIo(yesRoot, { isInteractive: true, answers: ["yes"] });
+    // Interactive init now prompts for a strategy first, then the AI context.
+    const yes = captureIo(yesRoot, {
+      isInteractive: true,
+      answers: ["rowLevel", "yes"],
+    });
     await expect(runCli(["init", "--apply"], yes.io)).resolves.toBe(0);
-    expect(yes.selectQuestions).toHaveLength(1);
-    expect(yes.selectQuestions[0]!.question).toContain("TENANCY.md");
+    expect(yes.selectQuestions).toHaveLength(2);
+    expect(yes.selectQuestions[0]!.question).toContain("isolation strategy");
+    expect(yes.selectQuestions[1]!.question).toContain("TENANCY.md");
     await expect(
       readFile(join(yesRoot, "TENANCY.md"), "utf8"),
     ).resolves.toContain("TenancyJS");
 
     const noRoot = await fixture();
-    const no = captureIo(noRoot, { isInteractive: true, answers: ["no"] });
+    const no = captureIo(noRoot, {
+      isInteractive: true,
+      answers: ["rowLevel", "no"],
+    });
     await expect(runCli(["init", "--apply"], no.io)).resolves.toBe(0);
     await expect(
       readFile(join(noRoot, "TENANCY.md"), "utf8"),
@@ -895,14 +903,15 @@ describe("CLI v0.1 interactive init", () => {
     });
     const output = captureIo(root, {
       isInteractive: true,
-      answers: ["next", "no"],
+      answers: ["next", "rowLevel", "no"],
     });
     await expect(runCli(["init", "--apply"], output.io)).resolves.toBe(0);
-    // Framework prompt first, then the opt-in AI-context prompt (declined here).
-    expect(output.selectQuestions).toHaveLength(2);
+    // Framework prompt, then strategy, then the opt-in AI-context prompt.
+    expect(output.selectQuestions).toHaveLength(3);
     expect(
       output.selectQuestions[0]!.choices.map((choice) => choice.value),
     ).toEqual(["express", "adonis", "next"]);
+    expect(output.selectQuestions[1]!.question).toContain("isolation strategy");
     expect(output.stderr.join("")).toContain("No supported framework");
     await expect(
       readFile(join(root, "lib/tenancy/server.ts"), "utf8"),

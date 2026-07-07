@@ -46,6 +46,7 @@ import {
   formatTenantShow,
 } from "./output.js";
 import { createInitPlan } from "./plan.js";
+import { scaffoldableStrategies } from "./templates.js";
 import { redactText } from "./redaction.js";
 import { withRuntime } from "./runtime-command.js";
 import type {
@@ -167,6 +168,7 @@ async function runInit(
   const detection = await detectProject(root);
   const framework = await resolveFramework(detection, parsed, io);
   const orm = await resolveOrm(detection, framework, parsed, io);
+  const strategy = await resolveStrategy(framework, orm, parsed, io);
   // Confirm the opt-in AI context before writing anything, so all prompts happen
   // together. Only meaningful with --apply, which is what actually writes files.
   const wantAiContext = parsed.apply
@@ -176,7 +178,7 @@ async function runInit(
     root: detection.root,
     framework,
     orm,
-    ...(parsed.strategy === undefined ? {} : { strategy: parsed.strategy }),
+    ...(strategy === undefined ? {} : { strategy }),
   });
 
   if (parsed.apply) await applyChangePlan(plan);
@@ -354,6 +356,36 @@ async function resolveOrm(
   throw new CliUsageError(
     `Could not detect a supported ORM for ${framework}. Pass --orm=${choices.map((choice) => choice.value).join("|")}.`,
   );
+}
+
+async function resolveStrategy(
+  framework: InitFramework,
+  orm: InitOrm,
+  parsed: ParsedArguments,
+  io: CliIo,
+): Promise<InitStrategy | undefined> {
+  if (parsed.strategy !== undefined) return parsed.strategy;
+  const available = scaffoldableStrategies(framework, orm);
+  const interactive =
+    io.isInteractive === true &&
+    typeof io.select === "function" &&
+    !parsed.json &&
+    !parsed.yes;
+  // Nothing to choose (only row-level is scaffoldable, e.g. Adonis) - default it.
+  if (!interactive || available.length <= 1) return undefined;
+  const labels: Record<InitStrategy, string> = {
+    rowLevel: "Row-level - shared tables, forced Postgres RLS (simplest)",
+    schemaPerTenant: "Schema-per-tenant - one PostgreSQL schema per tenant",
+    databasePerTenant:
+      "Database-per-tenant - a database per tenant (strongest)",
+  };
+  const value = await io.select!(
+    "Which isolation strategy?",
+    available.map((strategy) => ({ value: strategy, label: labels[strategy] })),
+  );
+  return available.includes(value as InitStrategy)
+    ? (value as InitStrategy)
+    : "rowLevel";
 }
 
 function isInitOrm(value: string): value is InitOrm {

@@ -443,3 +443,21 @@ export function resolveStrategyTemplates(
 
   return undefined;
 }
+
+/**
+ * Strategies `init` can scaffold for a stack. Always includes row-level; adds
+ * schema-/database-per-tenant only where a scaffold exists (so the interactive
+ * prompt never offers a strategy that would fail closed).
+ */
+export function scaffoldableStrategies(
+  framework: InitFramework,
+  orm: InitOrm,
+): readonly InitStrategy[] {
+  const strategies: InitStrategy[] = ["rowLevel"];
+  for (const strategy of ["schemaPerTenant", "databasePerTenant"] as const) {
+    if (resolveStrategyTemplates(framework, orm, strategy) !== undefined) {
+      strategies.push(strategy);
+    }
+  }
+  return strategies;
+}

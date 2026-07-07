@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { createInitPlan, runCli } from "../src/index.js";
 import type { CliIo } from "../src/index.js";
+import { scaffoldableStrategies } from "../src/templates.js";
 
 const dirs: string[] = [];
 afterEach(async () => {
@@ -34,6 +35,59 @@ function contentOf(
 ) {
   return plan.actions.find((a) => a.path === path)?.content ?? "";
 }
+function interactiveIo(cwd: string, answers: readonly string[]) {
+  const stdout: string[] = [];
+  const questions: string[] = [];
+  const queue = [...answers];
+  const io: CliIo = {
+    cwd,
+    isInteractive: true,
+    writeStdout: (v) => stdout.push(v),
+    writeStderr: () => {},
+    select: async (question) => {
+      questions.push(question);
+      return queue.shift() ?? "";
+    },
+  };
+  return { stdout, questions, io };
+}
+async function projectDir(deps: Record<string, string>): Promise<string> {
+  const dir = await temporaryDirectory();
+  await writeFile(
+    join(dir, "package.json"),
+    JSON.stringify({ dependencies: deps }),
+  );
+  return dir;
+}
+
+describe("init interactive strategy prompt", () => {
+  it("lists scaffoldable strategies per stack", () => {
+    expect(scaffoldableStrategies("express", "sequelize")).toEqual([
+      "rowLevel",
+      "schemaPerTenant",
+      "databasePerTenant",
+    ]);
+    // Adonis + Lucid only scaffolds row-level today.
+    expect(scaffoldableStrategies("adonis", "lucid")).toEqual(["rowLevel"]);
+  });
+
+  it("prompts for a strategy when the stack has more than one", async () => {
+    const dir = await projectDir({ express: "5.2.0", sequelize: "6.37.0" });
+    const io = interactiveIo(dir, ["databasePerTenant"]);
+    expect(await runCli(["init"], io.io)).toBe(0);
+    expect(io.questions).toContain("Which isolation strategy?");
+  });
+
+  it("does not prompt for a strategy when only row-level is scaffoldable", async () => {
+    const dir = await projectDir({
+      "@adonisjs/core": "7.3.0",
+      "@adonisjs/lucid": "22.4.0",
+    });
+    const io = interactiveIo(dir, []);
+    await runCli(["init"], io.io);
+    expect(io.questions).not.toContain("Which isolation strategy?");
+  });
+});
 
 describe("init --strategy scaffolds", () => {
   it("defaults to row-level with no strategy (unchanged)", async () => {
