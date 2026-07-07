@@ -135,9 +135,15 @@ export function createKnexTenancy<TTenant extends TenantRecord = TenantRecord>(
         (leased) => runScope(leased, context, callback, true),
       );
     }
-    // Shared admin connection (central mode, or any facade-enforced strategy):
-    // isolation is the facade, never the connection — unrestricted() must throw.
-    return runScope(config.knex, context, callback, false);
+    // ADR-0038: forced-RLS row-level in tenant mode is database-enforced too.
+    // run() throws above unless validate() passed, and for Knex row-level that
+    // means validateKnexPolicies confirmed forced RLS under a non-BYPASSRLS role;
+    // the tenant GUC is SET LOCAL in this transaction, so raw SQL on the returned
+    // Knex.Transaction cannot cross tenants. Knex row-level is PostgreSQL-only.
+    // Central mode is cross-tenant and stays facade-enforced.
+    const forcedRlsRowLevel =
+      config.strategy === "rowLevel" && context.mode === "tenant";
+    return runScope(config.knex, context, callback, forcedRlsRowLevel);
   }
 
   async function close(): Promise<void> {

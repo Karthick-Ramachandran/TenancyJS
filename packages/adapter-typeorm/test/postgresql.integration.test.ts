@@ -161,6 +161,25 @@ describePostgres("TypeORM PostgreSQL row-level isolation", () => {
     ).resolves.toBe(1);
   });
 
+  // ADR-0038: forced-RLS row-level is database-enforced, so unrestricted() raw
+  // SQL is allowed and the validated policy binds it to the current tenant.
+  it("allows unrestricted() raw SQL under forced RLS, bound to the tenant (ADR-0038)", async () => {
+    await run(tenantA, (client) =>
+      client.repository(PostEntity).create({ id: "u", title: "A" }),
+    );
+    await run(tenantB, (client) =>
+      client.repository(PostEntity).create({ id: "u", title: "B" }),
+    );
+    // The returned EntityManager runs on the transaction holding the tenant GUC.
+    const titlesA = await run(tenantA, async (client) => {
+      const rows = (await client
+        .unrestricted()
+        .query(`select title from ${schema}.posts`)) as { title: string }[];
+      return rows.map((row) => row.title);
+    });
+    expect(titlesA).toEqual(["A"]); // never tenant B's colliding row
+  });
+
   it("fails closed on missing validation/context, conflicts, unsafe criteria, and unknown entities", async () => {
     const locked = createTypeOrmTenancy({
       manager,

@@ -200,8 +200,20 @@ export function createLucidTenancy<TTenant extends TenantRecord = TenantRecord>(
             runWithTransaction(connection, context, callback, true),
         );
       }
-      // Shared base connection (central mode / facade-enforced strategies).
-      return runWithTransaction(config.database, context, callback, false);
+      // ADR-0038: forced-RLS row-level in tenant mode is database-enforced too.
+      // run() throws above unless validate() passed, and for Lucid row-level that
+      // means the forced-RLS policy contract holds under a non-BYPASSRLS role; the
+      // tenant GUC is SET LOCAL in this transaction, so raw SQL on the returned
+      // transaction client cannot cross tenants. Lucid row-level is PostgreSQL-only.
+      // Central mode is cross-tenant and stays facade-enforced.
+      const forcedRlsRowLevel =
+        config.strategy === "rowLevel" && context.mode === "tenant";
+      return runWithTransaction(
+        config.database,
+        context,
+        callback,
+        forcedRlsRowLevel,
+      );
     },
     async close() {
       if (connectionCache !== undefined) await connectionCache.close();

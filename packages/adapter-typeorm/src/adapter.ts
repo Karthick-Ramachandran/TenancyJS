@@ -170,8 +170,16 @@ export function createTypeOrmTenancy<
         (dataSource) => runScope(dataSource, true),
       );
     }
-    // Shared base DataSource (central mode / facade-enforced strategies).
-    return runScope(config.dataSource, false);
+    // ADR-0038: forced-RLS row-level on PostgreSQL in tenant mode is also
+    // database-enforced. validate() (guaranteed passed) confirmed forced RLS under
+    // a non-BYPASSRLS role, and the tenant GUC is SET LOCAL on this transaction's
+    // manager, so raw SQL via the returned EntityManager cannot cross tenants.
+    // MySQL row-level (no RLS backstop) and central mode stay facade-enforced.
+    const forcedRlsRowLevel =
+      config.strategy === "rowLevel" &&
+      config.dialect === "postgresql" &&
+      context.mode === "tenant";
+    return runScope(config.dataSource, forcedRlsRowLevel);
   }
 
   return Object.freeze({

@@ -123,6 +123,30 @@ describePostgres("Drizzle PostgreSQL forced-RLS row isolation", () => {
       run(tenantB, (client) => client.table(posts).findMany()),
     ).resolves.toEqual([{ id: "same-id", tenantId: "tenant-b", title: "B" }]);
   });
+
+  // ADR-0038: forced-RLS row-level is database-enforced, so unrestricted() raw
+  // SQL is allowed and the validated policy binds it to the current tenant.
+  it("allows unrestricted() raw SQL under forced RLS, bound to the tenant (ADR-0038)", async () => {
+    const tenantA = { id: "tenant-a", schema: "", database: "" };
+    const tenantB = { id: "tenant-b", schema: "", database: "" };
+    await run(tenantA, (client) =>
+      client.table(posts).create({ id: "u", title: "A" }),
+    );
+    await run(tenantB, (client) =>
+      client.table(posts).create({ id: "u", title: "B" }),
+    );
+    // The returned drizzle transaction holds the SET LOCAL tenant GUC.
+    const titlesA = await run(tenantA, async (client) => {
+      const native = client.unrestricted<NodePgDatabase>();
+      const result = await native.execute(
+        sql.raw(`select title from ${tableName}`),
+      );
+      return (result as { rows: { title: string }[] }).rows.map(
+        (row) => row.title,
+      );
+    });
+    expect(titlesA).toEqual(["A"]); // never tenant B's colliding row
+  });
 });
 
 describePostgres("Drizzle PostgreSQL schema-per-tenant isolation", () => {

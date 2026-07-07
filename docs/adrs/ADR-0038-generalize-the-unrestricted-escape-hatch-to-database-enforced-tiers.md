@@ -93,9 +93,18 @@ wrapper (churns the 4 already-correct adapters, less idiomatic) and the additive
   adversarial tests (raw SQL under RLS cannot cross tenants; `unrestricted()` is refused when validation
   fails or the role can bypass RLS).
 - Risk: a wrong precondition here is a cross-tenant leak. The gate must be the *validated* RLS signal,
-  not a hopeful one. **Implementation is a follow-up, deferred until it can be verified against a real
-  PostgreSQL with the full adversarial suite** — the decision and safety analysis are recorded here; the
-  enforcement change is not shipped in this change.
+  not a hopeful one — so the flag is only lifted for `rowLevel` + tenant mode + (for the adapters that
+  also support MySQL row-level) `dialect === "postgresql"`, and every adapter gates `run()` on
+  `validate()`, so reaching a row-level Postgres scope means the forced-RLS contract passed.
+
+**Implemented 2026-07-07, verified against real PostgreSQL.** All five SQL adapters ship it: Knex, Lucid
+(Postgres-only row-level → `rowLevel && tenant`), and TypeORM, Sequelize, Drizzle (also MySQL row-level →
+`rowLevel && postgresql && tenant`). Sequelize's `unrestricted()` now returns `{ sequelize, transaction }`
+(breaking, minor bump); the other four already returned a tx-bound native handle, so they were the flag
+plus a test flip. Each adapter has an adversarial Postgres test proving raw SQL via `unrestricted()`
+returns only the current tenant's row (two tenants, colliding primary key) and that `unrestricted()` is
+still refused in central mode. The capability matrix metadata still reports `rawQueries: "rejected"` for
+row-level (conservative, and accurate for MySQL row-level); the runtime hatch is the deliverable.
 
 ## Related Documents
 

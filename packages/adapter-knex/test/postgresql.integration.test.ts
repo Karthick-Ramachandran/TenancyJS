@@ -210,11 +210,24 @@ describePostgres("Knex PostgreSQL row-level isolation", () => {
     await expect(runtimeBase(postsTable).select("id")).resolves.toEqual([]);
   });
 
-  it("refuses unrestricted() in row-level scope (facade-enforced)", async () => {
-    // ADR-0033: row-level (no forced-RLS tier yet) is facade-enforced — the
-    // facade is the only guard, so the raw handle must never be exposed.
+  // ADR-0038: forced-RLS row-level is database-enforced, so unrestricted() raw
+  // SQL is allowed - and the validated policy under a non-BYPASSRLS role binds it
+  // to the current tenant even though every tenant shares one table.
+  it("allows unrestricted() raw SQL under forced RLS, bound to the tenant (ADR-0038)", async () => {
+    const idsA = await withTenant("tenant-a", async (db) => {
+      // The returned Knex.Transaction holds the SET LOCAL tenant GUC.
+      const result = await db.unrestricted().raw(`select id from ${postsTable}`);
+      return (result.rows as { id: string }[]).map((row) => row.id);
+    });
+    expect(idsA).toEqual(["post-a"]); // never post-b, even via raw SQL
+  });
+
+  it("still refuses unrestricted() in central mode on row-level", async () => {
+    // Central mode is cross-tenant by design and stays facade-enforced.
     await expect(
-      withTenant("tenant-a", async (db) => db.unrestricted()),
+      manager.runInCentralContext(() =>
+        tenancy.run(async (db) => db.unrestricted()),
+      ),
     ).rejects.toBeInstanceOf(KnexTenancyConfigurationError);
   });
 

@@ -25,5 +25,6 @@ export type {
   SequelizeDatabasePlacement,
   SequelizeScalar,
   SequelizeTenantModelConfig,
+  SequelizeUnrestricted,
   SequelizeValues,
 } from "./types.js";

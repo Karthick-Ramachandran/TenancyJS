@@ -244,11 +244,29 @@ describePostgres("Lucid 22 PostgreSQL row-level isolation", () => {
     await expect(database.from(postsTable).select("id")).resolves.toEqual([]);
   });
 
-  it("refuses unrestricted() in row-level scope (facade-enforced)", async () => {
-    // ADR-0033: row-level relies on forced RLS + the model hooks, not a leased
-    // per-tenant connection, so the raw transaction must not be handed out.
+  // ADR-0038: forced-RLS row-level is database-enforced, so unrestricted() raw
+  // SQL is allowed - and the validated policy under a non-BYPASSRLS role binds it
+  // to the current tenant even though every tenant shares one table.
+  it("allows unrestricted() raw SQL under forced RLS, bound to the tenant (ADR-0038)", async () => {
+    // Seed: post-a (tenant-a, "A"), post-b (tenant-b, "B"). Raw SQL under the
+    // tenant-a GUC must see only tenant-a's row.
+    const titlesA = await manager.runWithTenant(
+      { id: "tenant-a", name: "tenant-a" },
+      () =>
+        tenancy.run(async (scope) => {
+          const result = await scope
+            .unrestricted()
+            .rawQuery(`select title from ${postsTable} order by id`);
+          return (result.rows as { title: string }[]).map((row) => row.title);
+        }),
+    );
+    expect(titlesA).toEqual(["A"]); // never tenant B's row, even via raw SQL
+  });
+
+  it("still refuses unrestricted() in central mode on row-level", async () => {
+    // Central mode is cross-tenant by design and stays facade-enforced.
     await expect(
-      manager.runWithTenant({ id: "tenant-a", name: "tenant-a" }, () =>
+      manager.runInCentralContext(() =>
         tenancy.run(async (scope) => scope.unrestricted()),
       ),
     ).rejects.toBeInstanceOf(LucidTenancyConfigurationError);
