@@ -2,7 +2,7 @@
 
 Fail-closed Express 5 request lifecycle integration for TenancyJS.
 
-> **New to TenancyJS? [Start with the docs →](https://tenancyjs.pages.dev/docs/getting-started/installation)** — install, the `npx tenancy` CLI, and how this package fits with an adapter + integration.
+> **New to TenancyJS? [Start with the docs →](https://tenancyjs.pages.dev/docs/getting-started/installation)** — install, the `tenancyjs-cli` CLI, and how this package fits with an adapter + integration.
 
 The middleware resolves tenant identity from the request, enters the application-owned
 `TenancyManager`, and keeps that lexical scope active until the response finishes, closes, or the

@@ -2,7 +2,7 @@
 
 Fail-closed Mongoose 9 row-level and database-per-tenant isolation for MongoDB 8 replica sets and Node 24.
 
-> **New to TenancyJS? [Start with the docs →](https://tenancyjs.pages.dev/docs/getting-started/installation)** — install, the `npx tenancy` CLI, and how this package fits with an adapter + integration.
+> **New to TenancyJS? [Start with the docs →](https://tenancyjs.pages.dev/docs/getting-started/installation)** — install, the `tenancyjs-cli` CLI, and how this package fits with an adapter + integration.
 
 This boundary is **adapter-enforced**, not equivalent to PostgreSQL forced RLS. Keep native Mongoose
 connections, models, documents, queries, and collections private. Protected reads return lean plain

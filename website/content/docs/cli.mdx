@@ -45,6 +45,21 @@ It exits `0` when healthy and `2` when a probe fails.
 Init recognizes Express with Prisma, TypeORM, Sequelize, or Drizzle; AdonisJS with Lucid; and Next.js
 with Prisma. It previews by default and never overwrites an existing file.
 
+<Callout type="info">
+  **On a JavaScript (non-TypeScript) project?** `init` currently scaffolds TypeScript (`.ts`) files.
+  Node.js 24 runs `.ts` natively (it strips the types), so the scaffolds — and your
+  `tenancy.config.ts` — work as-is even without a TypeScript toolchain; the CLI loads `.ts`, `.mts`,
+  `.mjs`, and `.js` configs. If you want plain ESM instead, rename each generated file to `.mjs` and
+  drop the type annotations, or hand it to your AI assistant. With
+  [`--ai-context`](/docs/build-with-ai) the assistant already has the `TENANCY.md` guide; then prompt:
+
+  > Convert the TenancyJS scaffold files (`tenancy.config.ts` and everything under `src/tenancy/` or
+  > `lib/tenancy/`) to plain ESM JavaScript `.mjs`: remove the `import type` lines and all type
+  > annotations/generics, keep every runtime import and the logic unchanged.
+
+  First-class JavaScript scaffolds (`--lang js`) are on the roadmap.
+</Callout>
+
 ## Manage tenants
 
 Read and write your bring-your-own [tenant store](/docs/getting-started/configuration#bring-your-own-tenant-store).

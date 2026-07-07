@@ -25,36 +25,36 @@ TenancyJS is `0.x`: safe for real use, with the API still settling before `1.0`.
 
 ## The CLI — `tenancyjs-cli`
 
-One operational CLI for your whole tenant lifecycle. Run any command with `npx tenancy …` (no install),
+One operational CLI for your whole tenant lifecycle. Run any command with `npx tenancyjs-cli …` (no install),
 or `npm install -g tenancyjs-cli` for a global `tenancy`. Every command takes `--json` for
 machine-readable, secret-redacted output.
 
 **Scaffold & inspect**
 
 ```bash
-npx tenancy init            # detect your framework + ORM and scaffold the wiring
-npx tenancy doctor          # inspect a project's static setup + migration effort
-npx tenancy tenant check    # health-probe the runtime and warn on untested combinations
-npx tenancy test:leak --test-file ./leak.mjs   # run a cross-tenant isolation leak test
+npx tenancyjs-cli init            # detect your framework + ORM and scaffold the wiring
+npx tenancyjs-cli doctor          # inspect a project's static setup + migration effort
+npx tenancyjs-cli tenant check    # health-probe the runtime and warn on untested combinations
+npx tenancyjs-cli test:leak --test-file ./leak.mjs   # run a cross-tenant isolation leak test
 ```
 
 **Manage tenants** (backed by your own store — see [Configuration](https://tenancyjs.pages.dev/docs/getting-started/configuration))
 
 ```bash
-npx tenancy tenant list                 # list tenants from your store
-npx tenancy tenant show acme            # show one tenant
-npx tenancy tenant create acme --set plan=pro --set region=eu
-npx tenancy tenant suspend acme         # / tenant activate acme
+npx tenancyjs-cli tenant list                 # list tenants from your store
+npx tenancyjs-cli tenant show acme            # show one tenant
+npx tenancyjs-cli tenant create acme --set plan=pro --set region=eu
+npx tenancyjs-cli tenant suspend acme         # / tenant activate acme
 ```
 
 **Provision, migrate & run** (per-tenant placement + scripts)
 
 ```bash
-npx tenancy tenant provision acme       # create the tenant's schema/database (your hook)
-npx tenancy tenant migrate --all        # migrate every tenant, reporting each outcome
-npx tenancy tenant deprovision acme     # drop it (explicit id only — never --all)
-npx tenancy run ./backfill.ts --tenant acme     # run a script inside a tenant scope
-npx tenancy run ./rollup.ts --central           # …or in the central (cross-tenant) scope
+npx tenancyjs-cli tenant provision acme       # create the tenant's schema/database (your hook)
+npx tenancyjs-cli tenant migrate --all        # migrate every tenant, reporting each outcome
+npx tenancyjs-cli tenant deprovision acme     # drop it (explicit id only — never --all)
+npx tenancyjs-cli run ./backfill.ts --tenant acme     # run a script inside a tenant scope
+npx tenancyjs-cli run ./rollup.ts --central           # …or in the central (cross-tenant) scope
 ```
 
 Full reference: **[CLI docs →](https://tenancyjs.pages.dev/docs/cli)**.

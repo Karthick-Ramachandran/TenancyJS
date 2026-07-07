@@ -2,7 +2,7 @@
 
 Fail-closed tenant context for Next.js 16.2 App Router Route Handlers and Server Actions.
 
-> **New to TenancyJS? [Start with the docs →](https://tenancyjs.pages.dev/docs/getting-started/installation)** — install, the `npx tenancy` CLI, and how this package fits with an adapter + integration.
+> **New to TenancyJS? [Start with the docs →](https://tenancyjs.pages.dev/docs/getting-started/installation)** — install, the `tenancyjs-cli` CLI, and how this package fits with an adapter + integration.
 
 ## Install
 

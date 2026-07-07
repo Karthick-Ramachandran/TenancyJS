@@ -2,7 +2,7 @@
 
 Fail-closed Knex 3.3 row-level, schema-per-tenant, and database-per-tenant isolation for PostgreSQL 17.
 
-> **New to TenancyJS? [Start with the docs →](https://tenancyjs.pages.dev/docs/getting-started/installation)** — install, the `npx tenancy` CLI, and how this package fits with an adapter + integration.
+> **New to TenancyJS? [Start with the docs →](https://tenancyjs.pages.dev/docs/getting-started/installation)** — install, the `tenancyjs-cli` CLI, and how this package fits with an adapter + integration.
 
 This package is experimental until its PostgreSQL conformance matrix passes. The protected callback
 client exposes a deliberately narrow fluent subset. It combines application-level discriminator

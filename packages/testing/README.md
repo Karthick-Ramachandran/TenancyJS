@@ -2,7 +2,7 @@
 
 Runner-neutral fixtures and contract cases for TenancyJS.
 
-> **New to TenancyJS? [Start with the docs →](https://tenancyjs.pages.dev/docs/getting-started/installation)** — install, the `npx tenancy` CLI, and how this package fits with an adapter + integration.
+> **New to TenancyJS? [Start with the docs →](https://tenancyjs.pages.dev/docs/getting-started/installation)** — install, the `tenancyjs-cli` CLI, and how this package fits with an adapter + integration.
 
 ```ts
 for (const contractCase of createCoreTenancyContract()) {

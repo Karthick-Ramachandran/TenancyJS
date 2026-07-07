@@ -2,7 +2,7 @@
 
 Fail-closed NestJS 11 request lifecycle integration for TenancyJS on Node 24.
 
-> **New to TenancyJS? [Start with the docs →](https://tenancyjs.pages.dev/docs/getting-started/installation)** — install, the `npx tenancy` CLI, and how this package fits with an adapter + integration.
+> **New to TenancyJS? [Start with the docs →](https://tenancyjs.pages.dev/docs/getting-started/installation)** — install, the `tenancyjs-cli` CLI, and how this package fits with an adapter + integration.
 
 `TenancyModule` resolves marked tenant routes in a guard, stores the immutable result privately, and
 opens the canonical tenant plus optional ORM scope in an interceptor for the handler Observable

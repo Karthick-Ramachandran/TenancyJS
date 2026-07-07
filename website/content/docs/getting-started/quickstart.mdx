@@ -13,6 +13,12 @@ integration imports - the shape is identical (see [Adapters](/docs/adapters) and
   Lucid, or Next.js + Prisma. See [Installation](/docs/getting-started/installation).
 </Callout>
 
+<Callout type="info">
+  **Plain JavaScript?** The samples below are TypeScript, but nothing here needs a compiler — the
+  guarantee is enforced at runtime. Drop the `import type` lines and the type annotations and this is
+  valid ESM JavaScript (`.mjs`). Everything works the same.
+</Callout>
+
 Install the core, the Prisma adapter, and the Express integration (Node.js 24+):
 
 ```bash

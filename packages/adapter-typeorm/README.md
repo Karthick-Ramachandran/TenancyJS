@@ -3,7 +3,7 @@
 Fail-closed TypeORM 1 isolation for PostgreSQL 17 and MySQL 8 on Node 24. PostgreSQL supports all
 three strategies; MySQL supports adapter-enforced row-level and database-per-tenant.
 
-> **New to TenancyJS? [Start with the docs →](https://tenancyjs.pages.dev/docs/getting-started/installation)** — install, the `npx tenancy` CLI, and how this package fits with an adapter + integration.
+> **New to TenancyJS? [Start with the docs →](https://tenancyjs.pages.dev/docs/getting-started/installation)** — install, the `tenancyjs-cli` CLI, and how this package fits with an adapter + integration.
 
 The adapter exposes callback-scoped protected repositories, not a native `DataSource`, manager,
 repository, QueryBuilder, or Active Record entity. The initial surface supports plain scalar-equality

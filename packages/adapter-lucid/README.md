@@ -2,7 +2,7 @@
 
 **Fail-closed Lucid 22 row-level, schema-per-tenant, and database-per-tenant isolation for AdonisJS 7 and PostgreSQL 17.**
 
-> **New to TenancyJS? [Start with the docs →](https://tenancyjs.pages.dev/docs/getting-started/installation)** — install, the `npx tenancy` CLI, and how this package fits with an adapter + integration.
+> **New to TenancyJS? [Start with the docs →](https://tenancyjs.pages.dev/docs/getting-started/installation)** — install, the `tenancyjs-cli` CLI, and how this package fits with an adapter + integration.
 
 ![Node](https://img.shields.io/badge/Node.js-%3E%3D24-brightgreen)
 ![AdonisJS](https://img.shields.io/badge/AdonisJS-7-5A45FF)

@@ -2,7 +2,7 @@
 
 Fail-closed AdonisJS 7 request lifecycle integration for TenancyJS Lucid tenancy.
 
-> **New to TenancyJS? [Start with the docs →](https://tenancyjs.pages.dev/docs/getting-started/installation)** — install, the `npx tenancy` CLI, and how this package fits with an adapter + integration.
+> **New to TenancyJS? [Start with the docs →](https://tenancyjs.pages.dev/docs/getting-started/installation)** — install, the `tenancyjs-cli` CLI, and how this package fits with an adapter + integration.
 
 The application owns the `TenancyManager`, tenant resolver, and Lucid tenancy service
 (`tenancyjs-adapter-lucid`). This package wires them into AdonisJS through a service provider

@@ -15,7 +15,7 @@ Do **not** open a public issue or pull request for a suspected vulnerability.
 
 Please include:
 
-- Affected package and version (e.g. `tenancyjs-core@0.1.3`).
+- Affected package and version (e.g. `tenancyjs-core@0.1.1`).
 - The placement / strategy in use (Postgres row-level, database-per-tenant,
   MySQL row-level, MongoDB/Mongoose, Prisma row-level, etc.).
 - A minimal reproduction: the smallest code and schema that shows the leak or
