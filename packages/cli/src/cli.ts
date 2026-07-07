@@ -311,8 +311,8 @@ function formatNextSteps(framework: InitFramework, orm: InitOrm): string {
 
   out.push(
     step(5, "Provision, migrate, then prove isolation"),
-    cmd("npx tenancy tenant check"),
-    cmd("npx tenancy test:leak --test-file <path>"),
+    cmd("npx tenancyjs-cli tenant check"),
+    cmd("npx tenancyjs-cli test:leak --test-file <path>"),
     "",
     `  ${dim("Full walkthrough")}  ${cyan(`${docs}/getting-started/quickstart`)}`,
     "",
