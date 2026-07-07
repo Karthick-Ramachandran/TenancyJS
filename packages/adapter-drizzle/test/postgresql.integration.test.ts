@@ -141,7 +141,7 @@ describePostgres("Drizzle PostgreSQL forced-RLS row isolation", () => {
       const result = await native.execute(
         sql.raw(`select title from ${tableName}`),
       );
-      return (result as { rows: { title: string }[] }).rows.map(
+      return (result as unknown as { rows: { title: string }[] }).rows.map(
         (row) => row.title,
       );
     });

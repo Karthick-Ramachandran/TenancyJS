@@ -99,12 +99,15 @@ describePostgres("Prisma RLS-backed row-level isolation (ADR-0037)", () => {
     manager.runWithTenant(tenant, () => tenancy.run(callback));
 
   it("isolates model reads and raw SQL under RLS", async () => {
-    // The tenant discriminator is auto-injected on create.
     await run(tenantA, (tx) =>
-      tx.rlsPost.create({ data: { id: "post-a", title: "A" } }),
+      tx.rlsPost.create({
+        data: { id: "post-a", title: "A", tenantId: "tenant-a" },
+      }),
     );
     await run(tenantB, (tx) =>
-      tx.rlsPost.create({ data: { id: "post-b", title: "B" } }),
+      tx.rlsPost.create({
+        data: { id: "post-b", title: "B", tenantId: "tenant-b" },
+      }),
     );
 
     const aTitles = await run(tenantA, (tx) => tx.rlsPost.findMany());
