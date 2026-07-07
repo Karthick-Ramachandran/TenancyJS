@@ -19,6 +19,12 @@ await tenancy.runWithTenant(tenant, async () => {
 });
 ```
 
+> **Read the docs first — [tenancyjs.pages.dev/docs](https://tenancyjs.pages.dev/docs).** Multi-tenancy is a
+> security boundary: skim the [Rules & limitations](https://tenancyjs.pages.dev/docs/concepts/limitations)
+> and [Resolving tenants](https://tenancyjs.pages.dev/docs/guides/resolving-tenants) before you wire
+> anything. If you use an AI assistant, run `npx tenancyjs-cli init --ai-context` — it writes a
+> `TENANCY.md` that teaches the assistant the fail-closed rules for your stack.
+
 > **`0.1.0`.** Safe for real use; the API is still settling before `1.0` (semver `0.x`). Every
 > "supported" cell below is proven by a two-tenant adversarial isolation test on a real database -
 > nothing is marked supported on faith.

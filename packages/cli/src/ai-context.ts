@@ -11,7 +11,7 @@ import {
   isMissing,
   resolveContainedPath,
 } from "./paths.js";
-import type { InitFramework, InitOrm } from "./types.js";
+import type { InitFramework, InitOrm, InitStrategy } from "./types.js";
 
 /** Root-level guide the CLI can (re)generate for humans and AI assistants. */
 export const GUIDE_FILE = "TENANCY.md";
@@ -32,6 +32,7 @@ export interface AiContextInput {
   readonly root: string;
   readonly framework: InitFramework;
   readonly orm: InitOrm;
+  readonly strategy: InitStrategy;
 }
 
 export interface MemoryUpdate {
@@ -76,7 +77,7 @@ async function writeGuide(
 ): Promise<AiContextResult["guide"]> {
   const target = resolveContainedPath(input.root, GUIDE_FILE);
   await assertNoSymlinkPath(input.root, target, true);
-  const content = buildTenancyGuide(input.framework, input.orm);
+  const content = buildTenancyGuide(input.framework, input.orm, input.strategy);
   const existing = await readIfPresent(target);
   if (existing === undefined) {
     await writeFile(target, content, { encoding: "utf8", mode: 0o644 });
@@ -153,6 +154,7 @@ export function buildAgentMemoryBlock(
 export function buildTenancyGuide(
   framework: InitFramework,
   orm: InitOrm,
+  strategy: InitStrategy,
 ): string {
   const packages = [
     "tenancyjs-core",
@@ -195,12 +197,17 @@ export function buildTenancyGuide(
     "",
     ...wiringNotes(framework, orm),
     "",
+    "## Resolving the tenant per request",
+    "",
+    ...resolutionNotes(framework),
+    "",
     "## Isolation model",
     "",
-    ...isolationNotes(orm),
+    ...isolationNotes(orm, strategy),
     "",
     "## Where to read more",
     "",
+    `- Resolving tenants (subdomain / header / path / cookie): ${DOCS}/guides/resolving-tenants`,
     `- Integration: ${INTEGRATION_DOC[framework]}`,
     `- Adapter: ${DOCS}/adapters/${orm}`,
     `- Strategies: ${DOCS}/strategies/row-level`,
@@ -244,18 +251,72 @@ function wiringNotes(framework: InitFramework, orm: InitOrm): string[] {
   return notes;
 }
 
-function isolationNotes(orm: InitOrm): string[] {
+const PRINCIPAL_HINT: Record<InitFramework, string> = {
+  express:
+    "`principal: (req) => req.user` (run this middleware **after** authentication)",
+  next: "a session thunk, e.g. `principal: () => auth()` (resolve **after** the session is known)",
+  adonis:
+    "`principal: (ctx) => ctx.auth.user` (apply after the auth middleware)",
+};
+
+/**
+ * How to turn a request into a tenant, and the resolve-vs-authorize rule.
+ * Written so an assistant can pick a source (subdomain/header/path/domain) and
+ * wire the mandatory membership check for this stack.
+ */
+function resolutionNotes(framework: InitFramework): string[] {
+  return [
+    "The integration takes a **resolver** that turns each request into a tenant. Pick the source that",
+    "matches how tenants reach this app — decide with the human, don't guess a default:",
+    "",
+    "- **Subdomain** — `acme.example.com` → `req.subdomains.at(-1)`.",
+    "- **Header** — `x-tenant-id: acme` (client-set, so it MUST be authorized — see below).",
+    "- **Path** — `/t/acme/...` → the slug segment.",
+    "- **Custom domain** — look the hostname up in your store; no match → fail closed.",
+    "",
+    "**Resolving is not authorizing.** Proving a tenant exists is not proof this user may act as it. A",
+    "header or path segment is a value the client sets — any logged-in user can send another tenant's id",
+    "and get scoped to it. RLS does not help; it scopes to whatever tenant you resolved.",
+    "",
+    "Use `TenantResolutionChain` (from `tenancyjs-identifiers`) — it **refuses to construct** unless you",
+    "pass an `authorize` hook (does THIS principal belong to the resolved tenant?) or explicitly opt out",
+    `with \`trustResolution\` (only for non-forgeable identifiers). Supply the principal via ${PRINCIPAL_HINT[framework]}.`,
+    "",
+    "Failure semantics are uniform: **400** no/invalid identifier, **404** not-found/suspended/forbidden",
+    "(indistinguishable, so callers can't enumerate tenants), **500** ambiguous. Never fall back to a",
+    "default tenant — no match is the safe outcome.",
+  ];
+}
+
+function isolationNotes(orm: InitOrm, strategy: InitStrategy): string[] {
+  if (strategy === "schemaPerTenant") {
+    return [
+      "- You scaffolded **schema-per-tenant**: each tenant gets its own PostgreSQL schema, isolated via a",
+      "  transaction-local `search_path` (optionally a per-tenant role with `USAGE` on only its own schema).",
+      "- Provision each tenant's schema before it is used (see the provisioning guide), and classify and",
+      "  register every tenant-scoped model/table with the adapter.",
+      "- Run `validate()` at startup — protected execution stays locked until the contract passes.",
+    ];
+  }
+  if (strategy === "databasePerTenant") {
+    return [
+      "- You scaffolded **database-per-tenant**: each tenant gets its own database, leased per scope, so",
+      "  isolation is by construction. `unrestricted()` there gives full query freedom (raw SQL, joins).",
+      "- Provision each tenant's database and wire the per-tenant connection factory (see the provisioning",
+      "  guide); register every tenant-scoped model/table with the adapter.",
+      "- Run `validate()` at startup — protected execution stays locked until the contract passes.",
+    ];
+  }
   if (orm === "prisma")
     return [
-      "- `init` scaffolds **row-level** isolation. Prisma row-level is **facade-enforced** — the extension",
-      "  rewrites query arguments; there is no PostgreSQL RLS backstop, so never use the base client.",
+      "- You scaffolded **row-level**. Prisma row-level is **facade-enforced** — the extension rewrites",
+      "  query arguments; there is no PostgreSQL RLS backstop, so never use the base client.",
       "- An RLS-backed path also exists (`createPrismaRowLevelTenancy`, needs `@prisma/adapter-pg` + forced",
       "  RLS) that adds a PostgreSQL database backstop; the extension path above stays facade-only.",
-      "- For a database-enforced backstop, use that path, schema-per-tenant (schema-bound driver clients),",
-      "  or database-per-tenant. See the adapter docs.",
+      "- For a database-enforced backstop, use that path, schema-per-tenant, or database-per-tenant.",
     ];
   return [
-    "- `init` scaffolds **row-level** isolation backed by **forced PostgreSQL RLS**.",
+    "- You scaffolded **row-level** isolation backed by **forced PostgreSQL RLS**.",
     "- Add a migration that, for every tenant table: `ENABLE` + `FORCE` row level security under a",
     "  non-owner, non-`BYPASSRLS`, non-superuser runtime role, with a `<table>_tenant_isolation` policy",
     "  whose `USING` and `WITH CHECK` read `tenancyjs.tenant_id` and `tenancyjs.is_central`.",

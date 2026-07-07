@@ -600,6 +600,43 @@ describe("CLI leak test and command runner", () => {
     expect(output.stdout.join("")).toContain("already current");
   });
 
+  it("tailors the AI context isolation model to the scaffolded strategy", async () => {
+    const schemaRoot = await fixture();
+    const schemaIo = captureIo(schemaRoot);
+    await expect(
+      runCli(
+        ["init", "--apply", "--strategy", "schema-per-tenant", "--ai-context"],
+        schemaIo.io,
+      ),
+    ).resolves.toBe(0);
+    const schemaGuide = await readFile(join(schemaRoot, "TENANCY.md"), "utf8");
+    expect(schemaGuide).toContain("schema-per-tenant");
+    expect(schemaGuide).toContain("search_path");
+    expect(schemaGuide).not.toContain("forced PostgreSQL RLS");
+    // The resolve-vs-authorize guidance is always present.
+    expect(schemaGuide).toContain("Resolving the tenant per request");
+    expect(schemaGuide).toContain("Resolving is not authorizing");
+
+    const dbRoot = await fixture();
+    const dbIo = captureIo(dbRoot);
+    await expect(
+      runCli(
+        [
+          "init",
+          "--apply",
+          "--strategy",
+          "database-per-tenant",
+          "--ai-context",
+        ],
+        dbIo.io,
+      ),
+    ).resolves.toBe(0);
+    const dbGuide = await readFile(join(dbRoot, "TENANCY.md"), "utf8");
+    expect(dbGuide).toContain("database-per-tenant");
+    expect(dbGuide).toContain("isolation is by construction");
+    expect(dbGuide).not.toContain("forced PostgreSQL RLS");
+  });
+
   it("does not write AI context without opt-in, and hints when no agent memory exists", async () => {
     const withoutFlag = await fixture();
     const first = captureIo(withoutFlag);

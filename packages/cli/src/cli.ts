@@ -183,7 +183,12 @@ async function runInit(
 
   if (parsed.apply) await applyChangePlan(plan);
   const aiContext = wantAiContext
-    ? await applyAiContext({ root: detection.root, framework, orm })
+    ? await applyAiContext({
+        root: detection.root,
+        framework,
+        orm,
+        strategy: plan.strategy,
+      })
     : undefined;
   io.writeStdout(
     parsed.json
