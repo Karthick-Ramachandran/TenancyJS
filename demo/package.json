@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "description": "Runnable Express + Sequelize database-per-tenant demo for TenancyJS (used for the README GIF and video).",
-  "engines": { "node": ">=24" },
+  "engines": {
+    "node": ">=24"
+  },
   "scripts": {
     "provision": "node provision.mjs",
     "demo": "node demo.mjs",
