@@ -3,7 +3,10 @@
 // the authenticated user is a MEMBER of that tenant (ADR-0035). A spoofed header
 // gets a sanitized 404 - identical to an unknown tenant, so nothing leaks.
 import express from "express";
-import { HeaderTenantResolver, TenantResolutionChain } from "tenancyjs-identifiers";
+import {
+  HeaderTenantResolver,
+  TenantResolutionChain,
+} from "tenancyjs-identifiers";
 import { createExpressTenancyMiddleware } from "tenancyjs-integration-express";
 
 import { TENANTS, buildTenancy } from "./shared.mjs";
@@ -70,7 +73,11 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const port = Number(process.env.PORT ?? 3000);
   app.listen(port, () => {
     process.stdout.write(`demo server on http://localhost:${port}\n`);
-    process.stdout.write(`  curl -H 'x-tenant-id: acme'   localhost:${port}/posts\n`);
-    process.stdout.write(`  curl -H 'x-tenant-id: globex' localhost:${port}/posts   # 404, not a member\n`);
+    process.stdout.write(
+      `  curl -H 'x-tenant-id: acme'   localhost:${port}/posts\n`,
+    );
+    process.stdout.write(
+      `  curl -H 'x-tenant-id: globex' localhost:${port}/posts   # 404, not a member\n`,
+    );
   });
 }

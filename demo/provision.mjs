@@ -24,7 +24,9 @@ async function createSchema(database) {
 for (const tenant of TENANTS) {
   await recreateDatabase(tenant.database);
   await createSchema(tenant.database);
-  process.stdout.write(`  provisioned ${tenant.id} -> database ${tenant.database}\n`);
+  process.stdout.write(
+    `  provisioned ${tenant.id} -> database ${tenant.database}\n`,
+  );
 }
 
 process.stdout.write("done\n");

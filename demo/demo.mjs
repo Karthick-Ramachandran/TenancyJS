@@ -25,9 +25,13 @@ await beat();
 await run(acme, (c) => c.model(post).delete({ id: "1" }));
 await run(globex, (c) => c.model(post).delete({ id: "1" }));
 out(`  ${b("Both tenants write a post with the same id (1):")}`);
-await run(acme, (c) => c.model(post).create({ id: "1", title: "Acme roadmap" }));
+await run(acme, (c) =>
+  c.model(post).create({ id: "1", title: "Acme roadmap" }),
+);
 out(`    ${g("✓")} acme   → ${b('"Acme roadmap"')}`);
-await run(globex, (c) => c.model(post).create({ id: "1", title: "Globex roadmap" }));
+await run(globex, (c) =>
+  c.model(post).create({ id: "1", title: "Globex roadmap" }),
+);
 out(`    ${g("✓")} globex → ${b('"Globex roadmap"')}`);
 out();
 await beat();
@@ -36,16 +40,22 @@ out(`  ${b("Read back — same id, zero cross-talk:")}`);
 const acmeRows = await run(acme, (c) => c.model(post).findAll());
 const globexRows = await run(globex, (c) => c.model(post).findAll());
 out(`    acme   sees  ${g(JSON.stringify(acmeRows.map((row) => row.title)))}`);
-out(`    globex sees  ${g(JSON.stringify(globexRows.map((row) => row.title)))}`);
+out(
+  `    globex sees  ${g(JSON.stringify(globexRows.map((row) => row.title)))}`,
+);
 out();
 await beat();
 
-out(`  ${b("Forget the tenant scope — the bug that usually leaks everything:")}`);
+out(
+  `  ${b("Forget the tenant scope — the bug that usually leaks everything:")}`,
+);
 try {
   await tenancy.run((c) => c.model(post).findAll());
   out(`    ${r("!! it returned data — this should never happen")}`);
 } catch (error) {
-  out(`    ${r("✗")} ${r(error.name)} ${d("— refused, not leaked (fail-closed)")}`);
+  out(
+    `    ${r("✗")} ${r(error.name)} ${d("— refused, not leaked (fail-closed)")}`,
+  );
 }
 out();
 await beat();

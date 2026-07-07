@@ -34,18 +34,30 @@ async function get(tenantId) {
 
 out();
 out(b("Membership - resolution is not authorization"));
-out(d("The logged-in user is a member of ACME only. The header is spoofable; membership is not."));
+out(
+  d(
+    "The logged-in user is a member of ACME only. The header is spoofable; membership is not.",
+  ),
+);
 out();
 
 const ok = await get("acme");
-out(`  GET /posts  ${d("x-tenant-id: acme")}    -> ${g(ok.status)}  ${JSON.stringify(ok.body)}`);
+out(
+  `  GET /posts  ${d("x-tenant-id: acme")}    -> ${g(ok.status)}  ${JSON.stringify(ok.body)}`,
+);
 
 const spoof = await get("globex");
-out(`  GET /posts  ${d("x-tenant-id: globex")}  -> ${spoof.status === 404 ? g(spoof.status) : r(spoof.status)}  ${d(JSON.stringify(spoof.body))}`);
+out(
+  `  GET /posts  ${d("x-tenant-id: globex")}  -> ${spoof.status === 404 ? g(spoof.status) : r(spoof.status)}  ${d(JSON.stringify(spoof.body))}`,
+);
 out();
 out(
   spoof.status === 404
-    ? g(b("Spoofed header refused with a sanitized 404 - no cross-tenant access, no enumeration."))
+    ? g(
+        b(
+          "Spoofed header refused with a sanitized 404 - no cross-tenant access, no enumeration.",
+        ),
+      )
     : r(b(`Expected 404 for the spoofed tenant, got ${spoof.status}`)),
 );
 out();

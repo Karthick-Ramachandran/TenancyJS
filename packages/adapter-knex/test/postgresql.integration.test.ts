@@ -216,7 +216,9 @@ describePostgres("Knex PostgreSQL row-level isolation", () => {
   it("allows unrestricted() raw SQL under forced RLS, bound to the tenant (ADR-0038)", async () => {
     const idsA = await withTenant("tenant-a", async (db) => {
       // The returned Knex.Transaction holds the SET LOCAL tenant GUC.
-      const result = await db.unrestricted().raw(`select id from ${postsTable}`);
+      const result = await db
+        .unrestricted()
+        .raw(`select id from ${postsTable}`);
       return (result.rows as { id: string }[]).map((row) => row.id);
     });
     expect(idsA).toEqual(["post-a"]); // never post-b, even via raw SQL

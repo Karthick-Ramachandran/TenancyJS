@@ -5,7 +5,13 @@ import assert from "node:assert/strict";
 
 import pg from "pg";
 
-import { ADMIN_URL, TENANTS, buildTenancy, makeSequelize, urlFor } from "./shared.mjs";
+import {
+  ADMIN_URL,
+  TENANTS,
+  buildTenancy,
+  makeSequelize,
+  urlFor,
+} from "./shared.mjs";
 
 const { Client } = pg;
 
@@ -33,8 +39,16 @@ await run(globex, (c) => c.model(post).create({ id: "1", title: "globex" }));
 // No cross-tenant reads.
 const acmeRows = await run(acme, (c) => c.model(post).findAll());
 const globexRows = await run(globex, (c) => c.model(post).findAll());
-assert.deepEqual(acmeRows, [{ id: "1", title: "acme" }], "acme saw foreign rows");
-assert.deepEqual(globexRows, [{ id: "1", title: "globex" }], "globex saw foreign rows");
+assert.deepEqual(
+  acmeRows,
+  [{ id: "1", title: "acme" }],
+  "acme saw foreign rows",
+);
+assert.deepEqual(
+  globexRows,
+  [{ id: "1", title: "globex" }],
+  "globex saw foreign rows",
+);
 
 // Unscoped access must fail closed, not return data.
 await assert.rejects(
@@ -46,4 +60,6 @@ await assert.rejects(
 await tenancy.close();
 await base.close();
 
-process.stdout.write("PASS: tenants are isolated and unscoped access is refused.\n");
+process.stdout.write(
+  "PASS: tenants are isolated and unscoped access is refused.\n",
+);
