@@ -1,0 +1,141 @@
+---
+title: Any framework
+description: TenancyJS core is framework-agnostic. Wire the two-step integration - resolve the tenant, then run the request in its scope - into Fastify, Koa, Hono, tRPC, or plain Node yourself.
+---
+
+TenancyJS's core is **framework-agnostic**. The `tenancyjs-integration-*` packages (Express, Next.js,
+NestJS, AdonisJS) are ~30-line conveniences — there's nothing magic in them. If you're on Fastify, Koa,
+Hono, tRPC, or plain Node, wire the same two steps yourself.
+
+<Callout type="info">
+  `npx tenancyjs-cli init` only scaffolds Express, Next.js, and AdonisJS. On any other framework it exits
+  and asks you to pick a supported one — you don't need it; wire the two steps below by hand.
+</Callout>
+
+## The two steps
+
+Every integration does exactly this, per request:
+
+1. **Resolve** the tenant from the request with a [`TenantResolutionChain`](/docs/guides/resolving-tenants),
+   and **fail closed** if it can't (`describeTenantResolutionFailure` maps the failure to 400 / 404 / 500).
+2. **Scope** the rest of the request by running it inside `manager.runWithTenant(tenant, () => …)`. Any
+   tenant-aware data access **outside** a scope throws — that's the guarantee.
+
+The manager, resolver, and adapter are identical to every other stack — only the request plumbing differs.
+
+```ts title="tenancy.ts"
+import { TenancyManager } from "tenancyjs-core";
+import { HeaderTenantResolver, TenantResolutionChain } from "tenancyjs-identifiers";
+
+export interface Tenant {
+  readonly id: string;
+}
+
+export const manager = new TenancyManager<Tenant>();
+
+export const resolver = new TenantResolutionChain<Tenant>({
+  resolvers: [new HeaderTenantResolver({ headerName: "x-tenant-id" })],
+  store: {
+    async find(identifier) {
+      const tenant = await lookupTenant(identifier.value);
+      return tenant ? [{ tenant, status: "active" }] : [];
+    },
+  },
+  // Required: does THIS authenticated principal belong to the resolved tenant?
+  authorize: ({ tenant, principal }) => isMember(principal, tenant),
+});
+```
+
+## Frameworks with a `next()` you await (Koa, Hono, tRPC, Connect)
+
+If your framework's middleware hands you a `next()` that you call and await, wrap it — `next()` runs the
+rest of the request **inside** the scope, exactly like the Express integration does.
+
+```ts title="Koa"
+import { describeTenantResolutionFailure } from "tenancyjs-identifiers";
+import { manager, resolver } from "./tenancy";
+
+app.use(async (ctx, next) => {
+  const outcome = await resolver.resolve(
+    { host: ctx.host, headers: ctx.headers },
+    { principal: ctx.state.user }, // run this AFTER your auth middleware
+  );
+  if (outcome.status !== "resolved") {
+    const { status, message } = describeTenantResolutionFailure(outcome.status);
+    ctx.status = status;
+    ctx.body = { message };
+    return;
+  }
+  // Everything downstream runs in the tenant scope.
+  await manager.runWithTenant(outcome.tenant, () => next());
+});
+```
+
+Hono is the same shape — `(c, next) => manager.runWithTenant(tenant, () => next())` — and so is a tRPC
+middleware: `({ next }) => manager.runWithTenant(tenant, () => next())`.
+
+## Fastify (hooks don't wrap the handler)
+
+Fastify's hooks run **before** the handler and can't wrap it, so `runWithTenant` in a hook wouldn't
+cover the route. Resolve in an `onRequest` hook, then run each handler inside the scope with a small
+wrapper:
+
+```ts title="Fastify"
+import { describeTenantResolutionFailure } from "tenancyjs-identifiers";
+import { manager, resolver } from "./tenancy";
+
+app.addHook("onRequest", async (req, reply) => {
+  const outcome = await resolver.resolve(
+    { host: req.hostname, headers: req.headers },
+    { principal: req.user }, // after your auth
+  );
+  if (outcome.status !== "resolved") {
+    const { status, message } = describeTenantResolutionFailure(outcome.status);
+    return reply.code(status).send({ message });
+  }
+  req.tenant = outcome.tenant; // stash for the wrapper (augment FastifyRequest to type it)
+});
+
+// Run a route handler inside its request's tenant scope.
+const scoped =
+  (handler) =>
+  (req, reply) =>
+    manager.runWithTenant(req.tenant, () => handler(req, reply));
+
+app.get("/orders", scoped(async () => db.order.findMany())); // scoped to req.tenant
+```
+
+## Plain Node `http`
+
+Wrap the request handler — everything it awaits stays in the scope:
+
+```ts
+import { createServer } from "node:http";
+import { describeTenantResolutionFailure } from "tenancyjs-identifiers";
+import { manager, resolver } from "./tenancy";
+
+createServer(async (req, res) => {
+  const outcome = await resolver.resolve({ host: req.headers.host, headers: req.headers });
+  if (outcome.status !== "resolved") {
+    const { status } = describeTenantResolutionFailure(outcome.status);
+    res.writeHead(status).end();
+    return;
+  }
+  await manager.runWithTenant(outcome.tenant, () => handle(req, res));
+});
+```
+
+## The rules (the same everywhere)
+
+<Callout type="warn">
+  - **Resolve after authentication.** The `authorize` hook needs the real principal — resolving a tenant
+    is not authorizing the user. See [Resolving tenants](/docs/guides/resolving-tenants).
+  - **Never leave cross-tenant work unscoped.** For admin/aggregate paths, run inside
+    `manager.runInCentralContext(() => …)` explicitly. Unscoped tenant access throws by design.
+  - **Fail closed on every failure status.** `describeTenantResolutionFailure` returns **400** for a
+    missing/invalid identifier, **404** for not-found/suspended/forbidden (deliberately
+    indistinguishable), and **500** for ambiguous.
+</Callout>
+
+Your [adapter](/docs/adapters) (Prisma, Drizzle, TypeORM, …) doesn't change at all — it scopes to
+whatever tenant the manager has active, no matter which framework put it there.

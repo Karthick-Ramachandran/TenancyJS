@@ -43,7 +43,9 @@ OK   store.list: read 12 tenant(s)
 It exits `0` when healthy and `2` when a probe fails.
 
 Init recognizes Express with Prisma, TypeORM, Sequelize, or Drizzle; AdonisJS with Lucid; and Next.js
-with Prisma. It previews by default and never overwrites an existing file.
+with Prisma, TypeORM, Sequelize, or Drizzle. It previews by default and never overwrites an existing
+file. On any other framework (Fastify, Koa, Hono, NestJS, …) it exits and asks you to pick a supported
+one — those stacks wire the core directly; see [Any framework](/docs/integrations/any-framework).
 
 <Callout type="info">
   **On a JavaScript (non-TypeScript) project?** `init` currently scaffolds TypeScript (`.ts`) files.
