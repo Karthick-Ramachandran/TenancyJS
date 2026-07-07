@@ -50,6 +50,18 @@ tiers, and the distinction is load-bearing:
   statement cannot widen its own scope because the runtime role cannot `BYPASSRLS` or `SET ROLE` to one
   that can, and the GUC that the policy reads is the tenant's.
 
+**Implementation note (found 2026-07-07, before any code shipped).** This is NOT a one-line flag flip.
+Today `unrestricted()` returns the adapter's *base* client (e.g. the base `Sequelize` instance), which is
+correct for database-per-tenant (that base is the leased per-tenant connection) but wrong for row-level:
+the tenant GUC is `SET LOCAL` inside the scoped transaction, so raw SQL issued on the base client's *other*
+pooled connections has no GUC and RLS blocks every row — fail-closed but useless, not the intended escape
+hatch. To honour the "returned handle is the scoped transaction" semantics above, each adapter's
+`unrestricted()` must, for the forced-RLS row-level tier, return a **transaction-bound** handle (the active
+`transaction`, or a raw-query function pre-bound to it), not the base client. That is a per-adapter API
+change (Knex/Sequelize/TypeORM/Drizzle/Lucid) and must land behind the adversarial suite below. Flipping
+only the `databaseEnforced` boolean without the tx-bound handle would ship a broken (though not leaking)
+escape hatch, so the boolean and the handle change must land together.
+
 ## Alternatives Considered
 
 - **Keep strategy-gated (status quo).** Rejected — it refuses provably-safe operations and is the top
