@@ -686,6 +686,36 @@ describe("CLI leak test and command runner", () => {
     ).rejects.toThrow();
   });
 
+  it("offers to apply after the preview when interactive without --apply", async () => {
+    // Accept the apply prompt, decline AI context: files written, no TENANCY.md.
+    const yesRoot = await fixture();
+    const yes = captureIo(yesRoot, {
+      isInteractive: true,
+      answers: ["prisma", "rowLevel", "yes", "no"],
+    });
+    await expect(runCli(["init"], yes.io)).resolves.toBe(0);
+    // ORM, strategy, apply, AI context — the apply prompt is asked after preview.
+    expect(yes.selectQuestions).toHaveLength(4);
+    expect(yes.selectQuestions[2]!.question).toContain("Apply");
+    await expect(
+      readFile(join(yesRoot, "tenancy.config.ts"), "utf8"),
+    ).resolves.toContain("defineConfig");
+    expect(yes.stdout.join("")).toContain("files written");
+
+    // Decline the apply prompt: nothing written, AI context never asked.
+    const noRoot = await fixture();
+    const no = captureIo(noRoot, {
+      isInteractive: true,
+      answers: ["prisma", "rowLevel", "no"],
+    });
+    await expect(runCli(["init"], no.io)).resolves.toBe(0);
+    expect(no.selectQuestions).toHaveLength(3);
+    await expect(
+      readFile(join(noRoot, "tenancy.config.ts"), "utf8"),
+    ).rejects.toThrow();
+    expect(no.stdout.join("")).toContain("No files written");
+  });
+
   it("exposes AI context in --json output and rejects the flag off init", async () => {
     const root = await fixture();
     await writeFile(join(root, "CLAUDE.md"), "# Claude\n");

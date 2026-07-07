@@ -185,6 +185,33 @@ export function checkNodeVersion(version: string): NodeVersionCheck {
   };
 }
 
+// "TenancyJS" (figlet, slant). Rendered with a cyan→magenta gradient, top to
+// bottom; falls back to a one-line mark on terminals too narrow to hold it.
+const TENANCY_LOGO: readonly string[] = Object.freeze([
+  "  ______                                      _______",
+  " /_  __/__  ____  ____ _____  _______  __    / / ___/",
+  "  / / / _ \\/ __ \\/ __ `/ __ \\/ ___/ / / /_  / /\\__ \\",
+  " / / /  __/ / / / /_/ / / / / /__/ /_/ / /_/ /___/ /",
+  "/_/  \\___/_/ /_/\\__,_/_/ /_/\\___/\\__, /\\____//____/",
+  "                                /____/",
+]);
+const LOGO_WIDTH = 53;
+
+function bannerHeader(): string[] {
+  const columns = process.stdout.columns;
+  // Show the wordmark unless the terminal is demonstrably too narrow for it.
+  if (columns !== undefined && columns < LOGO_WIDTH + 2)
+    return [
+      `  ${magenta("◆")} ${bold("TenancyJS")}  ${dim("fail-closed multi-tenancy")}`,
+    ];
+  const palette = [cyan, cyan, cyan, magenta, magenta, magenta];
+  return [
+    ...TENANCY_LOGO.map((line, index) => `  ${(palette[index] ?? cyan)(line)}`),
+    "",
+    `  ${dim("fail-closed multi-tenancy for Node.js")}`,
+  ];
+}
+
 export function capabilityBanner(nodeVersion: string): string {
   const sep = ` ${dim("·")} `;
   const frameworks = [
@@ -195,7 +222,7 @@ export function capabilityBanner(nodeVersion: string): string {
   ].join(sep);
   return [
     "",
-    `  ${magenta("◆")} ${bold("TenancyJS")}  ${dim("fail-closed multi-tenancy")}`,
+    ...bannerHeader(),
     "",
     `  ${dim("Stacks")}    ${frameworks}  ${dim("+")}  ${orms}`,
     `  ${dim("Strategy")}  ${cyan("row-level")} ${dim("(default)")}${sep}${cyan("schema-per-tenant")}${sep}${cyan("database-per-tenant")}   ${dim("— --strategy or pick interactively")}`,

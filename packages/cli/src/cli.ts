@@ -169,11 +169,6 @@ async function runInit(
   const framework = await resolveFramework(detection, parsed, io);
   const orm = await resolveOrm(detection, framework, parsed, io);
   const strategy = await resolveStrategy(framework, orm, parsed, io);
-  // Confirm the opt-in AI context before writing anything, so all prompts happen
-  // together. Only meaningful with --apply, which is what actually writes files.
-  const wantAiContext = parsed.apply
-    ? await resolveAiContext(parsed, io)
-    : false;
   const plan = await createInitPlan({
     root: detection.root,
     framework,
@@ -181,7 +176,27 @@ async function runInit(
     ...(strategy === undefined ? {} : { strategy }),
   });
 
-  if (parsed.apply) await applyChangePlan(plan);
+  // Decide whether to write. `--apply` is explicit; otherwise, when interactive,
+  // show the preview and offer to apply right away so nobody has to re-run.
+  let apply = parsed.apply;
+  const hasCreatable = plan.actions.some(({ status }) => status === "create");
+  const offerApply =
+    !apply &&
+    !parsed.json &&
+    !parsed.yes &&
+    hasCreatable &&
+    io.isInteractive === true &&
+    typeof io.select === "function";
+  if (offerApply) {
+    io.writeStdout(formatPlan(plan, false, { promptFollows: true }));
+    apply = await confirmApply(io);
+  }
+
+  // The AI-context opt-in only matters when we are actually writing files, and it
+  // is the last prompt — asked after the apply confirmation.
+  const wantAiContext = apply ? await resolveAiContext(parsed, io) : false;
+
+  if (apply) await applyChangePlan(plan);
   const aiContext = wantAiContext
     ? await applyAiContext({
         root: detection.root,
@@ -190,16 +205,33 @@ async function runInit(
         strategy: plan.strategy,
       })
     : undefined;
-  io.writeStdout(
-    parsed.json
-      ? formatJson(publicPlan(plan, parsed.apply, aiContext))
-      : formatPlan(plan, parsed.apply),
-  );
-  if (parsed.apply && !parsed.json) {
+
+  if (parsed.json) {
+    io.writeStdout(formatJson(publicPlan(plan, apply, aiContext)));
+  } else if (apply) {
+    // The interactive path already printed the preview above; the --apply path
+    // has not, so show the written-files summary there.
+    if (!offerApply) io.writeStdout(formatPlan(plan, true));
     io.writeStdout(formatNextSteps(framework, orm));
     if (aiContext !== undefined) io.writeStdout(formatAiContext(aiContext));
+  } else if (offerApply) {
+    // Declined at the prompt — the preview is already on screen.
+    io.writeStdout(
+      `\n  ${dim("No files written. Run")} ${cyan("tenancy init --apply")} ${dim("anytime.")}\n`,
+    );
+  } else {
+    io.writeStdout(formatPlan(plan, false));
   }
   return plan.actions.some(({ status }) => status === "conflict") ? 2 : 0;
+}
+
+/** Interactive "write the files now?" confirmation shown after the preview. */
+async function confirmApply(io: CliIo): Promise<boolean> {
+  const value = await io.select!("Apply these changes now?", [
+    { value: "yes", label: "Yes — create the files above" },
+    { value: "no", label: "No — just the preview for now" },
+  ]);
+  return value === "yes";
 }
 
 /** True when the user opted into the AI context file — explicit flag or a yes. */

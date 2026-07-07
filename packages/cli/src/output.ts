@@ -139,7 +139,11 @@ export function formatDoctor(report: DoctorReport): string {
   return `${redactText(lines.join("\n"))}\n`;
 }
 
-export function formatPlan(plan: ProjectChangePlan, applied: boolean): string {
+export function formatPlan(
+  plan: ProjectChangePlan,
+  applied: boolean,
+  options?: { readonly promptFollows?: boolean },
+): string {
   const lines = [
     "",
     applied
@@ -156,7 +160,8 @@ export function formatPlan(plan: ProjectChangePlan, applied: boolean): string {
           : dim(action.status.padEnd(8));
     lines.push(`    ${mark}  ${action.path}`);
   }
-  if (!applied)
+  // Skip the "run --apply" hint when we are about to ask interactively instead.
+  if (!applied && options?.promptFollows !== true)
     lines.push(
       "",
       `  ${dim("Run")} ${cyan("tenancy init --apply")} ${dim("to create the files above.")}`,
