@@ -72,13 +72,16 @@ explicit test file exits successfully. Output redacts URL credentials and secret
 
 ## Generated Files
 
-Express + Prisma, TypeORM, Sequelize, or Drizzle:
+Express + Prisma, TypeORM, Sequelize, or Drizzle (Next.js uses `lib/tenancy/` + a server helper):
 
 - `tenancy.config.ts`
 - `src/tenancy/register.ts`
 - `src/middleware/tenancy.ts`
+- `test/tenancy.leak.test.mjs` — a starter two-tenant isolation test; wire the three TODOs, then prove
+  it with `tenancy test:leak`. It fails until wired (fail-closed by default).
 
-AdonisJS + Lucid:
+AdonisJS + Lucid (no leak test — a standalone `.mjs` can't boot the Adonis runtime; use a japa test with
+the `/testing` helper):
 
 - `config/tenancy.ts`
 - `app/middleware/tenant_middleware.ts`

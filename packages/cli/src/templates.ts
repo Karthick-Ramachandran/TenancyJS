@@ -1,5 +1,68 @@
 import type { InitFramework, InitOrm, InitStrategy } from "./types.js";
 
+// A runnable-once-wired two-tenant isolation test, scaffolded at the path Doctor
+// looks for (test/tenancy.leak.test.mjs) so `tenancyjs-cli test:leak` finds it.
+// The assertions are the actual proof; the wiring is left as TODOs. Only Express
+// and Next scaffold this - a standalone .mjs cannot boot the AdonisJS runtime, so
+// Adonis proves isolation with a japa test + the /testing helper instead.
+const LEAK_TEST_PATH = "test/tenancy.leak.test.mjs";
+
+function leakTestTemplate(
+  framework: "express" | "next",
+): Readonly<{ path: string; content: string }> {
+  const moduleHint =
+    framework === "next"
+      ? "../lib/tenancy/<your wiring>"
+      : "../src/tenancy/<your wiring>";
+  return Object.freeze({
+    path: LEAK_TEST_PATH,
+    content: `// The two-tenant isolation proof. Run it against a TEST database with:
+//   npx tenancyjs-cli test:leak --test-file ${LEAK_TEST_PATH}
+// It exits 0 only if isolation holds - a failed assertion exits non-zero. No test
+// framework needed. Fill in the three TODOs; keep the assertions below as-is.
+import assert from "node:assert/strict";
+
+// TODO 1 - import YOUR wired manager + tenant-scoped client. Build them in a module
+// that calls the create* helper init scaffolded, then import the singletons here.
+// import { manager, db } from "${moduleHint}";
+
+// TODO 2 - two real, isolated tenants. Create/provision them the way your app does.
+const acme = { id: "acme" };
+const globex = { id: "globex" };
+
+// TODO 3 - write one tenant-owned row and read the tenant's rows back, through YOUR
+// scoped db and ONE tenant model/table. Use the SAME primary key for both tenants
+// (that is what a leak would expose). tenantId is injected by the adapter - do not set it.
+async function writeAndRead(tenant, label) {
+  return manager.runWithTenant(tenant, async () => {
+    // await db.<yourModel>.create({ id: "1", label });
+    // return db.<yourModel>.findMany();
+    throw new Error("TODO: wire writeAndRead to your scoped client + a tenant model");
+  });
+}
+
+// --- The proof - leave this as-is -------------------------------------------
+const acmeRows = await writeAndRead(acme, "acme"); // colliding primary key under acme
+await writeAndRead(globex, "globex"); //             ...and under globex
+
+// 1) No cross-tenant read: acme must only ever see acme's own rows.
+assert.ok(
+  acmeRows.length > 0 && acmeRows.every((row) => row.label === "acme"),
+  "LEAK: a tenant read another tenant's rows",
+);
+
+// 2) Fail-closed: any tenant-scoped access OUTSIDE a scope must throw, never return data.
+assert.throws(
+  () => manager.getTenantOrFail(),
+  /tenant|context/iu,
+  "unscoped access did not fail closed",
+);
+
+process.stdout.write("PASS: tenants are isolated and unscoped access is refused.\\n");
+`,
+  });
+}
+
 export const EXPRESS_PRISMA_TEMPLATES = Object.freeze([
   Object.freeze({
     path: "tenancy.config.ts",
@@ -41,6 +104,7 @@ export function createTenancyMiddleware<TTenant extends TenantRecord>(
 }
 `,
   }),
+  leakTestTemplate("express"),
 ]);
 
 const EXPRESS_MIDDLEWARE_TEMPLATE = Object.freeze({
@@ -127,6 +191,7 @@ function expressOrmTemplates(orm: "typeorm" | "sequelize" | "drizzle") {
       content: SQL_ORM_REGISTER[orm],
     }),
     EXPRESS_MIDDLEWARE_TEMPLATE,
+    leakTestTemplate("express"),
   ]);
 }
 
@@ -280,6 +345,7 @@ export function createTenancy<TTenant extends TenantRecord>(
 }
 `,
   }),
+  leakTestTemplate("next"),
 ]);
 
 // --- Strategy-aware scaffolds (schema-per-tenant, database-per-tenant) --------
@@ -308,6 +374,7 @@ function nextOrmTemplates(
       content: SQL_ORM_REGISTER[orm],
     }),
     NEXT_SERVER_TEMPLATE,
+    leakTestTemplate("next"),
   ]);
 }
 
@@ -502,6 +569,7 @@ export function resolveStrategyTemplates(
     Object.freeze(config),
     Object.freeze({ path: registerPath, content: register }),
     integration,
+    leakTestTemplate(framework),
   ]);
 }
 

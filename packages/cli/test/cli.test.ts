@@ -155,6 +155,7 @@ describe("CLI project detection and init", () => {
       { path: "tenancy.config.ts", status: "create" },
       { path: "src/tenancy/register.ts", status: "create" },
       { path: "src/middleware/tenancy.ts", status: "create" },
+      { path: "test/tenancy.leak.test.mjs", status: "create" },
     ]);
     await expect(
       readFile(join(root, "tenancy.config.ts"), "utf8"),
@@ -167,6 +168,7 @@ describe("CLI project detection and init", () => {
         "tenancy.config.ts",
         "src/tenancy/register.ts",
         "src/middleware/tenancy.ts",
+        "test/tenancy.leak.test.mjs",
       ],
       unchanged: [],
     });
@@ -180,6 +182,7 @@ describe("CLI project detection and init", () => {
         "tenancy.config.ts",
         "src/tenancy/register.ts",
         "src/middleware/tenancy.ts",
+        "test/tenancy.leak.test.mjs",
       ],
     });
   });
@@ -297,7 +300,9 @@ describe("CLI doctor", () => {
   it("inventories wiring, unsafe Prisma surfaces, classification, and migration effort", async () => {
     const root = await fixture();
     await applyChangePlan(await planFor(root));
-    await mkdir(join(root, "test"));
+    // init now scaffolds test/tenancy.leak.test.mjs; overwrite it with a passing
+    // stub so this test controls what Doctor inspects.
+    await mkdir(join(root, "test"), { recursive: true });
     await writeFile(
       join(root, "test/tenancy.leak.test.mjs"),
       "process.exit(0);\n",
@@ -412,6 +417,8 @@ await prisma.post.create({ data: { comments: { create: { body: "x" } } } });
       "export const config = {};\n",
     );
     await rm(join(root, "prisma/schema.prisma"));
+    // Remove the scaffolded starter leak test so Doctor reports it missing.
+    await rm(join(root, "test/tenancy.leak.test.mjs"));
 
     const report = await runDoctor(root);
     expect(report.findings).toEqual(
@@ -765,7 +772,9 @@ async function healthyFixture(): Promise<string> {
 };
 `,
   );
-  await mkdir(join(root, "test"));
+  // init already scaffolds test/tenancy.leak.test.mjs; overwrite it with a passing
+  // stub so the doctor/leak fixtures control what runs.
+  await mkdir(join(root, "test"), { recursive: true });
   await writeFile(
     join(root, "test/tenancy.leak.test.mjs"),
     "process.exit(0);\n",
@@ -951,6 +960,7 @@ describe("CLI v0.1 interactive init", () => {
       "tenancy.config.ts",
       "lib/tenancy/register.ts",
       "lib/tenancy/server.ts",
+      "test/tenancy.leak.test.mjs",
     ]);
   });
 
