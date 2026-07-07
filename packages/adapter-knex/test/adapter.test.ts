@@ -96,9 +96,11 @@ function createKnexDouble(
     transaction: transactionMethod,
   });
 
-  const raw = vi.fn(async (_sql: string, bindings?: unknown[]) => {
+  const raw = vi.fn(async (sql: string, bindings?: unknown[]) => {
     if (options.validationError)
       throw new Error("postgresql://user:secret@db/private");
+    if (sql.includes("current_setting"))
+      return { rows: [{ probe: "__tenancyjs_probe__" }] };
     if (bindings === undefined) {
       if (options.malformedResult) return {};
       return {

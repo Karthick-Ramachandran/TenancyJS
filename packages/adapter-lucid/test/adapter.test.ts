@@ -653,6 +653,9 @@ function createFakeDatabase(): FakeDatabaseHarness {
       if (harness.failValidation) {
         throw new Error("postgresql://admin:secret@localhost/private");
       }
+      if (sql.includes("current_setting")) {
+        return { rows: [{ probe: "__tenancyjs_probe__" }] };
+      }
       return sql.includes("pg_roles")
         ? { rows: harness.roleRows }
         : { rows: harness.policyRows };

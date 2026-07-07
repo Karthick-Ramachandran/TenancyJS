@@ -112,6 +112,9 @@ describe("shared PostgreSQL row-level enforcement", () => {
 
   it("reports every isolation defect without exposing query values", async () => {
     const execute: PostgresExecutor = async (sql) => {
+      if (sql.includes("current_setting")) {
+        return { rows: [{ probe: "__tenancyjs_probe__" }] };
+      }
       if (sql.includes("pg_roles")) {
         return {
           rows: [
@@ -165,6 +168,32 @@ describe("shared PostgreSQL row-level enforcement", () => {
       "TENANCY_TEST_POLICY_INVALID",
       "TENANCY_TEST_TABLE_MISSING",
     ]);
+  });
+
+  it("fails closed when the tenant GUC does not round-trip on the connection", async () => {
+    // Everything static is correct, but the GUC probe reads back the wrong value
+    // (e.g. a pooler dropped the SET LOCAL) — validation must still refuse.
+    const execute: PostgresExecutor = async (sql) =>
+      sql.includes("current_setting")
+        ? { rows: [{ probe: "not-the-sentinel" }] }
+        : await rlsExecutor()(sql);
+    const result = await validatePostgresRlsPolicies({
+      codePrefix: "TENANCY_TEST",
+      adapterName: "Test",
+      execute,
+      tables: [
+        {
+          schema: "app",
+          table: "posts",
+          qualifiedName: "app.posts",
+          policyName: "posts_tenant_isolation",
+        },
+      ],
+    });
+    expect(result.valid).toBe(false);
+    expect(result.issues.map((entry) => entry.code)).toContain(
+      "TENANCY_TEST_TENANT_GUC_INERT",
+    );
   });
 
   it("treats malformed catalog results as invalid and applies local context", async () => {
@@ -373,30 +402,32 @@ describe("PostgreSQL schema-per-tenant strategy engine", () => {
 
 function rlsExecutor(): PostgresExecutor {
   return async (sql) =>
-    sql.includes("pg_roles")
-      ? {
-          rows: [
-            {
-              role_name: "runtime",
-              rolsuper: false,
-              rolbypassrls: false,
-            },
-          ],
-        }
-      : {
-          rows: [
-            {
-              schema_name: "app",
-              table_name: "posts",
-              rls_enabled: true,
-              rls_forced: true,
-              owner_name: "migrator",
-              policy_name: "posts_tenant_isolation",
-              using_expression: `${POSTGRES_TENANT_SETTING} ${POSTGRES_CENTRAL_SETTING}`,
-              check_expression: `${POSTGRES_TENANT_SETTING} ${POSTGRES_CENTRAL_SETTING}`,
-            },
-          ],
-        };
+    sql.includes("current_setting")
+      ? { rows: [{ probe: "__tenancyjs_probe__" }] }
+      : sql.includes("pg_roles")
+        ? {
+            rows: [
+              {
+                role_name: "runtime",
+                rolsuper: false,
+                rolbypassrls: false,
+              },
+            ],
+          }
+        : {
+            rows: [
+              {
+                schema_name: "app",
+                table_name: "posts",
+                rls_enabled: true,
+                rls_forced: true,
+                owner_name: "migrator",
+                policy_name: "posts_tenant_isolation",
+                using_expression: `${POSTGRES_TENANT_SETTING} ${POSTGRES_CENTRAL_SETTING}`,
+                check_expression: `${POSTGRES_TENANT_SETTING} ${POSTGRES_CENTRAL_SETTING}`,
+              },
+            ],
+          };
 }
 
 function schemaExecutor(

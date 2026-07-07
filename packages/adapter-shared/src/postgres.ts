@@ -55,6 +55,14 @@ const SET_ROW_CONTEXT_SQL =
 const SET_SEARCH_PATH_SQL = "select set_config('search_path', ?, true)";
 const SET_ROLE_SQL = "select set_config('role', ?, true)";
 
+// Live proof that the tenant GUC actually sets and reads back on the runtime
+// connection - set it (transaction-local) in a CTE, then read it in the same
+// statement. If it does not round-trip, the tenant context RLS reads would be
+// silently absent (e.g. a pooler resetting session state), so validation fails.
+const GUC_PROBE_SQL =
+  "with s as (select set_config(?, ?, true)) select current_setting(?, true) as probe from s";
+const GUC_PROBE_SENTINEL = "__tenancyjs_probe__";
+
 interface RoleRow {
   readonly role_name: string;
   readonly rolsuper: boolean;
@@ -147,6 +155,12 @@ export async function validatePostgresRlsPolicies(
 ): Promise<TenancyAdapterValidationResult> {
   const issues: TenancyAdapterValidationIssue[] = [];
   const role = await validateRole(options.execute, options, issues);
+  await probeTenantGuc(
+    options.execute,
+    options.tenantSetting ?? POSTGRES_TENANT_SETTING,
+    options,
+    issues,
+  );
   const tableRows = resultRows<TableRow>(
     await options.execute(TABLE_SQL, [
       options.tables.map((table) => table.qualifiedName),
@@ -353,6 +367,36 @@ export function createPostgresStrategyEngine<
     }
     tenantSchemas.set(tenantId, schema);
     schemaTenants.set(schema, tenantId);
+  }
+}
+
+/**
+ * Empirically confirm the tenant GUC round-trips on the runtime connection.
+ * The static role/policy checks prove RLS *should* apply; this proves the tenant
+ * context actually reaches the database, so a connection that silently drops the
+ * setting fails closed at boot instead of returning cross-tenant rows.
+ */
+async function probeTenantGuc(
+  execute: PostgresExecutor,
+  setting: string,
+  labels: PostgresValidationLabels,
+  issues: TenancyAdapterValidationIssue[],
+): Promise<void> {
+  let value: unknown;
+  try {
+    value = resultRows<{ probe: string | null }>(
+      await execute(GUC_PROBE_SQL, [setting, GUC_PROBE_SENTINEL, setting]),
+    )[0]?.probe;
+  } catch {
+    value = undefined;
+  }
+  if (value !== GUC_PROBE_SENTINEL) {
+    issues.push(
+      issue(
+        `${labels.codePrefix}_TENANT_GUC_INERT`,
+        `The tenant setting "${setting}" did not round-trip on the runtime connection, so RLS would not see the tenant context. Confirm the connection can SET LOCAL the GUC (e.g. not a pooler resetting session state).`,
+      ),
+    );
   }
 }
 
