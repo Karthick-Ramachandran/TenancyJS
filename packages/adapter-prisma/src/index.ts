@@ -6,6 +6,13 @@ export type {
   PrismaDatabaseTenancy,
   PrismaDatabaseTenancyOptions,
 } from "./database-router.js";
+export { createPrismaRowLevelTenancy } from "./rls.js";
+export type {
+  PrismaRlsClient,
+  PrismaRlsTableConfig,
+  PrismaRowLevelTenancy,
+  PrismaRowLevelTenancyOptions,
+} from "./rls.js";
 export { createPrismaSchemaTenancy } from "./schema-router.js";
 export type {
   PrismaSchemaPlacement,

@@ -60,11 +60,21 @@ once proven.
   requires a driver adapter (`@prisma/adapter-pg`); engine-protocol setups without it keep the
   facade-only path.
 - Enables ADR-0038 (query freedom) for Prisma once shipped.
-- Risk: this changes how Prisma reaches the database, so it must land behind real-database adversarial
-  tests (raw and relation queries under RLS cannot cross tenants; startup validation refuses a
-  bypassable role). **Implementation is a follow-up, deferred until it can be verified against a real
-  PostgreSQL with the full adversarial suite** — the decision and design are recorded here; the code is
-  not shipped in this change.
+- Risk: this changes how Prisma reaches the database, so it landed behind real-database adversarial
+  tests.
+
+**Implemented 2026-07-07, verified against real PostgreSQL.** New `createPrismaRowLevelTenancy({ manager,
+client, tables })` (additive - the facade `createPrismaAdapter` is unchanged). `run(cb)` opens a Prisma
+interactive transaction, `SET LOCAL`s the tenant GUC, and hands the tenant-scoped `tx` to the callback -
+full Prisma freedom (model queries, nested relations, raw SQL) all bound by the validated policy. A light
+extension injects the tenant discriminator on writes (so the policy's `WITH CHECK` accepts them) and
+passes reads/nested/raw through, since RLS is the enforcement. `validate()` reuses
+`validatePostgresRlsPolicies` from `adapter-shared` (a Prisma executor bridges `?`→`$n` and the row
+shape). Adversarial tests prove: model reads and raw SQL are RLS-scoped to the tenant; a create that
+spoofs another tenant's id is forced back to the current tenant; and a **raw** cross-tenant insert (which
+bypasses the facade) is rejected by the RLS `WITH CHECK` - the database is the last line of defense. Needs
+a driver adapter (`@prisma/adapter-pg`); interactive transactions pin one connection, so no separate
+driver requirement beyond that. 68 Prisma tests pass.
 
 ## Related Documents
 

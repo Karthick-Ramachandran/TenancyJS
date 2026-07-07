@@ -32,3 +32,15 @@ model Comment {
   @@index([tenantId])
   @@index([postId])
 }
+
+// Dedicated to the RLS-backed row-level integration test (ADR-0037) so its
+// forced-RLS state and restricted role never contend with the facade tests that
+// share the Post table. The test creates and drops this table itself.
+model RlsPost {
+  id        String  @id @default(uuid())
+  tenantId  String
+  title     String
+  published Boolean @default(false)
+
+  @@index([tenantId])
+}
