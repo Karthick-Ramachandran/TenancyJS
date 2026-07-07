@@ -6,6 +6,27 @@ description: The lifecycle of a tenant - create, provision, migrate, suspend, an
 A tenant's life has a few distinct moments. TenancyJS gives you a command (and a hook) for each, so
 onboarding and offboarding are scripted and repeatable rather than manual.
 
+## From your signup handler: `onboardTenant`
+
+Doing it all in one call - record → provision → migrate, with automatic rollback if a step fails - is
+`onboardTenant` from `tenancyjs-core`. Point it at your runtime and call it when a customer signs up:
+
+```ts
+import { onboardTenant } from "tenancyjs-core";
+import runtime from "../tenancy.config"; // your defineTenancyRuntime result
+
+export async function handleSignup(form: SignupForm) {
+  // Records the tenant, provisions its schema/database, and runs its migrations.
+  // If provisioning or migration fails, it rolls back (deprovision + delete) and throws,
+  // so a failed signup never leaves a half-created tenant.
+  const tenant = await onboardTenant(runtime, { id: form.slug, plan: form.plan });
+  return tenant;
+}
+```
+
+Steps whose runtime hook is absent are skipped (row-level has no provisioner). The manual, step-by-step
+version below is the same lifecycle if you'd rather wire it yourself or drive it from the CLI.
+
 ## Onboarding
 
 <Steps>

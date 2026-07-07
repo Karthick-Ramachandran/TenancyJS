@@ -27,6 +27,7 @@ export {
   runWithTenancySnapshot,
   type TenancySnapshot,
 } from "./job-context.js";
+export { onboardTenant } from "./onboard.js";
 export {
   defineTenancyRuntime,
   assertTenancyRuntime,

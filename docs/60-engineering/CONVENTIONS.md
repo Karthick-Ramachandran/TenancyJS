@@ -48,6 +48,9 @@ preferences.
   context across a queue/timer/worker boundary (where `AsyncLocalStorage` context is lost). Capture a
   serializable snapshot at enqueue, restore it on the worker. Do not hand-thread tenant ids into job
   payloads or re-open scopes manually.
+- `onboardTenant` (`tenancyjs-core`, F-021): canonical signup-path lifecycle — `store.create` →
+  `provisioner.provision` → `provisioner.migrate`, with best-effort rollback on failure. Do not
+  re-sequence these by hand in a signup handler; call `onboardTenant`.
 - `createNextTenancy`: canonical Next.js App Router Node bridge for Route Handlers and Server Actions;
   its separate Edge helper transports only untrusted identity hints for Node revalidation.
 - `TenancyModule` + `@TenantRoute`: canonical NestJS 11 guard/interceptor composition. Resolution occurs
