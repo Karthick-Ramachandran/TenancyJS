@@ -212,7 +212,7 @@ async function runInit(
     // The interactive path already printed the preview above; the --apply path
     // has not, so show the written-files summary there.
     if (!offerApply) io.writeStdout(formatPlan(plan, true));
-    io.writeStdout(formatNextSteps(framework, orm));
+    io.writeStdout(formatNextSteps(framework, orm, plan.strategy));
     if (aiContext !== undefined) io.writeStdout(formatAiContext(aiContext));
   } else if (offerApply) {
     // Declined at the prompt — the preview is already on screen.
@@ -284,7 +284,11 @@ function formatAiContext(result: AiContextResult): string {
 }
 
 /** Concrete, copy-pasteable "what to do next" after `init --apply`. */
-function formatNextSteps(framework: InitFramework, orm: InitOrm): string {
+function formatNextSteps(
+  framework: InitFramework,
+  orm: InitOrm,
+  strategy: InitStrategy,
+): string {
   const packages = [
     "tenancyjs-core",
     `tenancyjs-adapter-${orm}`,
@@ -330,7 +334,23 @@ function formatNextSteps(framework: InitFramework, orm: InitOrm): string {
       link(`${docs}/integrations/nextjs`),
     );
 
-  if (orm === "prisma")
+  if (strategy === "schemaPerTenant")
+    out.push(
+      step(4, "Provision each tenant's PostgreSQL schema before first use"),
+      note(
+        "the scaffold isolates per tenant via a transaction-local search_path",
+      ),
+      link(`${docs}/strategies/schema-per-tenant`),
+    );
+  else if (strategy === "databasePerTenant")
+    out.push(
+      step(4, "Provision each tenant's database + wire the connection factory"),
+      note(
+        "fill in the `create` hook so each tenant leases its own connection",
+      ),
+      link(`${docs}/strategies/database-per-tenant`),
+    );
+  else if (orm === "prisma")
     out.push(
       step(
         4,
