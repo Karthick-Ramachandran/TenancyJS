@@ -1,6 +1,6 @@
 {
   "name": "tenancyjs-adapter-lucid",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Fail-closed PostgreSQL row-level and schema-per-tenant isolation for AdonisJS Lucid.",
   "type": "module",
   "license": "MIT",

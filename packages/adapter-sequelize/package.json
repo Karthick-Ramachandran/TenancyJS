@@ -1,6 +1,6 @@
 {
   "name": "tenancyjs-adapter-sequelize",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Fail-closed Sequelize 6 tenant isolation for PostgreSQL and MySQL.",
   "type": "module",
   "license": "MIT",

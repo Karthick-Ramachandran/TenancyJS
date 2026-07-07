@@ -8,6 +8,7 @@ export default tseslint.config(
       "**/coverage/**",
       "**/.next/**",
       "website/**",
+      "demo/**",
       ".artifacts/**",
       ".agents/**",
       ".claude/**",

@@ -1,6 +1,6 @@
 {
   "name": "tenancyjs-adapter-drizzle",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Fail-closed Drizzle tenant isolation for PostgreSQL and MySQL.",
   "type": "module",
   "license": "MIT",
