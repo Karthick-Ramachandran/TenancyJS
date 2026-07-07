@@ -23,6 +23,11 @@ export {
 } from "./tier.js";
 export { TenancyManager } from "./tenancy-manager.js";
 export {
+  captureTenancy,
+  runWithTenancySnapshot,
+  type TenancySnapshot,
+} from "./job-context.js";
+export {
   defineTenancyRuntime,
   assertTenancyRuntime,
   type TenancyProvisioner,

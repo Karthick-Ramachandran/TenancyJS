@@ -44,6 +44,10 @@ preferences.
   hand-write provision/deprovision DDL in host configs or scaffolds when these apply.
 - `createExpressTenancyMiddleware`: canonical Express 5 request-lifecycle bridge; it composes an
   application-owned `TenancyManager` and tenant resolver and never creates hidden tenant state.
+- `captureTenancy` / `runWithTenancySnapshot` (`tenancyjs-core`, ADR-0040): canonical way to carry tenant
+  context across a queue/timer/worker boundary (where `AsyncLocalStorage` context is lost). Capture a
+  serializable snapshot at enqueue, restore it on the worker. Do not hand-thread tenant ids into job
+  payloads or re-open scopes manually.
 - `createNextTenancy`: canonical Next.js App Router Node bridge for Route Handlers and Server Actions;
   its separate Edge helper transports only untrusted identity hints for Node revalidation.
 - `TenancyModule` + `@TenantRoute`: canonical NestJS 11 guard/interceptor composition. Resolution occurs

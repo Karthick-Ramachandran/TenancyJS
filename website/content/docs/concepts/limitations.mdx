@@ -118,10 +118,28 @@ one tenant maps to one cached client, but it does **not** verify your factory bo
 unlike the SQL adapters, which validate and set the `search_path` server-side. Bind carefully, and
 prefer a schema-restricted database role so the database itself denies sibling-schema access.
 
+## Background jobs lose the scope - carry it explicitly
+
+Tenant context rides `AsyncLocalStorage`, which **does not survive a queue/timer/worker boundary**. A job
+enqueued inside a tenant scope runs **unscoped** on the worker - so tenant-aware access throws (fail
+closed), never silently leaks. Carry the scope across the boundary with the core helpers: capture a
+serializable snapshot when you enqueue, restore it on the worker.
+
+```ts
+import { captureTenancy, runWithTenancySnapshot } from "tenancyjs-core";
+
+// Enqueue (inside a tenant scope): put the snapshot in the job payload.
+await queue.add("email", { tenancy: captureTenancy(manager), userId });
+
+// Worker: restore it, then your handler runs in the same scope.
+await runWithTenancySnapshot(manager, job.data.tenancy, () => sendEmail(job.data.userId));
+```
+
 ## Also out of scope
 
 - **Built-in migrations / DDL.** TenancyJS doesn't create tables or run migrations - provisioning and
-  migration delegate to [your hooks](/docs/cli#provision--migrate).
+  migration delegate to [your hooks](/docs/cli#provision--migrate), or the batteries-included
+  [Postgres provisioners](/docs/guides/provisioning#batteries-included-postgresql).
 - **Drizzle 1.0 (prerelease)** is intentionally outside the supported peer range; the adapter targets
   Drizzle 0.45.
 
