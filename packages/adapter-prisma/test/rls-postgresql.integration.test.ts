@@ -125,6 +125,32 @@ describePostgres("Prisma RLS-backed row-level isolation (ADR-0037)", () => {
     expect(rawA).toEqual(["A"]); // never tenant B's row, even via raw SQL
   });
 
+  it("injects the tenant on createMany and upsert", async () => {
+    await run(tenantA, (tx) =>
+      tx.rlsPost.createMany({
+        data: [
+          { id: "m1", title: "M1", tenantId: "tenant-b" },
+          { id: "m2", title: "M2", tenantId: "tenant-b" },
+        ],
+      }),
+    );
+    await run(tenantA, (tx) =>
+      tx.rlsPost.upsert({
+        where: { id: "u1" },
+        create: { id: "u1", title: "U1", tenantId: "tenant-b" },
+        update: { title: "U1b" },
+      }),
+    );
+    // All three rows were forced to tenant-a, so tenant-a sees them and the
+    // spoofed tenant-b values never landed.
+    const seen = await run(tenantA, (tx) => tx.rlsPost.count());
+    expect(seen).toBe(3);
+    const rows = (await admin("RlsPost").select("tenantId")) as {
+      tenantId: string;
+    }[];
+    expect(rows.every((row) => row.tenantId === "tenant-a")).toBe(true);
+  });
+
   it("forces the tenant on write, overriding a spoofed discriminator", async () => {
     await run(tenantA, (tx) =>
       tx.rlsPost.create({
