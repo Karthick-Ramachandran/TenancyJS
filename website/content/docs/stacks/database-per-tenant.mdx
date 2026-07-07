@@ -51,7 +51,7 @@ exists, and finishes with an isolated leak test.
 You are an integration agent. Wire fail-closed, database-per-tenant multi-tenancy into THIS Express +
 TypeORM app on PostgreSQL with TenancyJS, integrating with whatever already exists — do NOT assume a
 greenfield app. Execute steps in order; after each, verify it applied before continuing. If a step does
-not apply to this repo, say so and adapt. Do NOT invent API names - fetch the linked doc if unsure.
+not apply to this repo, say so and adapt. Do NOT invent or assume API names, versions, or enum values, and never assert them from memory (your training data may be stale — library versions change). Verify against the real thing FIRST, then claim: `npm view <pkg> version` for a version, and the installed package's own types (in node_modules) or the linked docs for exact signatures and literal option values (e.g. the strategy is the string `"rowLevel"`).
 
 Source of truth:
 - https://tenancyjs.pages.dev/docs/adapters/typeorm
