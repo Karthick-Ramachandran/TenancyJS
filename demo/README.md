@@ -1,10 +1,11 @@
 # TenancyJS demo - Express + Sequelize, database-per-tenant
 
 A small, runnable app that proves tenant isolation for real. Each tenant gets its
-own PostgreSQL database, so isolation is by construction. This is the source
-behind the README GIF.
+own PostgreSQL database, so isolation is by construction.
 
-![demo](./demo.gif)
+> The root README's hero GIF (`demo.gif`) is the `tenancyjs-cli init` wizard,
+> rendered from [`init.tape`](./init.tape). This folder is the deeper story you
+> run yourself.
 
 ## What it shows
 
@@ -49,13 +50,14 @@ curl -H 'x-tenant-id: globex' localhost:3000/posts   # 404, the demo user is not
 Prove it in CI:
 
 ```bash
-npx tenancy test:leak --test-file tenancy.leak.test.mjs
+npx tenancyjs-cli test:leak --test-file tenancy.leak.test.mjs
 ```
 
-## Re-render the GIF
+## Re-render the GIFs
 
-[VHS](https://github.com/charmbracelet/vhs) drives the recording:
+[VHS](https://github.com/charmbracelet/vhs) drives the recordings:
 
 ```bash
-vhs demo.tape          # writes demo.gif
+vhs init.tape          # writes demo.gif — the init wizard (root README hero)
+vhs demo.tape          # writes isolation.gif — this database-per-tenant demo
 ```

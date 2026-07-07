@@ -94,6 +94,6 @@ describe("workspace foundation", () => {
 
     expect(readme).toContain("Single database");
     expect(readme).toContain("Database per tenant");
-    expect(readme).toContain("`0.1.0`");
+    expect(readme).toContain("`0.2.0`");
   });
 });

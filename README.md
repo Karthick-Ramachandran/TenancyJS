@@ -31,13 +31,16 @@ await tenancy.runWithTenant(tenant, async () => {
 
 ## See it in action
 
-Two tenants, each with its own PostgreSQL database. Colliding primary keys stay isolated, forgetting the
-tenant scope throws instead of leaking, a spoofed `x-tenant-id` is refused with a sanitized 404, and a
-leak test proves it - all against a real database.
+One command scaffolds your stack. `npx tenancyjs-cli init` detects your framework and ORM, asks your
+isolation strategy, and writes the wiring — plus an optional `TENANCY.md` that teaches your AI assistant
+the fail-closed rules.
 
-![TenancyJS database-per-tenant demo](demo/demo.gif)
+![TenancyJS init wizard](demo/demo.gif)
 
-Run it yourself in [`demo/`](demo/) (Express + Sequelize, database-per-tenant).
+There's also a runnable two-tenant isolation demo (Express + Sequelize, database-per-tenant) in
+[`demo/`](demo/): colliding primary keys stay isolated, a forgotten tenant scope throws instead of
+leaking, a spoofed `x-tenant-id` is refused with a sanitized 404, and a leak test proves it — all
+against a real database.
 
 ## Install
 

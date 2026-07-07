@@ -2,7 +2,7 @@
 # Prereqs: `npm install` here and a PostgreSQL at DATABASE_URL
 # (defaults to postgres://postgres:postgres@localhost:5432/postgres).
 # Render with:  vhs demo.tape
-Output demo.gif
+Output isolation.gif
 
 Set Shell bash
 Set FontSize 18
