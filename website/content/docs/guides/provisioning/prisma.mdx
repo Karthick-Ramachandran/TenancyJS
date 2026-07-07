@@ -90,13 +90,13 @@ a `mysql2` admin connection and use `` `tenant_x` `` backtick quoting.
 ## Run the flow
 
 ```bash
-npx tenancy tenant create acme --set plan=pro   # 1. record + placement
-npx tenancy tenant provision acme               # 2. create schema/database
-npx tenancy tenant migrate acme                 # 3. prisma migrate deploy
-npx tenancy test:leak --test-file ./leak.mjs    # 4. prove isolation before trusting it
+npx tenancyjs-cli tenant create acme --set plan=pro   # 1. record + placement
+npx tenancyjs-cli tenant provision acme               # 2. create schema/database
+npx tenancyjs-cli tenant migrate acme                 # 3. prisma migrate deploy
+npx tenancyjs-cli test:leak --test-file ./leak.mjs    # 4. prove isolation before trusting it
 ```
 
-Roll a new migration out to everyone with `npx tenancy tenant migrate --all` - it reports each
+Roll a new migration out to everyone with `npx tenancyjs-cli tenant migrate --all` - it reports each
 tenant's outcome and exits non-zero if any fail, so it's safe in CI.
 
 ## Notes

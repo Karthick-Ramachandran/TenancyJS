@@ -82,8 +82,8 @@ credentials). The store's `find(identifier)` returns `[{ tenant: { id, databaseK
 Implement the provisioner hooks (see the Drizzle provisioning recipe): `provision` runs
 `` CREATE DATABASE `tenant_x` `` on a privileged `mysql2` admin connection (NOT in a transaction);
 `migrate` runs your Drizzle migrations against the tenant database; `deprovision` drops it. Then:
-`npx tenancy tenant create acme --set databaseKey=tenant_acme` → `npx tenancy tenant provision acme` →
-`npx tenancy tenant migrate acme`.
+`npx tenancyjs-cli tenant create acme --set databaseKey=tenant_acme` → `npx tenancyjs-cli tenant provision acme` →
+`npx tenancyjs-cli tenant migrate acme`.
 
 ## Step 6 - Central work
 Cross-tenant/admin work runs against the landlord explicitly via `manager.runInCentralContext(...)`.

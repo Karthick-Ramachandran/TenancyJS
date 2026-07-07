@@ -115,8 +115,8 @@ Implement the provisioner hooks (see the Drizzle provisioning recipe at
 https://tenancyjs.pages.dev/docs/guides/provisioning/drizzle): `provision` runs `CREATE SCHEMA
 tenant_acme` and grants `USAGE` to the runtime role on a privileged admin connection (NOT the runtime
 role); `migrate` runs your Drizzle migrations against that schema; `deprovision` drops it. Then:
-`npx tenancy tenant create acme --set schemaName=tenant_acme` ->
-`npx tenancy tenant provision acme` -> `npx tenancy tenant migrate acme`.
+`npx tenancyjs-cli tenant create acme --set schemaName=tenant_acme` ->
+`npx tenancyjs-cli tenant provision acme` -> `npx tenancyjs-cli tenant migrate acme`.
 Verify the schema and its tables exist before continuing.
 
 ## Step 6 - Central work

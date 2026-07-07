@@ -3,7 +3,7 @@ title: AdonisJS + Lucid setup
 description: Wire fail-closed multi-tenancy into an AdonisJS 7 + Lucid 22 app with forced PostgreSQL RLS - a copy-pasteable setup-agent prompt, plus the manual walkthrough.
 ---
 
-`npx tenancy init` scaffolds AdonisJS + Lucid end to end, so the fastest path is to run it and adapt.
+`npx tenancyjs-cli init` scaffolds AdonisJS + Lucid end to end, so the fastest path is to run it and adapt.
 This page gives you two ways in: hand the **setup-agent prompt** to your AI assistant, or follow the
 **manual walkthrough**. Either way, finish by running the two-tenant test - with fail-closed isolation
 you verify, you don't trust.
@@ -52,7 +52,7 @@ Source of truth (fetch if a detail is missing, do not guess):
 - Confirm the database is PostgreSQL and that `pg` is installed (it and `luxon` are Lucid peers).
 
 ## Step 1 - Scaffold or wire manually
-`npx tenancy init` scaffolds this exact stack end to end. Offer to run it, then adapt the result to
+`npx tenancyjs-cli init` scaffolds this exact stack end to end. Offer to run it, then adapt the result to
 this repo. If the user prefers explicit wiring (or `init` doesn't fit), do Steps 2–8 by hand.
 
 ## Step 2 - Install

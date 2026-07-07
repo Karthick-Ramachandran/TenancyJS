@@ -2,7 +2,7 @@
 
 Safe, deterministic project initialization and diagnostics for TenancyJS.
 
-> **New to TenancyJS? [Start with the docs →](https://tenancyjs.pages.dev/docs/getting-started/installation)** — install, the `npx tenancy` CLI, and how this package fits with an adapter + integration.
+> **New to TenancyJS? [Start with the docs →](https://tenancyjs.pages.dev/docs/getting-started/installation)** — install, the `tenancy` CLI, and how this package fits with an adapter + integration.
 
 Init supports Express 5.2 with Prisma 7.8, TypeORM 1, Sequelize 6.37, or Drizzle 0.45; AdonisJS 7.3
 with Lucid 22.4; and Next.js 16 with Prisma 7.8. It detects the stack from `package.json` and scaffolds
@@ -15,10 +15,10 @@ package runner.
 The binary is `tenancy`. You don't have to install it — run it straight from your package manager:
 
 ```bash
-npx tenancy init            # npm
-pnpm dlx tenancy init       # pnpm
-yarn dlx tenancy init       # yarn
-bunx tenancy init           # bun
+npx tenancyjs-cli init       # npm
+pnpm dlx tenancyjs-cli init  # pnpm
+yarn dlx tenancyjs-cli init  # yarn
+bunx tenancyjs-cli init      # bun
 ```
 
 Prefer it installed? Add it globally or as a dev dependency:
@@ -26,7 +26,7 @@ Prefer it installed? Add it globally or as a dev dependency:
 ```bash
 npm install -g tenancyjs-cli     # then: tenancy init
 # or, per-project:
-npm install -D tenancyjs-cli     # then: npx tenancy init, or a package.json script
+npm install -D tenancyjs-cli     # then: npx tenancyjs-cli init, or a package.json script
 ```
 
 Requires Node.js 24+. Every command accepts `--json` for machine-readable, secret-redacted output.

@@ -66,12 +66,12 @@ own `tenancy.config.ts` at runtime (Node 24 strips the types - no transpiler dep
 against your live tenants:
 
 ```bash
-npx tenancy init                       # scaffold for your framework + ORM
-npx tenancy tenant check               # verify the runtime + warn on untested combos
-npx tenancy tenant list                # read your bring-your-own tenant store
-npx tenancy tenant create acme --set plan=pro
-npx tenancy tenant migrate --all       # delegate to your migrator, per tenant
-npx tenancy run ./backfill.ts --tenant acme
+npx tenancyjs-cli init                       # scaffold for your framework + ORM
+npx tenancyjs-cli tenant check               # verify the runtime + warn on untested combos
+npx tenancyjs-cli tenant list                # read your bring-your-own tenant store
+npx tenancyjs-cli tenant create acme --set plan=pro
+npx tenancyjs-cli tenant migrate --all       # delegate to your migrator, per tenant
+npx tenancyjs-cli run ./backfill.ts --tenant acme
 ```
 
 Registry, provisioning, and migrations all go through **your** store and hooks - the CLI orchestrates

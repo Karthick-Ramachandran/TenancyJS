@@ -9,7 +9,7 @@ there's no transpiler dependency - and acts against your real tenants through **
 It orchestrates and fails closed, but never invents ORM behaviour it hasn't tested.
 
 ```bash
-npx tenancy <command> [--config <path>] [--json]
+npx tenancyjs-cli <command> [--config <path>] [--json]
 ```
 
 Every operational command:
@@ -22,10 +22,10 @@ Every operational command:
 ## Set up a project
 
 ```bash
-npx tenancy init          # scaffold config + wiring for your framework and ORM
-npx tenancy init --framework express --orm drizzle # explicit non-interactive stack
-npx tenancy init --framework express --orm sequelize --strategy database-per-tenant # pick a strategy
-npx tenancy tenant check  # verify the runtime loads and the store works
+npx tenancyjs-cli init          # scaffold config + wiring for your framework and ORM
+npx tenancyjs-cli init --framework express --orm drizzle # explicit non-interactive stack
+npx tenancyjs-cli init --framework express --orm sequelize --strategy database-per-tenant # pick a strategy
+npx tenancyjs-cli tenant check  # verify the runtime loads and the store works
 ```
 
 `tenant check` is the honest one. It reads each adapter's own capability report and **warns** about any
@@ -50,11 +50,11 @@ with Prisma. It previews by default and never overwrites an existing file.
 Read and write your bring-your-own [tenant store](/docs/getting-started/configuration#bring-your-own-tenant-store).
 
 ```bash
-npx tenancy tenant list
-npx tenancy tenant show acme
-npx tenancy tenant create acme --set plan=pro --set region=eu
-npx tenancy tenant suspend acme
-npx tenancy tenant activate acme
+npx tenancyjs-cli tenant list
+npx tenancyjs-cli tenant show acme
+npx tenancyjs-cli tenant create acme --set plan=pro --set region=eu
+npx tenancyjs-cli tenant suspend acme
+npx tenancyjs-cli tenant activate acme
 ```
 
 `--set key=value` is repeatable and is validated before the runtime loads, so a typo fails fast. The id
@@ -66,8 +66,8 @@ Run a one-off script - a backfill, an admin task - inside a resolved tenant (or 
 script's top-level code **and** its default export run with the active context.
 
 ```bash
-npx tenancy run ./backfill.ts --tenant acme
-npx tenancy run ./rollup.ts --central
+npx tenancyjs-cli run ./backfill.ts --tenant acme
+npx tenancyjs-cli run ./rollup.ts --central
 ```
 
 The script is imported **inside** the scope, so your normal scoped client just works - no context is
@@ -90,10 +90,10 @@ For schema- and database-per-tenant, these delegate to the `provisioner` hooks i
 never runs an ORM itself. It resolves each tenant's placement from the store record and runs your hook.
 
 ```bash
-npx tenancy tenant provision acme     # create the tenant's schema/database
-npx tenancy tenant migrate acme       # run your migrator for one tenant
-npx tenancy tenant migrate --all      # ...for every tenant, reporting each outcome
-npx tenancy tenant deprovision acme   # drop it - explicit id only
+npx tenancyjs-cli tenant provision acme     # create the tenant's schema/database
+npx tenancyjs-cli tenant migrate acme       # run your migrator for one tenant
+npx tenancyjs-cli tenant migrate --all      # ...for every tenant, reporting each outcome
+npx tenancyjs-cli tenant deprovision acme   # drop it - explicit id only
 ```
 
 <Callout type="warn">
@@ -110,8 +110,8 @@ npx tenancy tenant deprovision acme   # drop it - explicit id only
 connection), so you review it and apply it with your own migration tool.
 
 ```bash
-npx tenancy policy --table posts --table comments --role app_runtime
-npx tenancy policy --table posts --role app_runtime --tenant-column org_id --out db/rls.sql
+npx tenancyjs-cli policy --table posts --table comments --role app_runtime
+npx tenancyjs-cli policy --table posts --role app_runtime --tenant-column org_id --out db/rls.sql
 ```
 
 ## Every command

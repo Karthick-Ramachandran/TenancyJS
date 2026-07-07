@@ -104,8 +104,8 @@ Verify the file type-checks before continuing.
 Implement the provisioner hooks (see the TypeORM provisioning recipe): `provision` runs
 `CREATE DATABASE "tenant_x"` on a privileged admin connection (NOT in a transaction); `migrate` runs
 your TypeORM migrations against the tenant database; `deprovision` drops it. Then:
-`npx tenancy tenant create acme --set databaseKey=tenant_acme` -> `npx tenancy tenant provision acme`
--> `npx tenancy tenant migrate acme`. Verify each tenant's database exists and is migrated.
+`npx tenancyjs-cli tenant create acme --set databaseKey=tenant_acme` -> `npx tenancyjs-cli tenant provision acme`
+-> `npx tenancyjs-cli tenant migrate acme`. Verify each tenant's database exists and is migrated.
 
 ## Step 6 - Central work
 Cross-tenant / admin work runs against the landlord explicitly via `manager.runInCentralContext(...)`.

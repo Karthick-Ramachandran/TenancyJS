@@ -55,11 +55,11 @@ Pass them to `defineTenancyRuntime({ manager, store, adapters, provisioner, disp
 the admin connection.
 
 ## Step 4 — Run the lifecycle
-`npx tenancy tenant create acme --set <placement>=...` → `tenant provision acme` → `tenant migrate acme`.
+`npx tenancyjs-cli tenant create acme --set <placement>=...` → `tenant provision acme` → `tenant migrate acme`.
 Confirm each succeeds.
 
 ## Step 5 — Prove isolation
-`npx tenancy test:leak --test-file <path>` — two tenants, same PK, no cross-read, unscoped access throws.
+`npx tenancyjs-cli test:leak --test-file <path>` — two tenants, same PK, no cross-read, unscoped access throws.
 
 ## Step 6 — Write the action items
 Create `PROVISIONING_NEXT_STEPS.md` with an ACTION ITEMS checklist of everything the human still owns:

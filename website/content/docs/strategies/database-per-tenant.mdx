@@ -93,9 +93,9 @@ Each tenant's database must be created and migrated before use, and dropped on o
 CLI's [provisioning hooks](/docs/cli#provision--migrate):
 
 ```bash
-npx tenancy tenant provision acme     # create + migrate the database
-npx tenancy tenant migrate --all      # migrate every tenant's database
-npx tenancy tenant deprovision acme   # drop it (explicit id only - never --all)
+npx tenancyjs-cli tenant provision acme     # create + migrate the database
+npx tenancyjs-cli tenant migrate --all      # migrate every tenant's database
+npx tenancyjs-cli tenant deprovision acme   # drop it (explicit id only - never --all)
 ```
 
 ## Tradeoffs

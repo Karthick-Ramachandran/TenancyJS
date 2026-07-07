@@ -17,7 +17,7 @@ Add the tenant to your store - this is the source of truth, including its placem
 for the isolating strategies.
 
 ```bash
-npx tenancy tenant create acme --set plan=pro
+npx tenancyjs-cli tenant create acme --set plan=pro
 ```
 </Step>
 
@@ -29,7 +29,7 @@ For [schema-](/docs/strategies/schema-per-tenant) or
 `provisioner.provision` hook.
 
 ```bash
-npx tenancy tenant provision acme
+npx tenancyjs-cli tenant provision acme
 ```
 
 (Row-level tenants share tables, so there's nothing to provision.) See the
@@ -43,7 +43,7 @@ and migrate hooks for your ORM.
 Bring the tenant's storage up to your current schema through your `provisioner.migrate` hook.
 
 ```bash
-npx tenancy tenant migrate acme
+npx tenancyjs-cli tenant migrate acme
 ```
 </Step>
 
@@ -55,7 +55,7 @@ When you ship a schema change, migrate every tenant. `--all` reports each tenant
 non-zero if any failed, so it's safe to run in CI:
 
 ```bash
-npx tenancy tenant migrate --all
+npx tenancyjs-cli tenant migrate --all
 ```
 
 ## Suspending
@@ -64,8 +64,8 @@ Suspending flips status in your store; your [resolver](/docs/guides/resolving-te
 suspended tenant as a fail-closed **404**, so requests stop immediately.
 
 ```bash
-npx tenancy tenant suspend acme
-npx tenancy tenant activate acme   # bring it back
+npx tenancyjs-cli tenant suspend acme
+npx tenancyjs-cli tenant activate acme   # bring it back
 ```
 
 ## Offboarding
@@ -73,7 +73,7 @@ npx tenancy tenant activate acme   # bring it back
 Dropping a tenant's storage is destructive, so it always requires an explicit id - never `--all`.
 
 ```bash
-npx tenancy tenant deprovision acme   # runs your provisioner.deprovision hook
+npx tenancyjs-cli tenant deprovision acme   # runs your provisioner.deprovision hook
 ```
 
 <Callout type="warn">
