@@ -1,12 +1,13 @@
 ---
 title: AdonisJS + Lucid setup
-description: Wire fail-closed multi-tenancy into an AdonisJS 7 + Lucid 22 app with forced PostgreSQL RLS - a copy-pasteable setup-agent prompt, plus the manual walkthrough.
+description: Wire fail-closed multi-tenancy into an AdonisJS 7 + Lucid 22 app with forced PostgreSQL RLS - a copy-pasteable integration-agent prompt, plus the manual walkthrough.
 ---
 
-`npx tenancyjs-cli init` scaffolds AdonisJS + Lucid end to end, so the fastest path is to run it and adapt.
-This page gives you two ways in: hand the **setup-agent prompt** to your AI assistant, or follow the
-**manual walkthrough**. Either way, finish by running the two-tenant test - with fail-closed isolation
-you verify, you don't trust.
+This page wires fail-closed multi-tenancy into an AdonisJS 7 + Lucid 22 app — **new or existing**. Two
+ways to do it: hand the **integration-agent prompt** to your AI assistant, or follow the **manual
+walkthrough**. The agent assesses your app first — `npx tenancyjs-cli init` can scaffold this stack from
+scratch if you're starting greenfield — integrates with your existing models and auth, and finishes with
+an isolated leak test, because with fail-closed isolation you verify, you don't trust.
 
 This is **row-level** on PostgreSQL. Lucid row-level is a **callback facade backed by forced RLS**: the
 adapter scopes model operations through Lucid's hooks, and Postgres row-level security is the backstop
@@ -21,22 +22,24 @@ stack forces RLS - the runtime role can't read another tenant's rows no matter w
 
 <Callout type="info">
   **All three strategies for AdonisJS + Lucid are on this page.** Row-level is first (below); scroll down
-  for the full setup-agent prompts for
-  [schema-per-tenant →](#setup-agent-prompt--schema-per-tenant) and
-  [database-per-tenant →](#setup-agent-prompt--database-per-tenant).
+  for the full integration-agent prompts for
+  [schema-per-tenant →](#integration-agent-prompt--schema-per-tenant) and
+  [database-per-tenant →](#integration-agent-prompt--database-per-tenant).
 </Callout>
 
-## Setup-agent prompt
+## Integration-agent prompt
 
 Paste this into an assistant that can edit your repo and run commands (Claude Code, Cursor, …). It
-executes in order and verifies each step. It's pinned to the real API, so it won't invent factory names.
+assesses your app first, integrates with what already exists, verifies each step, and finishes with an
+isolated leak test. It's pinned to the real API, so it won't invent factory names.
 
 ````text
-# TenancyJS Setup Agent - AdonisJS 7 + Lucid 22 (row-level, PostgreSQL)
+# TenancyJS Integration Agent - AdonisJS 7 + Lucid 22 (row-level, PostgreSQL)
 
-You are a setup agent. Add fail-closed multi-tenancy to this AdonisJS + Lucid project with TenancyJS.
-Execute every step in order. After each step, verify it applied before continuing. If a step does not
-apply, say so and continue. Do NOT invent API names - if unsure, fetch the linked doc.
+You are an integration agent. Wire fail-closed multi-tenancy into THIS project with TenancyJS,
+integrating with whatever already exists — do NOT assume a greenfield app. Execute steps in order;
+after each, verify it applied before continuing. If a step does not apply to this repo, say so and
+adapt. Do NOT invent API names — if unsure, fetch the linked doc.
 
 Source of truth (fetch if a detail is missing, do not guess):
 - https://tenancyjs.pages.dev/docs/adapters/lucid
@@ -45,11 +48,18 @@ Source of truth (fetch if a detail is missing, do not guess):
 - https://tenancyjs.pages.dev/docs/concepts/limitations
 - https://tenancyjs.pages.dev/docs/guides/testing-isolation
 
-## Pre-flight
-- Run `node -v`; abort if it is not >= 24.
-- Confirm `@adonisjs/core` (v7) and `@adonisjs/lucid` are in package.json. Abort if this is not an
-  AdonisJS + Lucid project.
-- Confirm the database is PostgreSQL and that `pg` is installed (it and `luxon` are Lucid peers).
+## Step 0 - Assess the app (change nothing yet)
+- Report the Node version (abort if < 24), the `@adonisjs/core` (v7) and `@adonisjs/lucid` versions, and
+  confirm the database is PostgreSQL and `pg` is installed (it and `luxon` are Lucid peers). If this is
+  not an AdonisJS + Lucid + Postgres app, stop.
+- Inventory the Lucid models: list every model and mark each as tenant-owned or global/central.
+- Find how the current user is determined per request (`ctx.auth.user`, session, JWT) — the `authorize`
+  hook will need it.
+- Detect any EXISTING tenant concept (a `tenantId`/`orgId` column, a workspaces/orgs table). If one
+  exists, REUSE it — do not add a parallel one.
+- Summarize what you found + the integration plan, and confirm the ISOLATION STRATEGY with the user:
+  row-level (this section) vs schema-per-tenant vs database-per-tenant (both further down this page). If
+  row-level does not fit, point them to https://tenancyjs.pages.dev/docs/strategies/choosing and stop.
 
 ## Step 1 - Scaffold or wire manually
 `npx tenancyjs-cli init` scaffolds this exact stack end to end. Offer to run it, then adapt the result to
@@ -67,8 +77,11 @@ dependency - AdonisJS only resolves it transitively otherwise, and config import
 Create `config/tenancy.ts`. It must:
 - Construct ONE `TenancyManager<Tenant>`.
 - Build the Lucid adapter with `createLucidTenancy({ manager, database: db, tenantModels: [...] })`
-  (`db` from `@adonisjs/lucid/services/db`). Give each tenant model an explicit entry:
+  (`db` from `@adonisjs/lucid/services/db`). Give each EXISTING tenant-owned model an explicit entry:
   `{ model: Post, tenantAttribute: "tenantId", tenantColumn: "tenant_id", policyName: "posts_tenant_isolation" }`.
+  Only add a new example model if the app has no domain models yet. If a model is missing its
+  `tenant_id` column, add it via migration and backfill existing rows before enforcing non-null (see
+  Step 9 - Roll out).
 - Build a `TenantResolutionChain` with `new HeaderTenantResolver()` and a store whose `find(identifier)`
   returns `[{ tenant: { id }, status }]` (or `[]`).
 - `x-tenant-id` is client-forgeable, so the chain REQUIRES a membership check: pass an
@@ -103,23 +116,29 @@ web provider validates automatically; Ace commands and scripts must call it them
 For admin/cross-tenant handlers, do NOT leave them unscoped. Open an explicit central scope through
 application-owned code (`manager.runInCentralContext(...)`); unscoped tenant access must fail closed.
 
-## Step 8 - Prove it
-Create a two-tenant test (`node ace test`): write a row under tenant A and tenant B with the SAME
-primary key; assert querying as A never returns B's row; and assert that raw SQL run as the runtime
+## Step 8 - Verify isolation (an isolated test - it does NOT touch app data)
+Create a two-tenant leak TEST (`node ace test`) that runs against a TEST database (or a rolled-back
+transaction) - never seed tenants into real app data. Write a row under tenant A and tenant B with the
+SAME primary key; assert querying as A never returns B's row; and assert that raw SQL run as the runtime
 role with NO GUC set returns 0 rows (RLS backstop). In tests, call `config.tenancy.validate()` yourself -
 the /testing helper does not auto-validate. Follow https://tenancyjs.pages.dev/docs/guides/testing-isolation.
 
-## Step 9 - Verify
+## Step 9 - Roll out + verify
 - `node ace build` - report errors.
 - Boot the app (`node ace serve`) and confirm it serves.
 - Run `node ace test` and report the result.
+- Existing app: backfill `tenant_id` on any table that already had rows (set it for every row, then
+  enforce non-null and FORCE RLS), then roll out incrementally - scope routes behind the middleware, keep
+  admin/cross-tenant work in `runInCentralContext`, and treat any thrown unscoped-access error as a route
+  you still need to scope.
 
 Report a summary of every file created/changed and any issue found.
 ````
 
 <Callout type="warn">
   AI wiring is a starting point, not proof. The only thing that demonstrates isolation is the two-tenant
-  colliding-id test in Step 8 - run it, including the raw-as-runtime-role check, before you trust it.
+  colliding-id test in Step 8 - run it, including the raw-as-runtime-role check, against a test database
+  before you trust it.
 </Callout>
 
 ## Manual walkthrough
@@ -310,18 +329,21 @@ the `/testing` helper does not auto-validate.
 Full lifecycle and the security boundary: [AdonisJS integration](/docs/integrations/adonis) ·
 [Lucid adapter](/docs/adapters/lucid) · [Testing isolation](/docs/guides/testing-isolation).
 
-## Setup-agent prompt — schema-per-tenant
+## Integration-agent prompt — schema-per-tenant
 
 Same stack, stronger placement: each tenant gets its **own PostgreSQL schema** (isolated via a
-transaction-local `search_path`) instead of a shared table. Paste this into a repo-editing assistant.
+transaction-local `search_path`) instead of a shared table. Paste this into an assistant that can edit
+your repo and run commands - it assesses your app first, integrates with what already exists, and
+finishes with an isolated leak test.
 
 ````text
-# TenancyJS Setup Agent — AdonisJS 7 + Lucid, schema-per-tenant (PostgreSQL)
+# TenancyJS Integration Agent — AdonisJS 7 + Lucid, schema-per-tenant (PostgreSQL)
 
-You are a setup agent. Add fail-closed schema-per-tenant multi-tenancy to this AdonisJS + Lucid project
-with TenancyJS: each tenant gets its own Postgres schema, isolated by a transaction-local search_path.
-Execute every step in order and verify each before continuing. Do NOT invent API names - if unsure,
-fetch the linked doc.
+You are an integration agent. Wire fail-closed schema-per-tenant multi-tenancy into THIS AdonisJS +
+Lucid project with TenancyJS: each tenant gets its own Postgres schema, isolated by a transaction-local
+search_path — integrating with whatever already exists, do NOT assume a greenfield app. Execute steps in
+order; after each, verify it applied before continuing. If a step does not apply to this repo, say so and
+adapt. Do NOT invent API names - if unsure, fetch the linked doc.
 
 Source of truth (fetch if a detail is missing, do not guess):
 - https://tenancyjs.pages.dev/docs/adapters/lucid
@@ -330,10 +352,19 @@ Source of truth (fetch if a detail is missing, do not guess):
 - https://tenancyjs.pages.dev/docs/guides/provisioning/lucid
 - https://tenancyjs.pages.dev/docs/guides/testing-isolation
 
-## Pre-flight
-- Run `node -v`; abort if it is not >= 24.
-- Confirm `@adonisjs/core` (v7) and `@adonisjs/lucid` are in package.json, the database is PostgreSQL,
-  and `pg` is installed. Schema-per-tenant is PostgreSQL-only.
+## Step 0 - Assess the app (change nothing yet)
+- Report the Node version (abort if < 24), the `@adonisjs/core` (v7) and `@adonisjs/lucid` versions, and
+  confirm the database is PostgreSQL and `pg` is installed. Schema-per-tenant is PostgreSQL-only - if
+  this is not a Postgres AdonisJS + Lucid app, stop.
+- Inventory the Lucid models: list every model and mark each as tenant-owned or global/central.
+- Find how the current user is determined per request (`ctx.auth.user`, session, JWT) — the `authorize`
+  hook will need it.
+- Detect any EXISTING tenant concept (a `tenantId`/`orgId` column, a workspaces/orgs table, or an
+  existing per-tenant schema naming scheme). If one exists, REUSE it — do not add a parallel one.
+- Summarize what you found + the integration plan, and confirm the ISOLATION STRATEGY with the user:
+  schema-per-tenant (this section) vs row-level vs database-per-tenant (both elsewhere on this page). If
+  schema-per-tenant does not fit, point them to https://tenancyjs.pages.dev/docs/strategies/choosing and
+  stop.
 
 ## Step 1 - Install
 Run `npm install tenancyjs-core tenancyjs-adapter-lucid tenancyjs-integration-adonis tenancyjs-identifiers`.
@@ -352,8 +383,9 @@ Keep `tenancyjs-identifiers` a DIRECT dependency or `config/tenancy.ts` fails to
     tenantModels: [{ model: Post }],
   });
   ```
-  Tenant models use UNQUALIFIED table names (e.g. `posts`) - the adapter sets the per-transaction
-  `search_path`, so never hard-code a schema on the model.
+  List EVERY EXISTING tenant-owned model in `tenantModels`; only add a new example model (e.g. `Post`)
+  if the app has no domain models yet. Tenant models use UNQUALIFIED table names (e.g. `posts`) - the
+  adapter sets the per-transaction `search_path`, so never hard-code a schema on the model.
 - Build a `TenantResolutionChain` (`new HeaderTenantResolver({ headerName: "x-tenant-id" })` + a store
   whose `find(identifier)` returns `[{ tenant, status }]`). `x-tenant-id` is client-forgeable, so the
   chain REQUIRES a membership check - it throws to construct without one:
@@ -373,36 +405,45 @@ migrate, and drop each tenant's schema: create the schema on the privileged `adm
 (`create schema if not exists`), and run `node ace migration:run --connection <name>` against a
 per-tenant connection whose pg `searchPath` is that schema. DDL runs as admin, never the runtime role.
 Follow https://tenancyjs.pages.dev/docs/guides/provisioning/lucid. Provision + migrate a tenant BEFORE
-you flip it to active - routing validates the schema already exists and fails closed otherwise.
+you flip it to active - routing validates the schema already exists and fails closed otherwise. If the
+app already has existing tenants (rows in the tenants/workspaces table), provision and migrate a schema
+for EACH of them before cutover - do not leave an existing tenant without a schema.
 
 ## Step 4 - Register provider + middleware
 Add `() => import("tenancyjs-integration-adonis/provider")` to `adonisrc.ts` providers, re-export
 `TenancyMiddleware` as the `tenant` named middleware, and apply `.use(middleware.tenant())` to tenant
 route GROUPS only - never globally, and only AFTER auth so `principal` is populated.
 
-## Step 5 - Prove it (two-tenant leak test)
-Provision two tenants, write a row with the SAME primary key under each, and assert querying as A never
-returns B's row (they live in different schemas). In tests call `config.tenancy.validate()` yourself -
-the /testing helper does not auto-validate. Follow https://tenancyjs.pages.dev/docs/guides/testing-isolation.
+## Step 5 - Verify isolation (an isolated test - it does NOT touch app data)
+Provision two TEST tenants/schemas (never real app tenants) and run a two-tenant leak test: write a row
+with the SAME primary key under each, and assert querying as A never returns B's row (they live in
+different schemas). In tests call `config.tenancy.validate()` yourself - the /testing helper does not
+auto-validate. Follow https://tenancyjs.pages.dev/docs/guides/testing-isolation.
 
-## Verify
+## Roll out + verify
 - `node ace build`, boot with `node ace serve`, then `node ace test`; report every result.
+- Existing app: provision + migrate a schema for every existing tenant before cutover, then roll out
+  incrementally - scope routes behind the middleware, keep admin/cross-tenant work in
+  `runInCentralContext`, and treat any thrown unscoped-access error as a route you still need to scope.
 
 Report every file created/changed and any issue found.
 ````
 
-## Setup-agent prompt — database-per-tenant
+## Integration-agent prompt — database-per-tenant
 
 The strongest placement: each tenant lives in its **own PostgreSQL database**, leased as a per-tenant
-connection - isolation by construction. Paste this into a repo-editing assistant.
+connection - isolation by construction. Paste this into an assistant that can edit your repo and run
+commands - it assesses your app first, integrates with what already exists, and finishes with an
+isolated leak test.
 
 ````text
-# TenancyJS Setup Agent — AdonisJS 7 + Lucid, database-per-tenant (PostgreSQL)
+# TenancyJS Integration Agent — AdonisJS 7 + Lucid, database-per-tenant (PostgreSQL)
 
-You are a setup agent. Add fail-closed database-per-tenant multi-tenancy to this AdonisJS + Lucid
-project with TenancyJS: each tenant runs against its own Postgres database via a leased per-tenant
-connection. Execute every step in order and verify each before continuing. Do NOT invent API names -
-if unsure, fetch the linked doc.
+You are an integration agent. Wire fail-closed database-per-tenant multi-tenancy into THIS AdonisJS +
+Lucid project with TenancyJS: each tenant runs against its own Postgres database via a leased per-tenant
+connection — integrating with whatever already exists, do NOT assume a greenfield app. Execute steps in
+order; after each, verify it applied before continuing. If a step does not apply to this repo, say so and
+adapt. Do NOT invent API names - if unsure, fetch the linked doc.
 
 Source of truth (fetch if a detail is missing, do not guess):
 - https://tenancyjs.pages.dev/docs/adapters/lucid
@@ -411,10 +452,19 @@ Source of truth (fetch if a detail is missing, do not guess):
 - https://tenancyjs.pages.dev/docs/guides/provisioning/lucid
 - https://tenancyjs.pages.dev/docs/guides/testing-isolation
 
-## Pre-flight
-- Run `node -v`; abort if it is not >= 24.
-- Confirm `@adonisjs/core` (v7) and `@adonisjs/lucid` are in package.json and `pg` is installed.
-- Identify the landlord (central) connection and how a per-tenant DB connection is opened.
+## Step 0 - Assess the app (change nothing yet)
+- Report the Node version (abort if < 24), the `@adonisjs/core` (v7) and `@adonisjs/lucid` versions, and
+  confirm `pg` is installed. If this is not an AdonisJS + Lucid + Postgres app, stop.
+- Inventory the Lucid models: list every model and mark each as tenant-owned or global/central.
+- Find how the current user is determined per request (`ctx.auth.user`, session, JWT) — the `authorize`
+  hook will need it.
+- Identify the landlord (central) connection and how a per-tenant DB connection is opened. Detect any
+  EXISTING tenant concept (a `tenantId`/`orgId` column, a workspaces/orgs table, or existing per-tenant
+  databases). If one exists, REUSE it — do not add a parallel one.
+- Summarize what you found + the integration plan, and confirm the ISOLATION STRATEGY with the user:
+  database-per-tenant (this section) vs row-level vs schema-per-tenant (both elsewhere on this page). If
+  database-per-tenant does not fit, point them to
+  https://tenancyjs.pages.dev/docs/strategies/choosing and stop.
 
 ## Step 1 - Install
 Run `npm install tenancyjs-core tenancyjs-adapter-lucid tenancyjs-integration-adonis tenancyjs-identifiers`.
@@ -436,6 +486,8 @@ Keep `tenancyjs-identifiers` a DIRECT dependency or `config/tenancy.ts` fails to
     tenantModels: [{ model: Post }],
   });
   ```
+  List EVERY EXISTING tenant-owned model in `tenantModels`; only add a new example model (e.g. `Post`)
+  if the app has no domain models yet.
 - Build a `TenantResolutionChain` (`new HeaderTenantResolver({ headerName: "x-tenant-id" })` + a store
   whose `find(identifier)` returns `[{ tenant, status }]`). `x-tenant-id` is client-forgeable, so the
   chain REQUIRES a membership check - it throws to construct without one:
@@ -455,20 +507,26 @@ migrate, and drop each tenant's database: `create database` runs on the privileg
 (it cannot run inside a transaction and must target a maintenance DB), then
 `node ace migration:run --connection <name>` against a per-tenant connection pointed at that database.
 Follow https://tenancyjs.pages.dev/docs/guides/provisioning/lucid. Provision + migrate a tenant BEFORE
-you flip it to active - routing validates the database already exists and fails closed otherwise.
+you flip it to active - routing validates the database already exists and fails closed otherwise. If the
+app already has existing tenants, provision and migrate a database for EACH of them before cutover - do
+not leave an existing tenant without a database.
 
 ## Step 4 - Register provider + middleware
 Add `() => import("tenancyjs-integration-adonis/provider")` to `adonisrc.ts` providers, re-export
 `TenancyMiddleware` as the `tenant` named middleware, and apply `.use(middleware.tenant())` to tenant
 route GROUPS only - never globally, and only AFTER auth so `principal` is populated.
 
-## Step 5 - Prove it (two-tenant leak test)
-Provision two tenants, write a row with the SAME primary key under each, and assert querying as A never
-returns B's row (each lives in its own database). In tests call `config.tenancy.validate()` yourself -
-the /testing helper does not auto-validate. Follow https://tenancyjs.pages.dev/docs/guides/testing-isolation.
+## Step 5 - Verify isolation (an isolated test - it does NOT touch app data)
+Provision two TEST tenants/databases (never real app tenants) and run a two-tenant leak test: write a
+row with the SAME primary key under each, and assert querying as A never returns B's row (each lives in
+its own database). In tests call `config.tenancy.validate()` yourself - the /testing helper does not
+auto-validate. Follow https://tenancyjs.pages.dev/docs/guides/testing-isolation.
 
-## Verify
+## Roll out + verify
 - `node ace build`, boot with `node ace serve`, then `node ace test`; report every result.
+- Existing app: provision + migrate a database for every existing tenant before cutover, then roll out
+  incrementally - scope routes behind the middleware, keep admin/cross-tenant work in
+  `runInCentralContext`, and treat any thrown unscoped-access error as a route you still need to scope.
 
 Report every file created/changed and any issue found.
 ````

@@ -9,34 +9,80 @@ docs to read and the fail-closed rules to follow, so it builds the wiring for yo
 guessing a leaky shortcut.
 
 <Callout type="info">
-  **How to use it:** open the setup-agent prompt for your stack below, copy it whole, and paste it into
-  an assistant that can edit your repo (Claude Code, Cursor, …). It executes step by step and verifies
-  each change. Then **run the two-tenant test it writes** - with fail-closed isolation, you verify, you
-  don't trust.
+  **How to use it:** paste the **integration agent** below (or the one on your stack page) into an
+  assistant that can edit your repo (Claude Code, Cursor, …). It assesses your app first, picks the
+  strategy with you, integrates with your existing models and auth, and finishes with an isolated leak
+  test - with fail-closed isolation, you verify, you don't trust.
 </Callout>
 
-## Full setup-agent prompts
+## Start here - one prompt for any stack
 
-These are complete, imperative, verify-after-each-step prompts - no placeholders to fill. Each drives an
-AI agent through the entire wire-up for one stack and finishes by proving isolation.
+New app or existing, and not sure which strategy fits? Paste this. It detects your framework, ORM, and
+database, recommends an isolation strategy **with you**, then follows the pinned recipe for your exact
+stack. It changes nothing until it has assessed the app.
+
+````text
+# TenancyJS Integration Agent
+
+You are an integration agent. Add fail-closed multi-tenancy to THIS project with TenancyJS, integrating
+with whatever already exists - do NOT assume a greenfield app. Work with me: assess first, choose the
+strategy together, then wire it and verify. Do NOT invent API names - fetch the linked docs.
+
+Read first (source of truth):
+- https://tenancyjs.pages.dev/docs                          (mental model + THE RULES)
+- https://tenancyjs.pages.dev/docs/strategies/choosing      (pick the isolation strategy)
+- https://tenancyjs.pages.dev/docs/guides/resolving-tenants
+- https://tenancyjs.pages.dev/docs/concepts/limitations     (what is REJECTED)
+- https://tenancyjs.pages.dev/docs/guides/testing-isolation
+
+## Step 0 - Assess the app (change nothing yet)
+- Detect the framework (Express / Next.js / NestJS / AdonisJS), the ORM (Prisma / TypeORM / Sequelize /
+  Drizzle / Knex / Lucid / Mongoose), and the database. Report versions; require Node >= 24.
+- Inventory the data models and mark each as tenant-owned or global/central.
+- Find how the current user is determined per request - the authorize hook will need it.
+- Detect any EXISTING tenant concept (a tenantId/orgId column, a workspaces/orgs table) and REUSE it.
+
+## Step 1 - Choose the strategy WITH me
+Summarize the trade-offs for THIS app, recommend one, then wait for my decision:
+- row-level (shared tables + tenantId; simplest; Postgres gets a forced-RLS backstop)
+- schema-per-tenant (one Postgres schema per tenant)
+- database-per-tenant (a database per tenant; strongest; needed for raw SQL/joins)
+Then open the matching page for my framework + ORM at https://tenancyjs.pages.dev/docs/stacks and follow
+its integration-agent prompt - it is pinned to the exact adapter API. Fetch it; do not guess.
+
+## Step 2 - Integrate, verify, roll out
+Follow that stack recipe: classify existing models (add + backfill tenantId only where needed), wire the
+integration middleware into my EXISTING auth, scope data access, keep admin/cross-tenant work in the
+central scope, and add an error handler for resolution failures. Then write a two-tenant leak TEST against
+a TEST database (never seed app data) proving no cross-tenant read and that unscoped access throws.
+Finally, give me a concise rollout plan for my existing data (backfill, provisioning, staged rollout).
+
+Report every file changed and anything that did not apply.
+````
+
+## Per-stack integration prompts
+
+Prefer to start from your exact stack? These are complete, imperative, verify-after-each-step prompts -
+no placeholders. Each assesses the app, integrates with what exists, and finishes with an isolated leak
+test, pinned to that stack's real adapter API.
 
 <Cards>
   <Card
     title="NestJS + Prisma"
-    href="/docs/stacks/nestjs-prisma#setup-agent-prompt"
-    description="Row-level on PostgreSQL - the full setup-agent prompt plus a manual walkthrough."
+    href="/docs/stacks/nestjs-prisma#integration-agent-prompt"
+    description="Row-level on PostgreSQL - the full integration-agent prompt plus a manual walkthrough."
   />
 </Cards>
 
 <Callout type="info">
-  More stacks are being turned into full setup-agent prompts. Until yours has a dedicated page, the quick
+  More stacks are being turned into full integration-agent prompts. Until yours has a dedicated page, the quick
   prompts below get an assistant most of the way - it still fetches the linked docs for the exact API.
   Every adapter and integration page is written to be read by an agent.
 </Callout>
 
 ## Quick prompts
 
-Copy as-is (or adapt). Shorter than the full setup-agent prompts above - they point the assistant at the
+Copy as-is (or adapt). Shorter than the full integration-agent prompts above - they point the assistant at the
 docs and the rules rather than spelling out every file.
  
 ### Express + Prisma, row-level on PostgreSQL
@@ -69,8 +115,9 @@ models + scalar filters run. For raw SQL/joins bound to the tenant, use the RLS-
 `run(async (tx) => ...)`, where `unrestricted()`-style raw SQL is allowed and enforced by the database
 (see the adapter doc). On PostgreSQL row-level, always add the forced RLS policy the adapter doc describes.
 
-Deliver the config, the middleware, the converted routes, and a two-tenant colliding-id test proving no
-cross-tenant read and that unscoped access throws. Fetch any linked page rather than inventing an API.
+Deliver the config, the middleware, the converted routes, and an isolated two-tenant leak test (against a
+test database - never seed app data) proving no cross-tenant read and that unscoped access throws. Fetch
+any linked page rather than inventing an API.
 ```
 
 ### AdonisJS + Lucid, schema-per-tenant on PostgreSQL
@@ -100,14 +147,15 @@ Rules (do not weaken): fail-closed - unscoped tenant access must throw; never re
 connection inside a scope; raw queries and nested writes are rejected on the facade (they only work in a
 database-per-tenant scope via scope.unrestricted()); registered models + scalar filters only.
 
-Deliver config/tenancy.ts, the provider/middleware registration, and a two-tenant colliding-id test
-(two schemas) proving no cross-tenant read and that unscoped access throws. Fetch any linked page rather
-than inventing an API.
+Deliver config/tenancy.ts, the provider/middleware registration, and an isolated two-tenant leak test
+(two schemas, against a test database - never seed app data) proving no cross-tenant read and that
+unscoped access throws. Fetch any linked page rather than inventing an API.
 ```
 
 <Callout type="warn">
-  AI-generated wiring is a starting point, not proof. **Always run the two-tenant colliding-id test** the
-  prompt asks for - that's the only thing that actually demonstrates isolation. See
+  AI-generated wiring is a starting point, not proof. **Always run the isolated two-tenant leak test** the
+  prompt asks for (against a test database, never your app data) - that's the only thing that actually
+  demonstrates isolation. See
   [Testing isolation](/docs/guides/testing-isolation) and the honest
   [Limitations](/docs/concepts/limitations).
 </Callout>

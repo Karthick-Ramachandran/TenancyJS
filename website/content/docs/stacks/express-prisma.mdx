@@ -1,12 +1,15 @@
 ---
 title: Express + Prisma setup
-description: Wire fail-closed multi-tenancy into an Express 5 + Prisma 7 app - a copy-pasteable setup-agent prompt, plus the manual walkthrough.
+description: Wire fail-closed multi-tenancy into an Express 5 + Prisma 7 app - a copy-pasteable integration-agent prompt, plus the manual walkthrough.
 ---
 
-`tenancyjs-cli init` doesn't scaffold Express yet, so this stack is a manual wire-up - a few files. This page
-gives you two ways to do it: hand the **setup-agent prompt** to your AI assistant, or follow the
-**manual walkthrough**. Either way, finish by running the two-tenant test - with fail-closed isolation
-you verify, you don't trust.
+This page wires fail-closed multi-tenancy into an Express 5 + Prisma 7 app — **new or existing**. The
+fastest path is `npx tenancyjs-cli init --framework express --orm prisma`, which scaffolds the wiring
+(config + register + middleware); the integration agent runs it, then adapts the result to your existing
+app. Prefer to wire by hand? Follow the **manual walkthrough**, or hand the **integration-agent prompt**
+to your AI assistant. Either way it assesses your app first, integrates with your existing models and
+auth, and finishes with an isolated leak test — because with fail-closed isolation you verify, you don't
+trust.
 
 This is **row-level** on PostgreSQL. Prisma row-level has two modes. This page scaffolds the
 **facade/extension** path (`createPrismaTenancyExtension`): it rewrites query arguments and has no
@@ -37,17 +40,19 @@ bypasses the rewriter cannot cross tenants.
   [provisioning recipe](/docs/guides/provisioning) for your ORM.
 </Callout>
 
-## Setup-agent prompt
+## Integration-agent prompt
 
 Paste this into an assistant that can edit your repo and run commands (Claude Code, Cursor, …). It
-executes in order and verifies each step. It's pinned to the real API, so it won't invent factory names.
+assesses your app first, integrates with what already exists, verifies each step, and finishes with an
+isolated leak test. It's pinned to the real API, so it won't invent factory names.
 
 ````text
-# TenancyJS Setup Agent - Express 5 + Prisma 7 (row-level, PostgreSQL)
+# TenancyJS Integration Agent - Express 5 + Prisma 7 (row-level, PostgreSQL)
 
-You are a setup agent. Add fail-closed multi-tenancy to this Express + Prisma project with TenancyJS.
-Execute every step in order. After each step, verify it applied before continuing. If a step does not
-apply, say so and continue. Do NOT invent API names - if unsure, fetch the linked doc.
+You are an integration agent. Wire fail-closed multi-tenancy into THIS project with TenancyJS,
+integrating with whatever already exists — do NOT assume a greenfield app. Execute steps in order;
+after each, verify it applied before continuing. If a step does not apply to this repo, say so and
+adapt. Do NOT invent API names — if unsure, fetch the linked doc.
 
 Source of truth (fetch if a detail is missing, do not guess):
 - https://tenancyjs.pages.dev/docs/adapters/prisma
@@ -56,11 +61,20 @@ Source of truth (fetch if a detail is missing, do not guess):
 - https://tenancyjs.pages.dev/docs/concepts/limitations
 - https://tenancyjs.pages.dev/docs/guides/testing-isolation
 
-## Pre-flight
-- Run `node -v`; abort if it is not >= 24.
-- Confirm `express` (v5) and `@prisma/client` (v7) are in package.json. Abort if this is not an
-  Express + Prisma project.
-- Confirm the database is PostgreSQL.
+## Step 0 - Assess the app (change nothing yet)
+- Report the Node version (abort if < 24), the `express` (v5) and `@prisma/client` (v7) versions, and
+  confirm the database is PostgreSQL. If this is not an Express + Prisma + Postgres app, stop.
+- Inventory `prisma/schema.prisma`: list every model and mark each as tenant-owned or global/central.
+- Find how the current user is determined per request (`req.user`, session, JWT) — the `authorize` hook
+  will need it.
+- Detect any EXISTING tenant concept (a `tenantId`/`orgId` column, a workspaces/orgs table). If one
+  exists, REUSE it — do not add a parallel one.
+- Summarize what you found + the integration plan, and confirm the ISOLATION STRATEGY with the user:
+  row-level (this page) vs schema-per-tenant vs database-per-tenant. If row-level does not fit, point
+  them to https://tenancyjs.pages.dev/docs/strategies/choosing and stop.
+- This stack is CLI-scaffoldable: if the project has no TenancyJS wiring yet, run `npx tenancyjs-cli init
+  --framework express --orm prisma --apply` to scaffold config + register + middleware, then ADAPT those
+  files in the steps below instead of writing them from scratch.
 
 ## Step 1 - Install
 Run:
@@ -69,11 +83,14 @@ npm install tenancyjs-core tenancyjs-adapter-prisma tenancyjs-integration-expres
 ```
 Verify all five appear in package.json dependencies.
 
-## Step 2 - Schema
-In `prisma/schema.prisma`, ensure:
-- A `Tenant` model with `id String @id` and `status String @default("active")`.
-- At least one tenant-scoped model with a non-null `tenantId String` and an index on `tenantId`
-  (e.g. `Post`). If the app already has domain models, add `tenantId` to each tenant-owned one.
+## Step 2 - Schema: classify what exists, add only what's missing
+In `prisma/schema.prisma`:
+- Ensure a tenant model exists (`id String @id`, `status String @default("active")`). If the app
+  already has a tenants/workspaces/orgs table, use THAT — do not add a parallel one.
+- For every EXISTING tenant-owned model, add a non-null `tenantId String` and an index on `tenantId`.
+  Only create a new example model (e.g. `Post`) if the app has no domain models yet.
+- If you add `tenantId` to a table that already has rows, backfill it before making it non-null
+  (see Step 9 - Roll out).
 Then run `npx prisma generate` (and `npx prisma migrate dev` if you own migrations).
 
 ## Step 3 - tenancy.ts (the single source of truth)
@@ -115,22 +132,26 @@ For admin/cross-tenant handlers, do NOT leave them unscoped. Wrap the work in
 - Do not use raw queries or nested relation writes on the extended client; they are rejected by the
   facade. If you need them, that's a database-per-tenant concern (see the adapter doc), not row-level.
 
-## Step 8 - Prove it
-Create a two-tenant test (Vitest or Jest): create tenant A and tenant B, write a row under EACH with the
-SAME primary key, assert querying as A never returns B's row, and assert that a tenant query with no
-active scope THROWS. Follow https://tenancyjs.pages.dev/docs/guides/testing-isolation.
+## Step 8 - Verify isolation (an isolated test - it does NOT touch app data)
+Create a two-tenant leak TEST (Vitest or Jest) that runs against a TEST database or a rolled-back
+transaction - never seed tenants into real app data. It creates tenant A and tenant B, writes a row under
+EACH with the SAME primary key, asserts querying as A never returns B's row, and asserts a tenant query
+with no active scope THROWS. Follow https://tenancyjs.pages.dev/docs/guides/testing-isolation.
 
-## Step 9 - Verify
-- `npm run build` (or `npx tsc --noEmit`) - report errors.
-- Boot the app (`npm run start`) and confirm it serves.
-- Run the two-tenant test and report the result.
+## Step 9 - Roll out + verify
+- `npm run build` (or `npx tsc --noEmit`) - report errors; boot the app and confirm it serves.
+- Run the leak test and report the result.
+- Existing app: backfill `tenantId` on any table that already had rows (set it for every row, then
+  enforce non-null), then roll out incrementally - scope routes behind the middleware, keep
+  admin/cross-tenant paths in `runInCentralContext`, and treat any thrown unscoped-access error as a
+  route you still need to scope.
 
 Report a summary of every file created/changed and any issue found.
 ````
 
 <Callout type="warn">
   AI wiring is a starting point, not proof. The only thing that demonstrates isolation is the two-tenant
-  colliding-id test in Step 8 - run it before you trust the result.
+  colliding-id test in Step 8 - run it against a test database before you trust the result.
 </Callout>
 
 ## Manual walkthrough

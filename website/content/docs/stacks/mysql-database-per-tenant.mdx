@@ -1,10 +1,12 @@
 ---
 title: MySQL - database-per-tenant setup
-description: The production path for MySQL - a database per tenant, wired and provisioned. Copy-pasteable setup-agent prompt plus a manual walkthrough.
+description: The production path for MySQL - a database per tenant, wired and provisioned. Copy-pasteable integration-agent prompt plus a manual walkthrough.
 ---
 
 Most stack pages here default to PostgreSQL row-level with forced RLS. **MySQL is different**, so it
-gets its own page. This is the honest, production-grade MySQL path: **a database per tenant**.
+gets its own page. This is the honest, production-grade MySQL path: **a database per tenant**. It works
+for a **new or existing** app - the integration-agent prompt below assesses your app first, integrates
+with your existing models and auth, and finishes with an isolated leak test.
 
 <Callout type="warn">
   MySQL has no schema-per-tenant (`SCHEMA` is a synonym for `DATABASE`), and MySQL **row-level is
@@ -20,17 +22,20 @@ You supply a `connection(tenant)` resolver that maps the active tenant to its da
 and migrate each tenant's database up front through your [provisioner hooks](/docs/guides/provisioning).
 Central (cross-tenant) work runs against the landlord connection explicitly.
 
-## Setup-agent prompt
+## Integration-agent prompt
 
 Worked for **Express + Drizzle on MySQL**; the ORM step below shows the one-line swap for Prisma,
-TypeORM, Sequelize, and Lucid. Paste this into an assistant that can edit your repo.
+TypeORM, Sequelize, and Lucid. Paste this into an assistant that can edit your repo and run commands -
+it assesses your app first, integrates with what already exists, and finishes with an isolated leak
+test.
 
 ````text
-# TenancyJS Setup Agent - Express 5 + Drizzle on MySQL (database-per-tenant)
+# TenancyJS Integration Agent - Express 5 + Drizzle on MySQL (database-per-tenant)
 
-You are a setup agent. Add fail-closed, database-per-tenant multi-tenancy to this Express + Drizzle app
-on MySQL with TenancyJS. Execute every step in order and verify each before continuing. Do NOT invent
-API names - fetch the linked doc if unsure.
+You are an integration agent. Wire fail-closed, database-per-tenant multi-tenancy into THIS Express +
+Drizzle app on MySQL with TenancyJS, integrating with whatever already exists — do NOT assume a
+greenfield app. Execute steps in order; after each, verify it applied before continuing. If a step does
+not apply to this repo, say so and adapt. Do NOT invent API names - fetch the linked doc if unsure.
 
 Source of truth:
 - https://tenancyjs.pages.dev/docs/adapters/drizzle
@@ -39,10 +44,17 @@ Source of truth:
 - https://tenancyjs.pages.dev/docs/integrations/express
 - https://tenancyjs.pages.dev/docs/guides/testing-isolation
 
-## Pre-flight
-- `node -v` >= 24, else abort.
-- Confirm MySQL 8 and the `mysql2` driver are available.
-- Confirm this is an Express 5 + Drizzle project.
+## Step 0 - Assess the app (change nothing yet)
+- Report the Node version (abort if < 24), the `express` and `drizzle-orm` versions, and confirm MySQL 8
+  and the `mysql2` driver are available. If this is not an Express + Drizzle + MySQL app, stop.
+- Inventory the Drizzle tables: list every table and mark each as tenant-owned or global/central.
+- Find how the current user is determined per request (`req.user`, session, JWT) — the `authorize` hook
+  will need it.
+- Detect any EXISTING tenant concept (a `tenantId`/`orgId` column, a workspaces/orgs table, or existing
+  per-tenant databases). If one exists, REUSE it — do not add a parallel one.
+- Summarize what you found + the integration plan, and confirm the ISOLATION STRATEGY with the user:
+  database-per-tenant (this page - the only real isolation option on MySQL). If it does not fit, point
+  them to https://tenancyjs.pages.dev/docs/strategies/choosing and stop.
 
 ## Step 1 - Install
 `npm install tenancyjs-core tenancyjs-adapter-drizzle tenancyjs-integration-express tenancyjs-identifiers drizzle-orm mysql2`
@@ -61,6 +73,7 @@ credentials). The store's `find(identifier)` returns `[{ tenant: { id, databaseK
     manager,
     database: landlord,
     strategy: "databasePerTenant",
+    // List EVERY existing tenant-owned table here; only add a new example table if the app has none yet.
     tenantTables: [{ table: posts }],
     connection: (tenant) => ({
       key: tenant.databaseKey,                 // opaque; never a URL
@@ -83,18 +96,23 @@ Implement the provisioner hooks (see the Drizzle provisioning recipe): `provisio
 `` CREATE DATABASE `tenant_x` `` on a privileged `mysql2` admin connection (NOT in a transaction);
 `migrate` runs your Drizzle migrations against the tenant database; `deprovision` drops it. Then:
 `npx tenancyjs-cli tenant create acme --set databaseKey=tenant_acme` → `npx tenancyjs-cli tenant provision acme` →
-`npx tenancyjs-cli tenant migrate acme`.
+`npx tenancyjs-cli tenant migrate acme`. If the app already has existing tenants, provision and migrate a
+database for EACH of them before cutover - do not leave an existing tenant without a database.
 
 ## Step 6 - Central work
 Cross-tenant/admin work runs against the landlord explicitly via `manager.runInCentralContext(...)`.
 Never run tenant-aware queries with no scope.
 
-## Step 7 - Prove it
-Two tenants in two databases, same primary key: write a row under each, assert querying as A never
-returns B's row, and that a tenant query with no scope THROWS. Follow the testing-isolation guide.
+## Step 7 - Verify isolation (an isolated test - it does NOT touch app data)
+Two TEST tenants in two TEST databases (never real app tenants), same primary key: write a row under
+each, assert querying as A never returns B's row, and that a tenant query with no scope THROWS. Follow
+the testing-isolation guide.
 
-## Step 8 - Verify
-`npm run build`, boot the app, run the two-tenant test. Report every file changed and any issue.
+## Step 8 - Roll out + verify
+- `npm run build`, boot the app, run the two-tenant test. Report every file changed and any issue.
+- Existing app: provision + migrate a database for every existing tenant before cutover, then roll out
+  incrementally - scope routes behind the middleware, keep admin/cross-tenant work in
+  `runInCentralContext`, and treat any thrown unscoped-access error as a route you still need to scope.
 ````
 
 ## The one-line swap for other ORMs

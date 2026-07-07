@@ -1,12 +1,15 @@
 ---
 title: Next.js + Drizzle setup
-description: Wire fail-closed multi-tenancy into a Next.js 16 App Router + Drizzle app - a copy-pasteable setup-agent prompt, plus the manual walkthrough.
+description: Wire fail-closed multi-tenancy into a Next.js 16 App Router + Drizzle app - a copy-pasteable integration-agent prompt, plus the manual walkthrough.
 ---
 
-`tenancyjs-cli init` doesn't scaffold Next.js yet, so this stack is a manual wire-up - a few files. This page
-gives you two ways to do it: hand the **setup-agent prompt** to your AI assistant, or follow the
-**manual walkthrough**. Either way, finish by running the two-tenant test - with fail-closed isolation
-you verify, you don't trust.
+This page wires fail-closed multi-tenancy into a Next.js 16 App Router + Drizzle app — **new or
+existing**. The fastest path is `npx tenancyjs-cli init --framework next --orm drizzle`, which scaffolds
+the wiring (config + register + middleware); the integration agent runs it, then adapts the result to
+your existing app. Prefer to wire by hand? Follow the **manual walkthrough**, or hand the
+**integration-agent prompt** to your AI assistant. Either way it assesses your app first, integrates with
+your existing tables and auth, and finishes with an isolated leak test — because with fail-closed
+isolation you verify, you don't trust.
 
 This is **row-level** on PostgreSQL, backed by **forced RLS**. The Drizzle adapter is a _callback
 facade_ - you never touch the native Drizzle db - and PostgreSQL forces the policy underneath, so the
@@ -25,17 +28,19 @@ database itself rejects a cross-tenant read even if the facade were bypassed.
   [provisioning recipe](/docs/guides/provisioning) for your ORM.
 </Callout>
 
-## Setup-agent prompt
+## Integration-agent prompt
 
 Paste this into an assistant that can edit your repo and run commands (Claude Code, Cursor, …). It
-executes in order and verifies each step. It's pinned to the real API, so it won't invent factory names.
+assesses your app first, integrates with what already exists, verifies each step, and finishes with an
+isolated leak test. It's pinned to the real API, so it won't invent factory names.
 
 ````text
-# TenancyJS Setup Agent - Next.js 16 + Drizzle (row-level, PostgreSQL)
+# TenancyJS Integration Agent - Next.js 16 + Drizzle (row-level, PostgreSQL)
 
-You are a setup agent. Add fail-closed multi-tenancy to this Next.js App Router + Drizzle project with
-TenancyJS. Execute every step in order. After each step, verify it applied before continuing. If a step
-does not apply, say so and continue. Do NOT invent API names - if unsure, fetch the linked doc.
+You are an integration agent. Wire fail-closed multi-tenancy into THIS project with TenancyJS,
+integrating with whatever already exists — do NOT assume a greenfield app. Execute steps in order;
+after each, verify it applied before continuing. If a step does not apply to this repo, say so and
+adapt. Do NOT invent API names — if unsure, fetch the linked doc.
 
 Source of truth (fetch if a detail is missing, do not guess):
 - https://tenancyjs.pages.dev/docs/adapters/drizzle
@@ -44,11 +49,22 @@ Source of truth (fetch if a detail is missing, do not guess):
 - https://tenancyjs.pages.dev/docs/concepts/limitations
 - https://tenancyjs.pages.dev/docs/guides/testing-isolation
 
-## Pre-flight
-- Run `node -v`; abort if it is not >= 24.
-- Confirm `next` (v16) and `drizzle-orm` are in package.json. Abort if this is not a Next.js App Router
-  + Drizzle project.
-- Confirm the database is PostgreSQL. Row-level here REQUIRES forced RLS; MySQL is out of scope.
+## Step 0 - Assess the app (change nothing yet)
+- Report the Node version (abort if < 24), the `next` (v16) and `drizzle-orm` versions, and confirm the
+  database is PostgreSQL - row-level here REQUIRES forced RLS; MySQL is out of scope. If this is not a
+  Next.js App Router + Drizzle + Postgres app, stop.
+- Inventory `lib/schema.ts` (or wherever tables are defined): list every `pgTable` and mark each as
+  tenant-owned or global/central.
+- Find how the current user is determined per request (Next.js session/auth) — the `authorize` hook
+  will need it.
+- Detect any EXISTING tenant concept (a `tenantId`/`orgId` column, a tenants/workspaces/orgs table). If
+  one exists, REUSE it — do not add a parallel one.
+- Summarize what you found + the integration plan, and confirm the ISOLATION STRATEGY with the user:
+  row-level (this page) vs schema-per-tenant vs database-per-tenant. If row-level does not fit, point
+  them to https://tenancyjs.pages.dev/docs/strategies/choosing and stop.
+- This stack is CLI-scaffoldable: if the project has no TenancyJS wiring yet, run `npx tenancyjs-cli init
+  --framework next --orm drizzle --apply` to scaffold config + register + middleware, then ADAPT those
+  files in the steps below instead of writing them from scratch.
 
 ## Step 1 - Install
 Run:
@@ -57,11 +73,16 @@ npm install tenancyjs-core tenancyjs-adapter-drizzle tenancyjs-integration-next 
 ```
 Verify all six appear in package.json dependencies.
 
-## Step 2 - Schema
-In `lib/schema.ts`, define an unqualified `pgTable` for each tenant-scoped table (e.g. `posts`) with a
-non-null `tenantId` column and an index on it, plus a `tenants` table (`id text primary key`,
-`status text not null default 'active'`). Unqualified `pgTable` is fine - row mode does not rewrite the
-table name. Verify the file compiles.
+## Step 2 - Schema: classify what exists, add only what's missing
+In `lib/schema.ts`:
+- Ensure a `tenants` pgTable exists (`id text primary key`, `status text not null default 'active'`). If
+  the app already has a tenants/workspaces/orgs table, use THAT — do not add a parallel one.
+- For every EXISTING tenant-owned table, add a non-null `tenantId` column and an index on it. Only
+  define a new example table (e.g. `posts`) if the app has no domain tables yet. Unqualified `pgTable`
+  is fine - row mode does not rewrite the table name.
+- If you add `tenantId` to a table that already has rows, backfill it before making it non-null
+  (see Step 10 - Verify).
+Verify the file compiles.
 
 ## Step 3 - Forced-RLS migration (do NOT skip)
 This is the backstop that makes row-level safe. Write a migration run by an OWNER role that:
@@ -116,21 +137,27 @@ Any Next cache (`fetch` cache, `unstable_cache`, route segment cache) that wraps
 keyed by tenant id, or left uncached. A shared cache entry across tenants is a leak the policy cannot
 catch.
 
-## Step 10 - Validate + prove it
+## Step 10 - Verify isolation + roll out
 - Call `await drizzleTenancy.validate()` at boot; it confirms the runtime role is non-privileged and RLS
   is enabled + forced before serving. Abort if it throws.
-- Create a two-tenant test: write a row under tenant A and tenant B with the SAME primary key, assert a
-  scoped read as A never returns B's row, AND assert a RAW query as the runtime role with NO GUC set
-  returns 0 rows (proof the policy - not just the facade - isolates). Follow
+- Create a two-tenant leak TEST that runs against a TEST database or a rolled-back transaction - never
+  seed tenants into real app data. Write a row under tenant A and tenant B with the SAME primary key,
+  assert a scoped read as A never returns B's row, AND assert a RAW query as the runtime role with NO GUC
+  set returns 0 rows (proof the policy - not just the facade - isolates). Follow
   https://tenancyjs.pages.dev/docs/guides/testing-isolation.
 - `npm run build`, boot the app, run the test, report the result.
+- Existing app: backfill `tenantId` on any table that already had rows (set it for every row, then
+  enforce non-null), then roll out incrementally - scope route handlers/server actions behind the
+  wrapper, keep admin/cross-tenant paths in `runInCentralContext`, and treat any thrown unscoped-access
+  error as a route you still need to scope.
 
 Report a summary of every file created/changed and any issue found.
 ````
 
 <Callout type="warn">
   AI wiring is a starting point, not proof. The only thing that demonstrates isolation is the two-tenant
-  colliding-id test in Step 10 - including the raw-as-runtime-role read that must return 0 rows.
+  colliding-id test in Step 10 - including the raw-as-runtime-role read that must return 0 rows - run it
+  against a test database before you trust the result.
 </Callout>
 
 ## Manual walkthrough

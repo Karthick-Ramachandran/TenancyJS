@@ -1,12 +1,14 @@
 ---
 title: Database-per-tenant setup
-description: The hardest isolation, wired and provisioned - a separate database per tenant on PostgreSQL. Copy-pasteable setup-agent prompt plus the one-line swap for every ORM.
+description: The hardest isolation, wired and provisioned - a separate database per tenant on PostgreSQL. Copy-pasteable integration-agent prompt plus the one-line swap for every ORM.
 ---
 
 Most stack pages here default to PostgreSQL row-level with forced RLS. This page is the other end of
 the spectrum: **a separate database per tenant** - physically separate data, per-tenant backups, no
 noisy neighbours, and the natural fit when tenants are few and heavy or compliance demands separation.
-This is the PostgreSQL-focused guide; for MySQL specifics see
+It works for a **new or existing** app - the integration-agent prompt below assesses your app first,
+integrates with your existing models and auth, and finishes with an isolated leak test. This is the
+PostgreSQL-focused guide; for MySQL specifics see
 [MySQL database-per-tenant](/docs/stacks/mysql-database-per-tenant).
 
 <Callout type="info">
@@ -36,18 +38,20 @@ Central (cross-tenant / admin) work runs against the landlord connection explici
 (`CREATE DATABASE` + migrate) is **application-owned** - run through your
 [provisioner hooks](/docs/guides/provisioning), never by the router at request time.
 
-## Setup-agent prompt
+## Integration-agent prompt
 
 Worked for **Express + TypeORM, database-per-tenant on PostgreSQL**; the ORM section below shows the
 one-line swap for Prisma, Knex, Lucid, Sequelize, Drizzle, and Mongoose. Paste this into an assistant
-that can edit your repo.
+that can edit your repo and run commands - it assesses your app first, integrates with what already
+exists, and finishes with an isolated leak test.
 
 ````text
-# TenancyJS Setup Agent - Express 5 + TypeORM, database-per-tenant (PostgreSQL)
+# TenancyJS Integration Agent - Express 5 + TypeORM, database-per-tenant (PostgreSQL)
 
-You are a setup agent. Add fail-closed, database-per-tenant multi-tenancy to this Express + TypeORM app
-on PostgreSQL with TenancyJS. Execute every step in order and verify each before continuing. Do NOT
-invent API names - fetch the linked doc if unsure.
+You are an integration agent. Wire fail-closed, database-per-tenant multi-tenancy into THIS Express +
+TypeORM app on PostgreSQL with TenancyJS, integrating with whatever already exists — do NOT assume a
+greenfield app. Execute steps in order; after each, verify it applied before continuing. If a step does
+not apply to this repo, say so and adapt. Do NOT invent API names - fetch the linked doc if unsure.
 
 Source of truth:
 - https://tenancyjs.pages.dev/docs/adapters/typeorm
@@ -56,10 +60,17 @@ Source of truth:
 - https://tenancyjs.pages.dev/docs/integrations/express
 - https://tenancyjs.pages.dev/docs/guides/testing-isolation
 
-## Pre-flight
-- `node -v` >= 24, else abort.
-- Confirm PostgreSQL and the `pg` driver are available.
-- Confirm this is an Express 5 + TypeORM project. Verify before continuing.
+## Step 0 - Assess the app (change nothing yet)
+- Report the Node version (abort if < 24), the `express` and `typeorm` versions, and confirm PostgreSQL
+  and the `pg` driver are available. If this is not an Express + TypeORM + Postgres app, stop.
+- Inventory the TypeORM entities: list every entity and mark each as tenant-owned or global/central.
+- Find how the current user is determined per request (`req.user`, session, JWT) — the `authorize` hook
+  will need it.
+- Detect any EXISTING tenant concept (a `tenantId`/`orgId` column, a workspaces/orgs table, or existing
+  per-tenant databases). If one exists, REUSE it — do not add a parallel one.
+- Summarize what you found + the integration plan, and confirm the ISOLATION STRATEGY with the user:
+  database-per-tenant (this page) vs row-level vs schema-per-tenant. If database-per-tenant does not
+  fit, point them to https://tenancyjs.pages.dev/docs/strategies/choosing and stop.
 
 ## Step 1 - Install
 `npm install tenancyjs-core tenancyjs-adapter-typeorm tenancyjs-integration-express tenancyjs-identifiers typeorm pg`
@@ -81,6 +92,7 @@ Verify the field exists and is opaque before continuing.
     manager,
     dataSource: landlord,
     strategy: "databasePerTenant",
+    // List EVERY existing tenant-owned entity here; only add a new example entity if the app has none yet.
     tenantEntities: [
       { entity: Post, table: "posts", tenantProperty: "tenantId", tenantColumn: "tenant_id" },
     ],
@@ -105,18 +117,24 @@ Implement the provisioner hooks (see the TypeORM provisioning recipe): `provisio
 `CREATE DATABASE "tenant_x"` on a privileged admin connection (NOT in a transaction); `migrate` runs
 your TypeORM migrations against the tenant database; `deprovision` drops it. Then:
 `npx tenancyjs-cli tenant create acme --set databaseKey=tenant_acme` -> `npx tenancyjs-cli tenant provision acme`
--> `npx tenancyjs-cli tenant migrate acme`. Verify each tenant's database exists and is migrated.
+-> `npx tenancyjs-cli tenant migrate acme`. Verify each tenant's database exists and is migrated. If the
+app already has existing tenants, provision and migrate a database for EACH of them before cutover - do
+not leave an existing tenant without a database.
 
 ## Step 6 - Central work
 Cross-tenant / admin work runs against the landlord explicitly via `manager.runInCentralContext(...)`.
 Never run tenant-aware queries with no scope. Verify before continuing.
 
-## Step 7 - Prove it (two-database leak test)
-Two tenants in two databases, same primary key: write a row under each, assert querying as A never
-returns B's row, and that a tenant query with no scope THROWS. Follow the testing-isolation guide.
+## Step 7 - Verify isolation (an isolated test - it does NOT touch app data)
+Two TEST tenants in two TEST databases (never real app tenants), same primary key: write a row under
+each, assert querying as A never returns B's row, and that a tenant query with no scope THROWS. Follow
+the testing-isolation guide.
 
-## Step 8 - Verify
-`npm run build`, boot the app, run the two-tenant test. Report every file changed and any issue.
+## Step 8 - Roll out + verify
+- `npm run build`, boot the app, run the two-tenant test. Report every file changed and any issue.
+- Existing app: provision + migrate a database for every existing tenant before cutover, then roll out
+  incrementally - scope routes behind the middleware, keep admin/cross-tenant work in
+  `runInCentralContext`, and treat any thrown unscoped-access error as a route you still need to scope.
 ````
 
 ## The one-line swap for other ORMs

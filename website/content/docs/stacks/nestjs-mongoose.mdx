@@ -1,12 +1,13 @@
 ---
 title: NestJS + Mongoose setup
-description: Wire fail-closed multi-tenancy into a NestJS 11 + Mongoose (MongoDB) app - a copy-pasteable setup-agent prompt, plus the manual walkthrough.
+description: Wire fail-closed multi-tenancy into a NestJS 11 + Mongoose (MongoDB) app - a copy-pasteable integration-agent prompt, plus the manual walkthrough.
 ---
 
-`tenancyjs-cli init` doesn't scaffold NestJS yet, so this stack is a manual wire-up - a few files. This page
-gives you two ways to do it: hand the **setup-agent prompt** to your AI assistant, or follow the
-**manual walkthrough**. Either way, finish by running the two-tenant test - with fail-closed isolation
-you verify, you don't trust.
+`tenancyjs-cli init` doesn't scaffold NestJS yet, so this stack is a manual wire-up - a few files, for a
+**new or existing** NestJS + Mongoose app. This page gives you two ways to do it: hand the
+**integration-agent prompt** to your AI assistant, or follow the **manual walkthrough**. The agent
+assesses your app first, integrates with your existing models and auth, and finishes with an isolated
+leak test - because with fail-closed isolation you verify, you don't trust.
 
 This is **row-level** on MongoDB. Mongoose is _facade-enforced_: MongoDB has **no row-level security**,
 so there is no database backstop - the adapter's query facade is the entire boundary. The one rule that
@@ -24,17 +25,19 @@ protected facade the adapter hands you.
   the adapter’s `strategy` and add the [provisioning recipe](/docs/guides/provisioning/mongoose).
 </Callout>
 
-## Setup-agent prompt
+## Integration-agent prompt
 
 Paste this into an assistant that can edit your repo and run commands (Claude Code, Cursor, …). It
-executes in order and verifies each step. It's pinned to the real API, so it won't invent factory names.
+assesses your app first, integrates with what already exists, verifies each step, and finishes with an
+isolated leak test. It's pinned to the real API, so it won't invent factory names.
 
 ````text
-# TenancyJS Setup Agent - NestJS 11 + Mongoose (row-level, MongoDB)
+# TenancyJS Integration Agent - NestJS 11 + Mongoose (row-level, MongoDB)
 
-You are a setup agent. Add fail-closed multi-tenancy to this NestJS + Mongoose project with TenancyJS.
-Execute every step in order. After each step, verify it applied before continuing. If a step does not
-apply, say so and continue. Do NOT invent API names - if unsure, fetch the linked doc.
+You are an integration agent. Wire fail-closed multi-tenancy into THIS project with TenancyJS,
+integrating with whatever already exists — do NOT assume a greenfield app. Execute steps in order;
+after each, verify it applied before continuing. If a step does not apply to this repo, say so and
+adapt. Do NOT invent API names — if unsure, fetch the linked doc.
 
 Source of truth (fetch if a detail is missing, do not guess):
 - https://tenancyjs.pages.dev/docs/adapters/mongoose
@@ -43,12 +46,18 @@ Source of truth (fetch if a detail is missing, do not guess):
 - https://tenancyjs.pages.dev/docs/guides/testing-isolation
 - https://tenancyjs.pages.dev/docs/guides/resolving-tenants
 
-## Pre-flight
-- Run `node -v`; abort if it is not >= 24.
-- Confirm `@nestjs/core` (v11) and `mongoose` are in package.json. Abort if this is not a
-  NestJS + Mongoose project.
-- Confirm MongoDB is running as a REPLICA SET - Mongoose isolation runs inside managed transactions,
-  which require a replica set. A standalone `mongod` will fail. Verify before continuing.
+## Step 0 - Assess the app (change nothing yet)
+- Report the Node version (abort if < 24), the `@nestjs/core` (v11) and `mongoose` versions, and confirm
+  MongoDB is running as a REPLICA SET - Mongoose isolation runs inside managed transactions, which
+  require a replica set; a standalone `mongod` will fail. If this is not a NestJS + Mongoose app, stop.
+- Inventory the Mongoose models: list every model and mark each as tenant-owned or global/central.
+- Find how the current user is determined per request (NestJS guard, `req.user`) — the `authorize` hook
+  will need it.
+- Detect any EXISTING tenant concept (a `tenantId`/`orgId` field, a workspaces/orgs collection). If one
+  exists, REUSE it — do not add a parallel one.
+- Summarize what you found + the integration plan, and confirm the ISOLATION STRATEGY with the user:
+  row-level (this page) vs database-per-tenant (MongoDB has no schema-per-tenant). If row-level does not
+  fit, point them to https://tenancyjs.pages.dev/docs/strategies/choosing and stop.
 
 ## Step 1 - Install
 Run:
@@ -57,10 +66,14 @@ npm install tenancyjs-core tenancyjs-adapter-mongoose tenancyjs-integration-nest
 ```
 Verify all five appear in package.json dependencies.
 
-## Step 2 - Models
-Ensure at least one tenant-scoped Mongoose model with a `tenantId` field (e.g. `PostModel`), and a
-`Tenant` model (or store) holding `id` and `status`. If the app already has domain models, decide which
-are tenant-owned; each of those must carry the tenant field. Verify the models compile.
+## Step 2 - Models: classify what exists, add only what's missing
+- Ensure a `Tenant` model (or store) exists holding `id` and `status`. If the app already has a
+  tenants/workspaces/orgs collection, use THAT — do not add a parallel one.
+- For every EXISTING tenant-owned Mongoose model, add a `tenantId` field. Only create a new example
+  model (e.g. `PostModel`) if the app has no domain models yet.
+- If you add `tenantId` to a collection that already has documents, backfill it before enforcing it as
+  required (see Step 9 - Roll out).
+Verify the models compile.
 
 ## Step 3 - tenancy.ts (the single source of truth)
 Create `src/tenancy.ts`. It must:
@@ -101,24 +114,29 @@ For admin/cross-tenant handlers, do NOT leave them unscoped. Wrap the work in
 - The facade rejects `$`-operator and dotted keys. If you need aggregation/populate, that's a
   database-per-tenant concern (see the adapter doc), not row-level.
 
-## Step 8 - Prove it
-Create a two-tenant test (Vitest or Jest): create tenant A and tenant B, write a document under EACH
-with the SAME `_id`, assert querying as A never returns B's document, and assert that a tenant query
+## Step 8 - Verify isolation (an isolated test - it does NOT touch app data)
+Create a two-tenant test (Vitest or Jest) that runs against a TEST database or a rolled-back transaction
+- never seed tenants into real app data. It creates tenant A and tenant B, writes a document under EACH
+with the SAME `_id`, asserts querying as A never returns B's document, and asserts that a tenant query
 with no active scope THROWS. Because MongoDB has no RLS, this test is the ONLY proof the facade holds -
 follow https://tenancyjs.pages.dev/docs/guides/testing-isolation.
 
-## Step 9 - Verify
+## Step 9 - Roll out + verify
 - `npx nest build` (or `npm run build`) - report errors.
 - Boot the app (`npm run start`) and confirm it serves and `tenancy.validate()` passed.
 - Run the two-tenant test and report the result.
+- Existing app: backfill `tenantId` on any collection that already had documents (set it for every
+  document, then enforce it as required), then roll out incrementally - scope routes behind
+  `@TenantRoute()`, keep admin/cross-tenant paths in `runInCentralContext`, and treat any thrown
+  unscoped-access error as a route you still need to scope.
 
 Report a summary of every file created/changed and any issue found.
 ````
 
 <Callout type="warn">
   AI wiring is a starting point, not proof. On MongoDB there is no database backstop, so the two-tenant
-  colliding-`_id` test in Step 8 is the *only* thing that demonstrates isolation - run it before you
-  trust the result.
+  colliding-`_id` test in Step 8 is the *only* thing that demonstrates isolation - run it against a test
+  database before you trust the result.
 </Callout>
 
 ## Manual walkthrough

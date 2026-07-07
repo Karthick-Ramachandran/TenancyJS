@@ -1,12 +1,14 @@
 ---
 title: Schema-per-tenant setup
-description: One PostgreSQL schema per tenant in a shared database, wired and provisioned. Copy-pasteable setup-agent prompt plus a one-line swap for every ORM.
+description: One PostgreSQL schema per tenant in a shared database, wired and provisioned. Copy-pasteable integration-agent prompt plus a one-line swap for every ORM.
 ---
 
 Schema-per-tenant gives each tenant its **own PostgreSQL schema** inside one shared database:
 `tenant_acme.posts` and `tenant_globex.posts` are genuinely different tables. You get stronger
 separation than row-level without paying for a database per tenant - and TenancyJS wires and
-provisions it for you.
+provisions it for you. It works for a **new or existing** app - the integration-agent prompt below
+assesses your app first, integrates with your existing models and auth, and finishes with an isolated
+leak test.
 
 <Callout type="warn">
   **PostgreSQL only.** A schema is a Postgres namespace with no MySQL equivalent - on MySQL `SCHEMA`
@@ -47,18 +49,21 @@ Either way, creating each tenant's schema (the `CREATE SCHEMA` and its migration
 Each tenant record carries a `schemaName`, and the adapter's `schema: (tenant) => tenant.schemaName`
 callback reads it. Never build the schema from raw request input; it comes from the resolved tenant.
 
-## Setup-agent prompt
+## Integration-agent prompt
 
 Worked for **Express 5 + Drizzle, schema-per-tenant on PostgreSQL**; the ORM step below shows the
 one-line swap for Knex, Lucid, TypeORM, Sequelize, and Prisma. Paste this into an assistant that can
-edit your repo.
+edit your repo and run commands - it assesses your app first, integrates with what already exists, and
+finishes with an isolated leak test.
 
 ````text
-# TenancyJS Setup Agent - Express 5 + Drizzle, schema-per-tenant (PostgreSQL)
+# TenancyJS Integration Agent - Express 5 + Drizzle, schema-per-tenant (PostgreSQL)
 
-You are a setup agent. Add fail-closed, schema-per-tenant multi-tenancy to this Express + Drizzle app
-on PostgreSQL with TenancyJS - one schema per tenant in a shared database. Execute every step in order
-and verify each before continuing. Do NOT invent API names - fetch the linked doc if unsure.
+You are an integration agent. Wire fail-closed, schema-per-tenant multi-tenancy into THIS Express +
+Drizzle app on PostgreSQL with TenancyJS - one schema per tenant in a shared database, integrating with
+whatever already exists — do NOT assume a greenfield app. Execute steps in order; after each, verify it
+applied before continuing. If a step does not apply to this repo, say so and adapt. Do NOT invent API
+names - fetch the linked doc if unsure.
 
 Source of truth:
 - https://tenancyjs.pages.dev/docs/adapters/drizzle
@@ -67,11 +72,18 @@ Source of truth:
 - https://tenancyjs.pages.dev/docs/integrations/express
 - https://tenancyjs.pages.dev/docs/guides/testing-isolation
 
-## Pre-flight
-- `node -v` >= 24, else abort.
-- Confirm PostgreSQL and the `pg` driver are available. (Schema-per-tenant is PostgreSQL-only.)
-- Confirm this is an Express 5 + Drizzle project.
-Verify before continuing.
+## Step 0 - Assess the app (change nothing yet)
+- Report the Node version (abort if < 24), the `express` and `drizzle-orm` versions, and confirm
+  PostgreSQL and the `pg` driver are available (schema-per-tenant is PostgreSQL-only). If this is not an
+  Express + Drizzle + Postgres app, stop.
+- Inventory the Drizzle tables: list every table and mark each as tenant-owned or global/central.
+- Find how the current user is determined per request (`req.user`, session, JWT) — the `authorize` hook
+  will need it.
+- Detect any EXISTING tenant concept (a `tenantId`/`orgId` column, a workspaces/orgs table, or an
+  existing per-tenant schema naming scheme). If one exists, REUSE it — do not add a parallel one.
+- Summarize what you found + the integration plan, and confirm the ISOLATION STRATEGY with the user:
+  schema-per-tenant (this page) vs row-level vs database-per-tenant. If schema-per-tenant does not fit,
+  point them to https://tenancyjs.pages.dev/docs/strategies/choosing and stop.
 
 ## Step 1 - Install
 `npm install tenancyjs-core tenancyjs-adapter-drizzle tenancyjs-integration-express tenancyjs-identifiers drizzle-orm pg`
@@ -98,6 +110,8 @@ raw request input. Verify the store returns `schemaName` before continuing.
     // role: (t) => t.role, // optional: database-enforced sibling-schema denial
   });
   ```
+  List EVERY EXISTING tenant-owned table in `tenantTables`; only add a new example table if the app has
+  no domain tables yet.
 - Keep tenant tables OUT of `centralSchema` (`public`) - a `public.posts` shadows the tenant tables and
   fails validation.
 - A `TenantResolutionChain` (HeaderTenantResolver + the store above).
@@ -117,20 +131,25 @@ tenant_acme` and grants `USAGE` to the runtime role on a privileged admin connec
 role); `migrate` runs your Drizzle migrations against that schema; `deprovision` drops it. Then:
 `npx tenancyjs-cli tenant create acme --set schemaName=tenant_acme` ->
 `npx tenancyjs-cli tenant provision acme` -> `npx tenancyjs-cli tenant migrate acme`.
-Verify the schema and its tables exist before continuing.
+Verify the schema and its tables exist before continuing. If the app already has existing tenants,
+provision and migrate a schema for EACH of them before cutover - do not leave an existing tenant without
+a schema.
 
 ## Step 6 - Central work
 Cross-tenant/admin work runs against the central schema explicitly via
 `manager.runInCentralContext(...)`. Never run tenant-aware queries with no scope.
 Verify central work does not touch tenant schemas before continuing.
 
-## Step 7 - Prove it (two-schema leak test)
-Two tenants in two schemas, same primary key: write a row under each, assert querying as A never
-returns B's row, and that a tenant query with no scope THROWS. Follow the testing-isolation guide.
-Verify the leak test passes before continuing.
+## Step 7 - Verify isolation (an isolated test - it does NOT touch app data)
+Two TEST tenants in two TEST schemas (never real app tenants), same primary key: write a row under each,
+assert querying as A never returns B's row, and that a tenant query with no scope THROWS. Follow the
+testing-isolation guide. Verify the leak test passes before continuing.
 
-## Step 8 - Verify
-`npm run build`, boot the app, run the two-tenant test. Report every file changed and any issue.
+## Step 8 - Roll out + verify
+- `npm run build`, boot the app, run the two-tenant test. Report every file changed and any issue.
+- Existing app: provision + migrate a schema for every existing tenant before cutover, then roll out
+  incrementally - scope routes behind the middleware, keep admin/cross-tenant work in
+  `runInCentralContext`, and treat any thrown unscoped-access error as a route you still need to scope.
 ````
 
 ## The one-line swap for other ORMs

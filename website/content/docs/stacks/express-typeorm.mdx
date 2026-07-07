@@ -1,11 +1,14 @@
 ---
 title: Express + TypeORM setup
-description: Wire fail-closed multi-tenancy into an Express 5 + TypeORM app with forced PostgreSQL RLS - a copy-pasteable setup-agent prompt, plus the manual walkthrough.
+description: Wire fail-closed multi-tenancy into an Express 5 + TypeORM app with forced PostgreSQL RLS - a copy-pasteable integration-agent prompt, plus the manual walkthrough.
 ---
 
-`tenancyjs-cli init` doesn't scaffold Express + TypeORM yet, so this stack is a manual wire-up - a few files.
-This page gives you two ways to do it: hand the **setup-agent prompt** to your AI assistant, or follow
-the **manual walkthrough**. Either way, finish by running the two-tenant test - with fail-closed
+This page wires fail-closed multi-tenancy into an Express 5 + TypeORM app on PostgreSQL — **new or
+existing**. The fastest path is `npx tenancyjs-cli init --framework express --orm typeorm`, which
+scaffolds the wiring (config + register + middleware); the integration agent runs it, then adapts the
+result to your existing app. Prefer to wire by hand? Follow the **manual walkthrough**, or hand the
+**integration-agent prompt** to your AI assistant. Either way it assesses your app first, integrates with
+your existing models and auth, and finishes with an isolated leak test — because with fail-closed
 isolation you verify, you don't trust.
 
 This is **row-level** on PostgreSQL. The TypeORM adapter is a _callback facade_ - but here it is backed
@@ -26,18 +29,19 @@ rules matter most: only ever expose the **protected repository** (never the nati
   [provisioning recipe](/docs/guides/provisioning) for your ORM.
 </Callout>
 
-## Setup-agent prompt
+## Integration-agent prompt
 
 Paste this into an assistant that can edit your repo and run commands (Claude Code, Cursor, …). It
-executes in order and verifies each step. It's pinned to the real API, so it won't invent factory names.
+assesses your app first, integrates with what already exists, verifies each step, and finishes with an
+isolated leak test. It's pinned to the real API, so it won't invent factory names.
 
 ````text
-# TenancyJS Setup Agent - Express 5 + TypeORM (row-level, PostgreSQL)
+# TenancyJS Integration Agent - Express 5 + TypeORM (row-level, PostgreSQL)
 
-You are a setup agent. Add fail-closed multi-tenancy to this Express + TypeORM project with TenancyJS,
-backed by forced PostgreSQL RLS. Execute every step in order. After each step, verify it applied before
-continuing. If a step does not apply, say so and continue. Do NOT invent API names - if unsure, fetch
-the linked doc.
+You are an integration agent. Wire fail-closed multi-tenancy into THIS project with TenancyJS,
+integrating with whatever already exists — do NOT assume a greenfield app. Execute steps in order;
+after each, verify it applied before continuing. If a step does not apply to this repo, say so and
+adapt. Do NOT invent API names — if unsure, fetch the linked doc.
 
 Source of truth (fetch if a detail is missing, do not guess):
 - https://tenancyjs.pages.dev/docs/adapters/typeorm
@@ -46,11 +50,21 @@ Source of truth (fetch if a detail is missing, do not guess):
 - https://tenancyjs.pages.dev/docs/concepts/limitations
 - https://tenancyjs.pages.dev/docs/guides/testing-isolation
 
-## Pre-flight
-- Run `node -v`; abort if it is not >= 24.
-- Confirm `express` (v5) and `typeorm` are in package.json. Abort if this is not an Express + TypeORM
-  project.
-- Confirm the database is PostgreSQL (forced RLS is a Postgres feature; abort otherwise).
+## Step 0 - Assess the app (change nothing yet)
+- Report the Node version (abort if < 24), the `express` (v5) and `typeorm` versions, and confirm the
+  database is PostgreSQL (forced RLS is a Postgres feature). If this is not an Express + TypeORM +
+  Postgres app, stop.
+- Inventory the TypeORM entities: list every entity and mark each as tenant-owned or global/central.
+- Find how the current user is determined per request (`req.user`, session, JWT) — the `authorize` hook
+  will need it.
+- Detect any EXISTING tenant concept (a `tenantId`/`orgId` column, a `Tenant`/workspaces/orgs entity). If
+  one exists, REUSE it — do not add a parallel one.
+- Summarize what you found + the integration plan, and confirm the ISOLATION STRATEGY with the user:
+  row-level (this page) vs schema-per-tenant vs database-per-tenant. If row-level does not fit, point
+  them to https://tenancyjs.pages.dev/docs/strategies/choosing and stop.
+- This stack is CLI-scaffoldable: if the project has no TenancyJS wiring yet, run `npx tenancyjs-cli init
+  --framework express --orm typeorm --apply` to scaffold config + register + middleware, then ADAPT those
+  files in the steps below instead of writing them from scratch.
 
 ## Step 1 - Install
 Run:
@@ -59,10 +73,13 @@ npm install tenancyjs-core tenancyjs-adapter-typeorm tenancyjs-integration-expre
 ```
 Verify all six appear in package.json dependencies.
 
-## Step 2 - Entities
-Ensure a tenant-scoped entity (e.g. `Post`) has a non-null `tenantId` column mapped to `tenant_id`, and
-an index on it. Ensure a `Tenant` entity with `id` and `status`. Every tenant-owned table gets a
-`tenant_id` column.
+## Step 2 - Entities: classify what exists, add only what's missing
+- Ensure a `Tenant` entity exists with `id` and `status`. If the app already has a tenants/workspaces/orgs
+  entity, use THAT - do not add a parallel one.
+- For every EXISTING tenant-owned entity, add a non-null `tenantId` column mapped to `tenant_id`, and an
+  index on it. Only create a new example entity (e.g. `Post`) if the app has no domain entities yet.
+- If you add `tenantId` to an entity whose table already has rows, backfill it before making it non-null
+  (see Step 10 - Roll out).
 
 ## Step 3 - Forced-RLS migration (the database backstop)
 Write a migration that runs AS THE TABLE OWNER and installs the policy. For each tenant table:
@@ -119,24 +136,29 @@ resolution failure fails closed, never central.
 Add an Express error handler that maps `ExpressTenancyResolutionError` (it carries `.statusCode`) to
 400/404. Otherwise resolution failures surface as an unhandled 500.
 
-## Step 9 - Prove it
-Create a two-tenant test (Vitest or Jest): create tenant A and tenant B, write a row under EACH with the
-SAME primary key. Assert (a) querying as A never returns B's row via `tenancy.run`, AND (b) a RAW query
-executed as the runtime role with NO GUC set returns 0 rows - proving the database, not just the facade,
-enforces isolation. Follow https://tenancyjs.pages.dev/docs/guides/testing-isolation.
+## Step 9 - Verify isolation (an isolated test - it does NOT touch app data)
+Create a two-tenant leak TEST (Vitest or Jest) that runs against a TEST database or a rolled-back
+transaction - never seed tenants into real app data. Create tenant A and tenant B, write a row under EACH
+with the SAME primary key. Assert (a) querying as A never returns B's row via `tenancy.run`, AND (b) a RAW
+query executed as the runtime role with NO GUC set returns 0 rows - proving the database, not just the
+facade, enforces isolation. Follow https://tenancyjs.pages.dev/docs/guides/testing-isolation.
 
-## Step 10 - Verify
+## Step 10 - Roll out + verify
 - `npm run build` (or `tsc --noEmit`) - report errors.
 - Boot the app (`npm run start`) and confirm it serves after `tenancy.validate()` passes.
 - Run the two-tenant test and report the result.
+- Existing app: backfill `tenantId` on any entity whose table already had rows (set it for every row,
+  then enforce non-null), then roll out incrementally - scope behind the middleware, keep
+  admin/cross-tenant work in `runInCentralContext`, and treat any thrown unscoped-access error as a route
+  you still need to scope.
 
 Report a summary of every file created/changed and any issue found.
 ````
 
 <Callout type="warn">
   AI wiring is a starting point, not proof. The only thing that demonstrates isolation is the two-tenant
-  colliding-id test in Step 9 - including the raw-as-runtime-role check - run it before you trust the
-  result.
+  colliding-id test in Step 9 - including the raw-as-runtime-role check - run it against a test database
+  before you trust the result.
 </Callout>
 
 ## Manual walkthrough

@@ -1,12 +1,14 @@
 ---
 title: Express + Mongoose setup
-description: Wire fail-closed multi-tenancy into an Express 5 + Mongoose (MongoDB) app - a copy-pasteable setup-agent prompt, plus the manual walkthrough.
+description: Wire fail-closed multi-tenancy into an Express 5 + Mongoose (MongoDB) app - a copy-pasteable integration-agent prompt, plus the manual walkthrough.
 ---
 
 `tenancyjs-cli init` doesn't scaffold Express + Mongoose yet, so this stack is a manual wire-up - a few files.
-This page gives you two ways to do it: hand the **setup-agent prompt** to your AI assistant, or follow
-the **manual walkthrough**. Either way, finish by running the two-tenant test - with fail-closed
-isolation you verify, you don't trust.
+This page wires fail-closed multi-tenancy into an Express 5 + Mongoose (MongoDB) app — **new or
+existing**. Two ways to do it: hand the **integration-agent prompt** to your AI assistant, or follow the
+**manual walkthrough**. The agent assesses your app first, integrates with your existing models and
+auth, and finishes with an isolated leak test — because with fail-closed isolation you verify, you don't
+trust.
 
 This is **row-level** on MongoDB. Mongoose row-level is _facade-enforced_ - MongoDB has **no RLS
 backstop**, so the adapter's query facade is the entire boundary. The one rule that matters most: never
@@ -19,17 +21,19 @@ protected facade.
   the adapter’s `strategy` and add the [provisioning recipe](/docs/guides/provisioning/mongoose).
 </Callout>
 
-## Setup-agent prompt
+## Integration-agent prompt
 
 Paste this into an assistant that can edit your repo and run commands (Claude Code, Cursor, …). It
-executes in order and verifies each step. It's pinned to the real API, so it won't invent factory names.
+assesses your app first, integrates with what already exists, verifies each step, and finishes with an
+isolated leak test. It's pinned to the real API, so it won't invent factory names.
 
 ````text
-# TenancyJS Setup Agent - Express 5 + Mongoose (row-level, MongoDB)
+# TenancyJS Integration Agent - Express 5 + Mongoose (row-level, MongoDB)
 
-You are a setup agent. Add fail-closed multi-tenancy to this Express + Mongoose project with TenancyJS.
-Execute every step in order. After each step, verify it applied before continuing. If a step does not
-apply, say so and continue. Do NOT invent API names - if unsure, fetch the linked doc.
+You are an integration agent. Wire fail-closed multi-tenancy into THIS project with TenancyJS,
+integrating with whatever already exists — do NOT assume a greenfield app. Execute steps in order;
+after each, verify it applied before continuing. If a step does not apply to this repo, say so and
+adapt. Do NOT invent API names — if unsure, fetch the linked doc.
 
 Source of truth (fetch if a detail is missing, do not guess):
 - https://tenancyjs.pages.dev/docs/adapters/mongoose
@@ -38,13 +42,19 @@ Source of truth (fetch if a detail is missing, do not guess):
 - https://tenancyjs.pages.dev/docs/concepts/limitations
 - https://tenancyjs.pages.dev/docs/guides/testing-isolation
 
-## Pre-flight
-- Run `node -v`; abort if it is not >= 24.
-- Confirm `express` (v5) and `mongoose` are in package.json. Abort if this is not an Express + Mongoose
-  project.
-- Confirm MongoDB is reachable AND is a REPLICA SET - Mongoose isolation runs every operation inside a
-  session-bound transaction, which requires a replica set. A standalone `mongod` will fail. Verify with
-  `rs.status()` in the mongo shell before continuing.
+## Step 0 - Assess the app (change nothing yet)
+- Report the Node version (abort if < 24), the `express` (v5) and `mongoose` versions, and confirm
+  MongoDB is reachable AND is a REPLICA SET (Mongoose isolation runs every operation inside a
+  session-bound transaction, which requires a replica set - a standalone `mongod` will fail; verify with
+  `rs.status()` in the mongo shell). If this is not an Express + Mongoose project, stop.
+- Inventory the Mongoose models: list every model and mark each as tenant-owned or global/central.
+- Find how the current user is determined per request (`req.user`, session, JWT) — the `authorize` hook
+  will need it.
+- Detect any EXISTING tenant concept (a `tenantId`/`orgId` field, a `Tenant`/workspaces/orgs collection).
+  If one exists, REUSE it — do not add a parallel one.
+- Summarize what you found + the integration plan, and confirm the ISOLATION STRATEGY with the user:
+  row-level (this page) vs database-per-tenant (MongoDB has no schema-per-tenant). If row-level does not
+  fit, point them to https://tenancyjs.pages.dev/docs/strategies/choosing and stop.
 
 ## Step 1 - Install
 Run:
@@ -53,11 +63,14 @@ npm install tenancyjs-core tenancyjs-adapter-mongoose tenancyjs-integration-expr
 ```
 Verify all five appear in package.json dependencies.
 
-## Step 2 - Models
-Ensure at least one tenant-scoped Mongoose model exists (e.g. `PostModel`) with a `tenantId` field of
-type `String`. If the app already has domain models, the adapter injects `tenantId` on write and filters
-on read - you do NOT add manual `tenantId` filters to queries. Keep a plain `Tenant` collection for the
-resolver store lookup.
+## Step 2 - Models: classify what exists, add only what's missing
+- Ensure a `Tenant` collection/model exists for the resolver store lookup. If the app already has a
+  tenants/workspaces/orgs collection, use THAT - do not add a parallel one.
+- For every EXISTING tenant-owned model, add a `tenantId` field of type `String`. Only create a new
+  example model (e.g. `PostModel`) if the app has no domain models yet. The adapter injects `tenantId` on
+  write and filters on read - you do NOT add manual `tenantId` filters to queries.
+- If you add `tenantId` to a model that already has documents, backfill it before relying on it for
+  isolation (see Step 10 - Roll out).
 
 ## Step 3 - tenancy.ts (the single source of truth)
 Create `src/tenancy.ts`. It must:
@@ -103,16 +116,20 @@ For admin/cross-tenant handlers, do NOT leave them unscoped. Wrap the work in
   is a real cross-tenant read.
 - No `$`-operator or dotted keys in query objects - the facade rejects them.
 
-## Step 9 - Prove it
-Create a two-tenant test (Vitest or Jest): create tenant A and tenant B, write a document under EACH with
-the SAME `_id`, assert querying as A never returns B's document, and assert that a tenant query with no
-active scope THROWS. Because Mongo has no RLS, this test - not the wiring - is the proof of isolation.
-Follow https://tenancyjs.pages.dev/docs/guides/testing-isolation.
+## Step 9 - Verify isolation (an isolated test - it does NOT touch app data)
+Create a two-tenant leak TEST (Vitest or Jest) that runs against a TEST database or a rolled-back
+transaction - never seed tenants into real app data. Create tenant A and tenant B, write a document under
+EACH with the SAME `_id`, assert querying as A never returns B's document, and assert that a tenant query
+with no active scope THROWS. Because Mongo has no RLS, this test - not the wiring - is the proof of
+isolation. Follow https://tenancyjs.pages.dev/docs/guides/testing-isolation.
 
-## Step 10 - Verify
+## Step 10 - Roll out + verify
 - `npm run build` (or `tsc --noEmit`) - report errors.
 - Boot the app (`npm run start`) and confirm it serves.
 - Run the two-tenant test and report the result.
+- Existing app: backfill `tenantId` on any model that already had documents (set it for every document),
+  then roll out incrementally - scope behind the middleware, keep admin/cross-tenant work in
+  `runInCentralContext`, and treat any thrown unscoped-access error as a route you still need to scope.
 
 Report a summary of every file created/changed and any issue found.
 ````
@@ -120,7 +137,7 @@ Report a summary of every file created/changed and any issue found.
 <Callout type="warn">
   On MongoDB the facade is the *only* boundary - there is no database RLS backstop. AI wiring is a
   starting point, not proof. The two-tenant colliding-`_id` test in Step 9 is what demonstrates
-  isolation - run it before you trust the result.
+  isolation - run it against a test database before you trust the result.
 </Callout>
 
 ## Manual walkthrough

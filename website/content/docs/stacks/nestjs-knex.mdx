@@ -1,12 +1,13 @@
 ---
 title: NestJS + Knex setup
-description: Wire fail-closed multi-tenancy into a NestJS 11 + Knex app - a copy-pasteable setup-agent prompt, plus the manual walkthrough.
+description: Wire fail-closed multi-tenancy into a NestJS 11 + Knex app - a copy-pasteable integration-agent prompt, plus the manual walkthrough.
 ---
 
-`tenancyjs-cli init` doesn't scaffold NestJS yet, so this stack is a manual wire-up - a few files. This page
-gives you two ways to do it: hand the **setup-agent prompt** to your AI assistant, or follow the
-**manual walkthrough**. Either way, finish by running the two-tenant test - with fail-closed isolation
-you verify, you don't trust.
+`tenancyjs-cli init` doesn't scaffold NestJS yet, so this stack is a manual wire-up - a few files, for a
+**new or existing** NestJS + Knex app. This page gives you two ways to do it: hand the
+**integration-agent prompt** to your AI assistant, or follow the **manual walkthrough**. The agent
+assesses your app first, integrates with your existing models and auth, and finishes with an isolated
+leak test - because with fail-closed isolation you verify, you don't trust.
 
 This is **row-level on PostgreSQL**. The Knex adapter is a _callback facade_ (`tenancy.run((db) => …)`)
 backed by **forced RLS** - the database is the real backstop. That gives you two invariants to hold:
@@ -25,17 +26,19 @@ the queries so the policy actually applies.
   [provisioning recipe](/docs/guides/provisioning) for your ORM.
 </Callout>
 
-## Setup-agent prompt
+## Integration-agent prompt
 
 Paste this into an assistant that can edit your repo and run commands (Claude Code, Cursor, …). It
-executes in order and verifies each step. It's pinned to the real API, so it won't invent factory names.
+assesses your app first, integrates with what already exists, verifies each step, and finishes with an
+isolated leak test. It's pinned to the real API, so it won't invent factory names.
 
 ````text
-# TenancyJS Setup Agent - NestJS 11 + Knex (row-level, PostgreSQL)
+# TenancyJS Integration Agent - NestJS 11 + Knex (row-level, PostgreSQL)
 
-You are a setup agent. Add fail-closed multi-tenancy to this NestJS + Knex project with TenancyJS.
-Execute every step in order. After each step, verify it applied before continuing. If a step does not
-apply, say so and continue. Do NOT invent API names - if unsure, fetch the linked doc.
+You are an integration agent. Wire fail-closed multi-tenancy into THIS project with TenancyJS,
+integrating with whatever already exists — do NOT assume a greenfield app. Execute steps in order;
+after each, verify it applied before continuing. If a step does not apply to this repo, say so and
+adapt. Do NOT invent API names — if unsure, fetch the linked doc.
 
 Source of truth (fetch if a detail is missing, do not guess):
 - https://tenancyjs.pages.dev/docs/adapters/knex
@@ -44,11 +47,19 @@ Source of truth (fetch if a detail is missing, do not guess):
 - https://tenancyjs.pages.dev/docs/guides/testing-isolation
 - https://tenancyjs.pages.dev/docs/guides/resolving-tenants
 
-## Pre-flight
-- Run `node -v`; abort if it is not >= 24.
-- Confirm `@nestjs/core` (v11) and `knex` are in package.json. Abort if this is not a NestJS + Knex
-  project.
-- Confirm the database is PostgreSQL. Knex tenancy is PostgreSQL-only; abort otherwise.
+## Step 0 - Assess the app (change nothing yet)
+- Report the Node version (abort if < 24), the `@nestjs/core` (v11) and `knex` versions, and confirm the
+  database is PostgreSQL - Knex tenancy is PostgreSQL-only. If this is not a NestJS + Knex + Postgres
+  app, stop.
+- Inventory the Knex tables (via migrations / `knex.schema` calls): list every table and mark each as
+  tenant-owned or global/central.
+- Find how the current user is determined per request (NestJS guard, `req.user`) — the `authorize` hook
+  will need it.
+- Detect any EXISTING tenant concept (a `tenant_id`/`org_id` column, a workspaces/orgs table). If one
+  exists, REUSE it — do not add a parallel one.
+- Summarize what you found + the integration plan, and confirm the ISOLATION STRATEGY with the user:
+  row-level (this page) vs schema-per-tenant vs database-per-tenant. If row-level does not fit, point
+  them to https://tenancyjs.pages.dev/docs/strategies/choosing and stop.
 
 ## Step 1 - Install
 Run:
@@ -57,14 +68,20 @@ npm install tenancyjs-core tenancyjs-adapter-knex tenancyjs-integration-nest ten
 ```
 Verify all six appear in package.json dependencies.
 
-## Step 2 - Forced-RLS migration (the database backstop)
-Row-level on Knex is enforced by Postgres RLS, not the facade. Write a migration that runs as the table
-OWNER and, for each tenant table (e.g. `posts` with a non-null `tenant_id` column):
-- `ALTER TABLE posts ENABLE ROW LEVEL SECURITY;`
-- `ALTER TABLE posts FORCE ROW LEVEL SECURITY;` (so the owner is bound too)
-- Create policy `posts_tenant_isolation` USING/ WITH CHECK:
-  `current_setting('tenancyjs.is_central', true) = 'on'
-   OR tenant_id = current_setting('tenancyjs.tenant_id', true)`.
+## Step 2 - Schema + forced-RLS migration: classify what exists, add only what's missing
+Row-level on Knex is enforced by Postgres RLS, not the facade. In a migration that runs as the table
+OWNER:
+- For every EXISTING tenant-owned table, add a non-null `tenant_id` column if it doesn't already have
+  one. Only create a new example table (e.g. `posts`) if the app has no domain tables yet. If the app
+  already has a tenants/workspaces/orgs table, reuse it for tenant records - Knex has no dedicated
+  tenant model class to create. If you add `tenant_id` to a table that already has rows, backfill it
+  before enforcing NOT NULL (see Step 10 - Roll out).
+- For each tenant table (existing or new):
+  - `ALTER TABLE posts ENABLE ROW LEVEL SECURITY;`
+  - `ALTER TABLE posts FORCE ROW LEVEL SECURITY;` (so the owner is bound too)
+  - Create policy `posts_tenant_isolation` USING/ WITH CHECK:
+    `current_setting('tenancyjs.is_central', true) = 'on'
+     OR tenant_id = current_setting('tenancyjs.tenant_id', true)`.
 Create a dedicated RUNTIME role that the app connects as. It MUST NOT be the table owner and MUST NOT
 have `BYPASSRLS` or `SUPERUSER` - otherwise FORCE RLS is silently skipped. Grant it only DML on the
 tenant tables. Verify before continuing.
@@ -108,24 +125,29 @@ policy opens; unscoped tenant access must fail closed.
 - The facade rejects raw SQL and joins it can't prove tenant-safe. The DB is still the backstop, but
   don't reach around the facade with the base connection.
 
-## Step 9 - Prove it
-Create a two-tenant test (Vitest or Jest): create tenant A and tenant B, write a row under EACH with the
-SAME primary key, assert querying as A never returns B's row. THEN, as the runtime role with NO GUC set,
-run a raw `SELECT * FROM posts` and assert it returns 0 rows (proof RLS - not the facade - is enforcing).
-Follow https://tenancyjs.pages.dev/docs/guides/testing-isolation.
+## Step 9 - Verify isolation (an isolated test - it does NOT touch app data)
+Create a two-tenant test (Vitest or Jest) that runs against a TEST database or a rolled-back transaction
+- never seed tenants into real app data. It creates tenant A and tenant B, writes a row under EACH with
+the SAME primary key, asserts querying as A never returns B's row. THEN, as the runtime role with NO GUC
+set, run a raw `SELECT * FROM posts` and assert it returns 0 rows (proof RLS - not the facade - is
+enforcing). Follow https://tenancyjs.pages.dev/docs/guides/testing-isolation.
 
-## Step 10 - Verify
+## Step 10 - Roll out + verify
 - `npx nest build` (or `npm run build`) - report errors.
 - Boot the app (`npm run start`); confirm `tenancy.validate()` passes and it serves.
 - Run the two-tenant test and report the result.
+- Existing app: backfill `tenant_id` on any table that already had rows (set it for every row, then
+  enforce non-null via a follow-up migration), then roll out incrementally - scope routes behind
+  `@TenantRoute()`, keep admin/cross-tenant paths in `runInCentralContext`, and treat any thrown
+  unscoped-access error as a route you still need to scope.
 
 Report a summary of every file created/changed and any issue found.
 ````
 
 <Callout type="warn">
   AI wiring is a starting point, not proof. The only thing that demonstrates isolation is the two-tenant
-  colliding-id test in Step 9 - including the raw-as-runtime-role read with no GUC - run it before you
-  trust the result.
+  colliding-id test in Step 9 - including the raw-as-runtime-role read with no GUC - run it against a
+  test database before you trust the result.
 </Callout>
 
 ## Manual walkthrough

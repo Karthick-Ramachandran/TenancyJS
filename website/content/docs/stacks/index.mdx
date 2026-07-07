@@ -1,12 +1,13 @@
 ---
 title: Set up your stack
-description: A complete, copy-pasteable setup-agent prompt for each framework + ORM - plus a manual walkthrough. Wire fail-closed multi-tenancy in one paste.
+description: A complete, copy-pasteable integration-agent prompt for each framework + ORM - plus a manual walkthrough. Wire fail-closed multi-tenancy in one paste.
 ---
 
-Each page here is a full, imperative **setup-agent prompt** for one stack - hand it to an AI assistant
-(Claude Code, Cursor, …) and it executes the wire-up step by step, verifying each change and finishing
-by proving isolation with a two-tenant test. Every page also has a **manual walkthrough** with the real
-code if you'd rather do it by hand.
+Each page here is a full, imperative **integration-agent prompt** for one stack - hand it to an AI
+assistant (Claude Code, Cursor, …) and it works on a **new or existing** app: it assesses your app first,
+integrates with your existing models and auth, verifies each change, and finishes by proving isolation
+with an isolated two-tenant leak test. Every page also has a **manual walkthrough** with the real code
+if you'd rather do it by hand.
 
 This is the "batteries-included, but not out-of-the-box" seam: TenancyJS scopes and fails closed for
 you, but wiring it into your app - and [provisioning each tenant's storage](/docs/guides/provisioning)
@@ -50,17 +51,17 @@ you, but wiring it into your app - and [provisioning each tenant's storage](/doc
 ### AdonisJS
 
 <Cards>
-  <Card title="AdonisJS + Lucid — row-level" href="/docs/stacks/adonis-lucid#setup-agent-prompt" description="Shared tables, forced Postgres RLS" />
-  <Card title="AdonisJS + Lucid — schema-per-tenant" href="/docs/stacks/adonis-lucid#setup-agent-prompt--schema-per-tenant" description="One PostgreSQL schema per tenant" />
-  <Card title="AdonisJS + Lucid — database-per-tenant" href="/docs/stacks/adonis-lucid#setup-agent-prompt--database-per-tenant" description="A database per tenant" />
+  <Card title="AdonisJS + Lucid — row-level" href="/docs/stacks/adonis-lucid#integration-agent-prompt" description="Shared tables, forced Postgres RLS" />
+  <Card title="AdonisJS + Lucid — schema-per-tenant" href="/docs/stacks/adonis-lucid#integration-agent-prompt--schema-per-tenant" description="One PostgreSQL schema per tenant" />
+  <Card title="AdonisJS + Lucid — database-per-tenant" href="/docs/stacks/adonis-lucid#integration-agent-prompt--database-per-tenant" description="A database per tenant" />
 </Cards>
 
-All three AdonisJS + Lucid strategies live on one page - each card jumps to its setup-agent prompt.
+All three AdonisJS + Lucid strategies live on one page - each card jumps to its integration-agent prompt.
 
 ## By strategy
 
 The stack pages above default to **row-level**. For the other two isolation strategies, one page each
-covers every ORM (worked setup-agent prompt + a per-ORM swap table), and pairs with the
+covers every ORM (worked integration-agent prompt + a per-ORM swap table), and pairs with the
 [provisioning recipes](/docs/guides/provisioning).
 
 <Cards>
