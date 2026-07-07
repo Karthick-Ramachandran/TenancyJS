@@ -2,7 +2,7 @@
 
 ## Purpose
 
-`tenancy init` only scaffolded row-level isolation. Teams that want schema-per-tenant or
+`tenancyjs-cli init` only scaffolded row-level isolation. Teams that want schema-per-tenant or
 database-per-tenant had to leave the CLI and wire it by hand, which reads as "the CLI only supports
 row-level" - a real gap, since every SQL adapter supports all three strategies. This feature adds a
 `--strategy` flag so init scaffolds the strategy the team actually wants, using each adapter's real
@@ -10,7 +10,7 @@ factory and option names (the CLI must never invent an API).
 
 ## In Scope
 
-- A `--strategy <row-level|schema-per-tenant|database-per-tenant>` flag on `tenancy init` (aliases:
+- A `--strategy <row-level|schema-per-tenant|database-per-tenant>` flag on `tenancyjs-cli init` (aliases:
   `schema`, `database`). Default stays `row-level`, so existing behavior is unchanged.
 - Strategy-aware scaffolds (config + register helper) for:
   - Express + Sequelize / TypeORM / Drizzle (schema-per-tenant, database-per-tenant)

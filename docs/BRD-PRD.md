@@ -108,7 +108,7 @@ A developer runs:
 
 ```bash
 npm install tenancyjs-core tenancyjs-cli
-npx tenancy init
+npx tenancyjs-cli init
 ```
 
 …and within minutes has tenant resolution, isolated ORM access, CLI migration commands, and tests proving tenant A cannot read tenant B’s data — on their chosen stack (including Next.js or AdonisJS).
@@ -219,7 +219,7 @@ Ship a **monorepo** of MIT packages and a **CLI** that implements automatic/manu
 
 ### 7.2 Product metrics
 
-- Time-to-first-isolated-query after `tenancy init` < **15 minutes** (documented quickstart).
+- Time-to-first-isolated-query after `tenancyjs-cli init` < **15 minutes** (documented quickstart).
 - Zero cross-tenant reads in adapter integration test suite.
 - CLI success rate for `init` on supported stacks > **95%** (telemetry opt-in later).
 
@@ -354,7 +354,7 @@ type TenantDomain = {
 
 | ID | Requirement | Priority |
 |----|-------------|----------|
-| FR-CLI-01 | `tenancy init` — scaffold config and integration files | P0 |
+| FR-CLI-01 | `tenancyjs-cli init` — scaffold config and integration files | P0 |
 | FR-CLI-02 | `tenancy list` — list tenants | P0 |
 | FR-CLI-03 | `tenancy migrate` — migrate all tenants (DB-per-tenant) | P1 |
 | FR-CLI-04 | `tenancy migrate --tenant=<id>` | P1 |
@@ -705,7 +705,7 @@ interface OrmTenancyAdapter {
 
 ### 18.5 Mongoose-specific
 
-- Global plugin applied in `tenancy init` template.
+- Global plugin applied in `tenancyjs-cli init` template.
 - Compound indexes `{ tenantId: 1, ... }` code generation in init.
 - Multi-tenant on embedded docs: document limitations.
 
@@ -795,7 +795,7 @@ Follow **BoringNode → `@adonisjs/queue`** pattern: framework-agnostic core, of
 |----|-------------|----------|
 | FR-AD-01 | Adonis **provider** registering `TenancyManager` in container | P0 |
 | FR-AD-02 | HTTP **middleware** (`initialize` / `end`) in server stack | P0 |
-| FR-AD-03 | `config/tenancy.ts` stub via `tenancy init --adonis` | P0 |
+| FR-AD-03 | `config/tenancy.ts` stub via `tenancyjs-cli init --adonis` | P0 |
 | FR-AD-04 | **Ace commands**: `tenancy:migrate`, `tenancy:list`, `tenancy:seed` | P1 |
 | FR-AD-05 | **Lucid** row-level via Knex adapter + base model | P0 |
 | FR-AD-06 | DB-per-tenant: bootstrapper switches Lucid default connection | P1 |
@@ -832,8 +832,8 @@ Follow **BoringNode → `@adonisjs/queue`** pattern: framework-agnostic core, of
 
 | Command | Description | Phase |
 |---------|-------------|-------|
-| `tenancy init` | Interactive/detect stack, write config & stubs | P0 |
-| `tenancy init --yes` | Non-interactive with defaults | P1 |
+| `tenancyjs-cli init` | Interactive/detect stack, write config & stubs | P0 |
+| `tenancyjs-cli init --yes` | Non-interactive with defaults | P1 |
 | `tenancy doctor` | Validate config, adapters, DB connectivity | P1 |
 | `tenancy list` | List tenants from central store | P0 |
 | `tenancy make:tenant` | Create tenant record (dev) | P1 |
@@ -843,7 +843,7 @@ Follow **BoringNode → `@adonisjs/queue`** pattern: framework-agnostic core, of
 | `tenancy run <file>` | Execute script in tenant context | P1 |
 | `tenancy create-adapter` | Scaffold community ORM adapter | P2 |
 
-### 22.3 `tenancy init` flow (detailed)
+### 22.3 `tenancyjs-cli init` flow (detailed)
 
 1. Detect: `next.config.*`, `adonisrc.ts`, `nest-cli.json`, `express` in package.json.
 2. Detect ORM: `@prisma/client`, `mongoose`, `sequelize`, `drizzle-orm`, `knex`, `typeorm`.
@@ -1178,7 +1178,7 @@ await expectCrossTenantLeak(() => /* ... */).rejects.toThrow()
 | Knex/Lucid | AdonisJS |
 | TypeORM | Nest |
 
-### Appendix C — Example `tenancy init` output files
+### Appendix C — Example `tenancyjs-cli init` output files
 
 ```text
 tenancy.config.ts

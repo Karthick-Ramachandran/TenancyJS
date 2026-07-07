@@ -2,12 +2,12 @@
 
 ## Criteria
 
-- `tenancy init` with no `--strategy` still scaffolds row-level; the plan's `strategy` is `rowLevel`
+- `tenancyjs-cli init` with no `--strategy` still scaffolds row-level; the plan's `strategy` is `rowLevel`
   and the generated files are byte-identical to before. (Verified: existing init tests unchanged.)
-- `tenancy init --strategy database-per-tenant` (Express + Sequelize/TypeORM/Drizzle) scaffolds a
+- `tenancyjs-cli init --strategy database-per-tenant` (Express + Sequelize/TypeORM/Drizzle) scaffolds a
   register helper that calls the adapter's real factory with `strategy: "databasePerTenant"` and a
   `connection: (tenant) => ({ key, create })` factory.
-- `tenancy init --strategy schema-per-tenant` scaffolds `strategy: "schemaPerTenant"` with a
+- `tenancyjs-cli init --strategy schema-per-tenant` scaffolds `strategy: "schemaPerTenant"` with a
   `schema: (tenant) => ...` factory.
 - Prisma uses `createPrismaSchemaTenancy` (schema) / `createPrismaDatabaseTenancy` (database) - not the
   row-level extension.

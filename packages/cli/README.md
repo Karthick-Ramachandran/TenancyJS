@@ -24,7 +24,7 @@ bunx tenancyjs-cli init      # bun
 Prefer it installed? Add it globally or as a dev dependency:
 
 ```bash
-npm install -g tenancyjs-cli     # then: tenancy init
+npm install -g tenancyjs-cli     # then: tenancyjs-cli init
 # or, per-project:
 npm install -D tenancyjs-cli     # then: npx tenancyjs-cli init, or a package.json script
 ```
@@ -35,20 +35,20 @@ Requires Node.js 24+. Every command accepts `--json` for machine-readable, secre
 
 ```bash
 # Preview new wiring files; this is the default and writes nothing.
-tenancy init
+tenancyjs-cli init
 
 # Create only non-conflicting files after path and symlink validation.
-tenancy init --apply
-tenancy init --framework express --orm drizzle --apply
+tenancyjs-cli init --apply
+tenancyjs-cli init --framework express --orm drizzle --apply
 
 # Scaffold a different isolation strategy (default is row-level).
-tenancy init --framework express --orm sequelize --strategy database-per-tenant --apply
-tenancy init --framework express --orm typeorm --strategy schema-per-tenant --apply
+tenancyjs-cli init --framework express --orm sequelize --strategy database-per-tenant --apply
+tenancyjs-cli init --framework express --orm typeorm --strategy schema-per-tenant --apply
 
 # Also write a stack-specific TENANCY.md and register a TenancyJS block in an
 # existing AGENTS.md/CLAUDE.md. Interactive init offers this; --ai-context opts
 # in non-interactively. It never creates an agent-memory file that is not present.
-tenancy init --apply --ai-context
+tenancyjs-cli init --apply --ai-context
 
 # Inventory wiring, versions, base clients, raw/nested/relation usage,
 # model classification, leak-test evidence, and migration effort.

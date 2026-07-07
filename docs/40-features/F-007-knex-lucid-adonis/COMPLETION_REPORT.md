@@ -5,7 +5,7 @@
 Planning and the Knex (T2/T3) and Lucid (T4) slices are complete, each with hosted Node 24 /
 PostgreSQL 17 CI evidence. **AdonisJS 7 + Lucid on PostgreSQL is declared ready to use (stable) by the
 product owner.** The integration (T5: provider, middleware, config) is unit-tested (37 tests) and
-merged; the safe CLI `tenancy init` scaffolds AdonisJS/Lucid projects; and a real AdonisJS 7 + Lucid +
+merged; the safe CLI `tenancyjs-cli init` scaffolds AdonisJS/Lucid projects; and a real AdonisJS 7 + Lucid +
 PostgreSQL 17 reference example (`examples/adonis-lucid`, scaffolded from the official `api` starter
 kit, kept local/gitignored per the demo-repo decision) passes 4/4 Japa + `@japa/api-client` two-tenant
 E2E against live forced RLS. Building it refined the package (lazy tenancy factory,

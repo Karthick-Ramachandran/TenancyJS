@@ -24,7 +24,7 @@
   supports both Express-platform applications and transport-independent explicit execution helpers.
 - AC-ADONIS-01: AdonisJS exposes a provider, middleware, config stub, Japa helpers, and Ace wrappers;
   Lucid scoping uses Adonis model/query lifecycle rather than claiming generic Knex coverage.
-- AC-CLI-01: `tenancy init` detects or accepts each supported framework and data layer, previews every
+- AC-CLI-01: `tenancyjs-cli init` detects or accepts each supported framework and data layer, previews every
   write, rejects traversal/symlink escapes, reports conflicts, and is idempotent.
 - AC-CLI-02: `tenancy doctor` emits human and JSON results, redacts secrets, and fails non-zero for
   missing context wiring, unsupported versions, or adapter leak-test failures.

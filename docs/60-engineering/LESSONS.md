@@ -67,7 +67,7 @@ model preferences.
   command using `@flags.boolean() declare apply` fails to build (`TS1206: Decorators are not valid
   here`). The Lucid adapter already sidesteps this by not using `@column`; native Ace commands are
   therefore built with the operational CLI (one decorator/tsconfig decision for all of them), not
-  standalone. `npx tenancy init` already covers AdonisJS scaffolding.
+  standalone. `npx tenancyjs-cli init` already covers AdonisJS scaffolding.
 - The Adonis provider's fail-closed policy validation must run only in the `web` environment
   (`app.getEnvironment() === 'web'`). Validating in `console` would block the very `migration:run` that
   creates the schema/policies it checks; validating in `test` would fail before the suite provisions

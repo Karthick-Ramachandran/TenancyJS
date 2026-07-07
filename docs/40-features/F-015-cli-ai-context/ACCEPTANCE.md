@@ -2,7 +2,7 @@
 
 ## Criteria
 
-- `tenancy init --apply --ai-context` writes a `TENANCY.md` whose heading names the resolved stack
+- `tenancyjs-cli init --apply --ai-context` writes a `TENANCY.md` whose heading names the resolved stack
   (e.g. "Express + Prisma") and includes the everyday `tenancy` commands and doc links.
 - When `AGENTS.md` or `CLAUDE.md` exists, the run injects exactly one `<!-- tenancyjs:start -->…<!--
   tenancyjs:end -->` block; re-running does not duplicate it (idempotent, replace-in-place) and

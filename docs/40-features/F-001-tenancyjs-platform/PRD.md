@@ -61,5 +61,5 @@ tests pass; later packages may exist as experimental without expanding the compa
 - A supported existing application reaches its first isolation test in under 15 minutes.
 - Every stable adapter passes a two-tenant no-leak suite for all supported operation classes.
 - Every stable framework integration passes concurrent-request and error-cleanup tests.
-- `tenancy init --dry-run` is deterministic and a repeated apply produces no unintended changes.
+- `tenancyjs-cli init --dry-run` is deterministic and a repeated apply produces no unintended changes.
 - No compatibility claim exists without a passing CI lane and maintained example.

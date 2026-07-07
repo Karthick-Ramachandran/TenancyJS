@@ -109,7 +109,7 @@ Optional: `nest-commander` subcommands mirroring `tenancy` — P2; standalone `n
 
 ### 3.4 Express
 
-No framework CLI. **100% `npx tenancy init`** + npm scripts.
+No framework CLI. **100% `npx tenancyjs-cli init`** + npm scripts.
 
 ---
 
@@ -173,10 +173,10 @@ Legend: **P0** = v0.1–0.3 MVP · **P1** = v0.4–0.5 · **P2** = v1+ · **P3**
 
 | Command | Description | Phase |
 |---------|-------------|-------|
-| `tenancy init` | Detect stack; write config, middleware, adapter registration, env, optional test | **P0** |
-| `tenancy init --framework=next\|adonis\|express\|nest` | Force framework template | **P0** |
-| `tenancy init --orm=prisma\|sequelize\|mongoose\|drizzle\|lucid` | Force ORM template | **P0** |
-| `tenancy init --strategy=rowLevel\|databasePerTenant\|schemaPerTenant` | Set isolation strategy | **P0** |
+| `tenancyjs-cli init` | Detect stack; write config, middleware, adapter registration, env, optional test | **P0** |
+| `tenancyjs-cli init --framework=next\|adonis\|express\|nest` | Force framework template | **P0** |
+| `tenancyjs-cli init --orm=prisma\|sequelize\|mongoose\|drizzle\|lucid` | Force ORM template | **P0** |
+| `tenancyjs-cli init --strategy=rowLevel\|databasePerTenant\|schemaPerTenant` | Set isolation strategy | **P0** |
 | `tenancy install` | Alias of `init` (Laravel familiarity) | **P0** |
 | `tenancy doctor` | Validate config, DB, adapters, leak-test config, framework files | **P0** |
 | `tenancy detect` | Print detected framework/ORM/versions (debug) | **P1** |
@@ -325,7 +325,7 @@ Central tables: `tenants`, `tenant_domains`, optional `tenant_users`, `pending_t
 
 | Ace command | Maps to |
 |-------------|---------|
-| `node ace tenancy:install` | `tenancy init --framework=adonis` |
+| `node ace tenancy:install` | `tenancyjs-cli init --framework=adonis` |
 | `node ace tenancy:list` | `tenancy list` |
 | `node ace tenancy:migrate` | `tenancy migrate` |
 | `node ace tenancy:seed` | `tenancy seed` |
@@ -336,7 +336,7 @@ Register via Adonis provider; implementation calls shared `tenancyjs-cli-core` l
 
 ---
 
-## 6. `tenancy init` interactive flow (detailed)
+## 6. `tenancyjs-cli init` interactive flow (detailed)
 
 ```
 1. Scan package.json + lockfile

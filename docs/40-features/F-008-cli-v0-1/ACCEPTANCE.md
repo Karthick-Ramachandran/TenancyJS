@@ -2,7 +2,7 @@
 
 ## Criteria (Phase A)
 
-- `tenancy init` prints a banner listing supported stacks (Express 5.2 + Prisma 7.8, AdonisJS 7.3 +
+- `tenancyjs-cli init` prints a banner listing supported stacks (Express 5.2 + Prisma 7.8, AdonisJS 7.3 +
   Lucid 22.4, Next.js + Prisma 7.8), what is not supported (other frameworks/ORMs, MongoDB), and the
   Node >= 24 requirement.
 - Running `init` on Node < 24 stops with a friendly message naming the required and current versions,
@@ -15,7 +15,7 @@
 - `--framework=<express|adonis|next>` (and `--yes`) fully skip prompting. `--json` and non-TTY input
   never prompt; if the framework is unresolved they emit a friendly error that names `--framework` and
   exits non-zero.
-- `tenancy init` scaffolds the correct row-level template set for each of the three stacks; Next.js +
+- `tenancyjs-cli init` scaffolds the correct row-level template set for each of the three stacks; Next.js +
   Prisma produces a working, buildable wiring (verified by the existing example's shape).
 - Error output is friendly in human mode and still carries a stable `code` in `--json` mode; secrets and
   database URLs remain redacted.
