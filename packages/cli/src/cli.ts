@@ -161,7 +161,7 @@ async function runInit(
   if (!node.ok) {
     throw new CliProjectError(
       `TenancyJS requires Node.js >= ${node.requiredMajor}, but this is Node ${node.current}. ` +
-        `Upgrade Node, then run tenancy init again. No files were written.`,
+        `Upgrade Node, then run tenancyjs-cli init again. No files were written.`,
     );
   }
 
@@ -217,7 +217,7 @@ async function runInit(
   } else if (offerApply) {
     // Declined at the prompt — the preview is already on screen.
     io.writeStdout(
-      `\n  ${dim("No files written. Run")} ${cyan("tenancy init --apply")} ${dim("anytime.")}\n`,
+      `\n  ${dim("No files written. Run")} ${cyan("tenancyjs-cli init --apply")} ${dim("anytime.")}\n`,
     );
   } else {
     io.writeStdout(formatPlan(plan, false));
@@ -418,7 +418,7 @@ async function resolveStrategy(
     typeof io.select === "function" &&
     !parsed.json &&
     !parsed.yes;
-  // Nothing to choose (only row-level is scaffoldable, e.g. Adonis) - default it.
+  // Nothing to choose (only row-level is scaffoldable) - default it.
   if (!interactive || available.length <= 1) return undefined;
   const labels: Record<InitStrategy, string> = {
     rowLevel: "Row-level - shared tables, forced Postgres RLS (simplest)",
@@ -641,7 +641,7 @@ async function resolveFramework(
 
   throw new CliUsageError(
     "Could not detect a supported framework in this project. " +
-      "Run tenancy init in an interactive terminal, or pass " +
+      "Run tenancyjs-cli init in an interactive terminal, or pass " +
       "--framework=express|adonis|next (supported: Express 5.2 + Prisma 7.8, " +
       "AdonisJS 7.3 + Lucid 22.4, Next.js 16 + Prisma 7.8).",
   );
@@ -922,26 +922,27 @@ function helpText(): string {
   return `TenancyJS CLI
 
 Usage:
-  tenancy init [--framework <express|adonis|next>] [--orm <prisma|lucid|typeorm|sequelize|drizzle>] [--strategy <row-level|schema-per-tenant|database-per-tenant>] [--root <path>] [--apply] [--ai-context] [--yes] [--json]
-  tenancy doctor [--root <path>] [--test-file <path>] [--json]
-  tenancy test:leak --test-file <path> [--root <path>] [--json]
-  tenancy tenant check [--config <path>] [--root <path>] [--json]
-  tenancy tenant list [--config <path>] [--root <path>] [--json]
-  tenancy tenant show <id> [--config <path>] [--root <path>] [--json]
-  tenancy tenant create [<id>] [--set key=value ...] [--config <path>] [--json]
-  tenancy tenant suspend <id> [--config <path>] [--json]
-  tenancy tenant activate <id> [--config <path>] [--json]
-  tenancy tenant provision <id> [--config <path>] [--json]
-  tenancy tenant deprovision <id> [--config <path>] [--json]
-  tenancy tenant migrate (<id> | --all) [--config <path>] [--json]
-  tenancy run <script> (--tenant <id> | --central) [--config <path>] [--json]
-  tenancy policy --table <name> [--table <name> ...] --role <runtime-role> [--tenant-column <col>] [--out <file>] [--json]
+  tenancyjs-cli init [--framework <express|adonis|next>] [--orm <prisma|lucid|typeorm|sequelize|drizzle>] [--strategy <row-level|schema-per-tenant|database-per-tenant>] [--root <path>] [--apply] [--ai-context] [--yes] [--json]
+  tenancyjs-cli doctor [--root <path>] [--test-file <path>] [--json]
+  tenancyjs-cli test:leak --test-file <path> [--root <path>] [--json]
+  tenancyjs-cli tenant check [--config <path>] [--root <path>] [--json]
+  tenancyjs-cli tenant list [--config <path>] [--root <path>] [--json]
+  tenancyjs-cli tenant show <id> [--config <path>] [--root <path>] [--json]
+  tenancyjs-cli tenant create [<id>] [--set key=value ...] [--config <path>] [--json]
+  tenancyjs-cli tenant suspend <id> [--config <path>] [--json]
+  tenancyjs-cli tenant activate <id> [--config <path>] [--json]
+  tenancyjs-cli tenant provision <id> [--config <path>] [--json]
+  tenancyjs-cli tenant deprovision <id> [--config <path>] [--json]
+  tenancyjs-cli tenant migrate (<id> | --all) [--config <path>] [--json]
+  tenancyjs-cli run <script> (--tenant <id> | --central) [--config <path>] [--json]
+  tenancyjs-cli policy --table <name> [--table <name> ...] --role <runtime-role> [--tenant-column <col>] [--out <file>] [--json]
 
 init previews changes (dry run) unless --apply is present. It detects your stack and, when it cannot,
 asks you to choose one interactively; pass --framework and --orm to skip prompts in CI. Express 5.2
 and Next.js 16 both support Prisma 7.8, TypeORM 1, Sequelize 6.37, and Drizzle 0.45 scaffolds; AdonisJS
 7.3 uses Lucid 22.4. Init scaffolds row-level by default; pass --strategy for
-schema-per-tenant or database-per-tenant (Express and Next + any SQL ORM or Prisma). Node.js >= 24 is required. With
+schema-per-tenant or database-per-tenant (Express and Next with any SQL ORM or Prisma, and AdonisJS with
+Lucid). Node.js >= 24 is required. With
 --apply, init offers to also write a stack-specific TENANCY.md and register a TenancyJS block in an
 existing AGENTS.md/CLAUDE.md; pass --ai-context to opt in non-interactively (it never creates an
 agent-memory file that is not already there).

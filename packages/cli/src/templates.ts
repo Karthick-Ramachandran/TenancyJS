@@ -134,10 +134,19 @@ export const EXPRESS_TYPEORM_TEMPLATES = expressOrmTemplates("typeorm");
 export const EXPRESS_SEQUELIZE_TEMPLATES = expressOrmTemplates("sequelize");
 export const EXPRESS_DRIZZLE_TEMPLATES = expressOrmTemplates("drizzle");
 
-export const ADONIS_LUCID_TEMPLATES = Object.freeze([
-  Object.freeze({
-    path: "config/tenancy.ts",
-    content: `import db from "@adonisjs/lucid/services/db";
+const ADONIS_MIDDLEWARE_TEMPLATE: Template = Object.freeze({
+  path: "app/middleware/tenant_middleware.ts",
+  content: `// Register the TenancyJS provider in adonisrc.ts, then apply this named
+// middleware to tenant route groups only. Central routes omit it.
+export { TenancyMiddleware as default } from "tenancyjs-integration-adonis";
+`,
+});
+
+// Lucid supports all three strategies at runtime, so init scaffolds all three.
+// The header (imports, Tenant, manager, resolver) is shared; only the
+// `createLucidTenancy` options differ per strategy — using Lucid's real API.
+function adonisLucidConfig(strategy: InitStrategy): string {
+  const header = `import db from "@adonisjs/lucid/services/db";
 import { TenancyManager } from "tenancyjs-core";
 import { createLucidTenancy } from "tenancyjs-adapter-lucid";
 import {
@@ -167,32 +176,65 @@ const resolver = new TenantResolutionChain<Tenant>({
   },
 });
 
-// The Lucid service is a factory: AdonisJS loads config before providers boot,
-// so the provider resolves it once the Lucid provider is ready.
-//
-// Before serving traffic, add a migration that creates a non-privileged runtime
-// role and enables + FORCES PostgreSQL row-level security on each tenant table,
-// then connect the application as that role.
-export default defineAdonisTenancyConfig<Tenant>({
+`;
+  const factoryNote =
+    "// The Lucid service is a factory: AdonisJS loads config before providers boot,\n" +
+    "// so the provider resolves it once the Lucid provider is ready.\n";
+
+  let intro: string;
+  let options: string;
+  if (strategy === "schemaPerTenant") {
+    intro = factoryNote;
+    options = `      strategy: "schemaPerTenant",
+      // Each tenant gets its own PostgreSQL schema (isolated via search_path).
+      // Provision the schema before the tenant is first used.
+      schema: (tenant) => \`tenant_\${tenant.id}\`,
+      // TODO: register each tenant-scoped Lucid model.
+      tenantModels: [],`;
+  } else if (strategy === "databasePerTenant") {
+    intro = factoryNote;
+    options = `      strategy: "databasePerTenant",
+      // Lease the tenant's own connection per scope; \`key\` must be unique per tenant.
+      connection: (tenant) => ({
+        key: tenant.id,
+        create: () => {
+          // TODO: build a Lucid { transaction, destroy } connection for the
+          // tenant's own database.
+          throw new Error(\`configure the connection for tenant \${tenant.id}\`);
+        },
+      }),
+      // TODO: register each tenant-scoped Lucid model.
+      tenantModels: [],`;
+  } else {
+    intro =
+      factoryNote +
+      "//\n" +
+      "// Before serving traffic, add a migration that creates a non-privileged runtime\n" +
+      "// role and enables + FORCES PostgreSQL row-level security on each tenant table,\n" +
+      "// then connect the application as that role.\n";
+    options = `      // TODO: register each tenant-scoped model with its forced-RLS policy name.
+      tenantModels: [],`;
+  }
+
+  return `${header}${intro}export default defineAdonisTenancyConfig<Tenant>({
   manager,
   resolver,
   tenancy: () =>
     createLucidTenancy<Tenant>({
       manager,
       database: db,
-      // TODO: register each tenant-scoped model with its forced-RLS policy name.
-      tenantModels: [],
+${options}
     }),
 });
-`,
-  }),
+`;
+}
+
+export const ADONIS_LUCID_TEMPLATES: TemplateSet = Object.freeze([
   Object.freeze({
-    path: "app/middleware/tenant_middleware.ts",
-    content: `// Register the TenancyJS provider in adonisrc.ts, then apply this named
-// middleware to tenant route groups only. Central routes omit it.
-export { TenancyMiddleware as default } from "tenancyjs-integration-adonis";
-`,
+    path: "config/tenancy.ts",
+    content: adonisLucidConfig("rowLevel"),
   }),
+  ADONIS_MIDDLEWARE_TEMPLATE,
 ]);
 
 export const NEXT_PRISMA_TEMPLATES = Object.freeze([
@@ -423,7 +465,17 @@ export function resolveStrategyTemplates(
   strategy: InitStrategy,
 ): TemplateSet | undefined {
   if (strategy === "rowLevel") return undefined;
-  // Adonis + Lucid schema/database scaffolds are not built yet - fail closed.
+  // Lucid supports schema- and database-per-tenant at runtime, so scaffold them.
+  if (framework === "adonis") {
+    if (orm !== "lucid") return undefined;
+    return Object.freeze([
+      Object.freeze({
+        path: "config/tenancy.ts",
+        content: adonisLucidConfig(strategy),
+      }),
+      ADONIS_MIDDLEWARE_TEMPLATE,
+    ]);
+  }
   if (framework !== "express" && framework !== "next") return undefined;
 
   const config: Template = {

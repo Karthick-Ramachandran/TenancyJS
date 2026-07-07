@@ -73,8 +73,12 @@ describe("init interactive strategy prompt", () => {
       "schemaPerTenant",
       "databasePerTenant",
     ]);
-    // Adonis + Lucid only scaffolds row-level today.
-    expect(scaffoldableStrategies("adonis", "lucid")).toEqual(["rowLevel"]);
+    // Lucid supports all three strategies at runtime, so init scaffolds all three.
+    expect(scaffoldableStrategies("adonis", "lucid")).toEqual([
+      "rowLevel",
+      "schemaPerTenant",
+      "databasePerTenant",
+    ]);
   });
 
   it("prompts for the ORM then a strategy when the stack has choices", async () => {
@@ -85,14 +89,23 @@ describe("init interactive strategy prompt", () => {
     expect(io.questions).toContain("Which isolation strategy?");
   });
 
-  it("does not prompt for a strategy when only row-level is scaffoldable", async () => {
+  it("prompts for a strategy on Adonis now that Lucid supports all three", async () => {
     const dir = await projectDir({
       "@adonisjs/core": "7.3.0",
       "@adonisjs/lucid": "22.4.0",
     });
-    const io = interactiveIo(dir, []);
+    // Adonis has a single ORM (Lucid), so only the strategy is asked.
+    const io = interactiveIo(dir, ["schemaPerTenant"]);
     await runCli(["init"], io.io);
-    expect(io.questions).not.toContain("Which isolation strategy?");
+    expect(io.questions).not.toContain("Which ORM are you using?");
+    expect(io.questions).toContain("Which isolation strategy?");
+  });
+
+  it("does not prompt for a strategy when non-interactive", async () => {
+    const dir = await projectDir({ express: "5.2.0", sequelize: "6.37.0" });
+    const output = captureIo(dir); // no `select` → cannot prompt
+    await runCli(["init"], output.io);
+    expect(output.stdout.join("")).toContain("preview");
   });
 });
 
@@ -165,16 +178,42 @@ describe("init --strategy scaffolds", () => {
     );
   });
 
-  it("fails closed for a combo it does not scaffold yet", async () => {
+  it("scaffolds all three strategies for Adonis + Lucid using the real API", async () => {
+    const root = await temporaryDirectory();
+    const schema = await createInitPlan({
+      root,
+      framework: "adonis",
+      orm: "lucid",
+      strategy: "schemaPerTenant",
+    });
+    expect(schema.strategy).toBe("schemaPerTenant");
+    const schemaConfig = contentOf(schema, "config/tenancy.ts");
+    expect(schemaConfig).toContain('strategy: "schemaPerTenant"');
+    expect(schemaConfig).toContain("schema: (tenant) =>");
+    expect(schemaConfig).toContain("createLucidTenancy");
+
+    const database = await createInitPlan({
+      root,
+      framework: "adonis",
+      orm: "lucid",
+      strategy: "databasePerTenant",
+    });
+    const databaseConfig = contentOf(database, "config/tenancy.ts");
+    expect(databaseConfig).toContain('strategy: "databasePerTenant"');
+    expect(databaseConfig).toContain("connection: (tenant) => ({");
+    expect(databaseConfig).toContain("key: tenant.id");
+  });
+
+  it("fails closed for a combo it does not scaffold", async () => {
     const root = await temporaryDirectory();
     await expect(
       createInitPlan({
         root,
-        framework: "adonis",
+        framework: "express",
         orm: "lucid",
-        strategy: "databasePerTenant",
+        strategy: "schemaPerTenant",
       }),
-    ).rejects.toThrow(/does not scaffold .* for databasePerTenant yet/);
+    ).rejects.toThrow(/does not scaffold .* for schemaPerTenant/);
   });
 
   it("rejects an unknown --strategy value", async () => {

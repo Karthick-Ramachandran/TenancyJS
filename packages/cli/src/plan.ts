@@ -62,7 +62,7 @@ export async function createInitPlan(
     templates = resolveStrategyTemplates(stack.framework, stack.orm, strategy);
     if (templates === undefined)
       throw new CliUsageError(
-        `tenancy init does not scaffold ${stack.framework} + ${stack.orm} for ${strategy} yet. ` +
+        `tenancyjs-cli init does not scaffold ${stack.framework} + ${stack.orm} for ${strategy} yet. ` +
           `Use --strategy row-level, or follow the setup recipe at ` +
           `https://tenancyjs.pages.dev/docs/stacks for this stack.`,
       );

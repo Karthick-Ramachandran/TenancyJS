@@ -186,6 +186,6 @@ describe("policy command via runCli", () => {
   it("lists policy in help", async () => {
     const output = captureIo(await temporaryDirectory());
     await runCli(["help"], output.io);
-    expect(output.stdout.join("")).toContain("tenancy policy --table");
+    expect(output.stdout.join("")).toContain("tenancyjs-cli policy --table");
   });
 });

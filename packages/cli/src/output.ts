@@ -147,8 +147,8 @@ export function formatPlan(
   const lines = [
     "",
     applied
-      ? `  ${green("✔")} Tenancy init ${bold("applied")} ${dim("— files written")}`
-      : `  ${bold("Tenancy init")} ${dim("preview — no files written")}`,
+      ? `  ${green("✔")} tenancyjs-cli init ${bold("applied")} ${dim("— files written")}`
+      : `  ${bold("tenancyjs-cli init")} ${dim("preview — no files written")}`,
     "",
   ];
   for (const action of plan.actions) {
@@ -164,7 +164,7 @@ export function formatPlan(
   if (!applied && options?.promptFollows !== true)
     lines.push(
       "",
-      `  ${dim("Run")} ${cyan("tenancy init --apply")} ${dim("to create the files above.")}`,
+      `  ${dim("Run")} ${cyan("tenancyjs-cli init --apply")} ${dim("to create the files above.")}`,
     );
   lines.push("");
   return `${lines.join("\n")}\n`;

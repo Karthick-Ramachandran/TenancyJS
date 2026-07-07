@@ -25,7 +25,7 @@ describe("tenancy binary", () => {
   it("prints help successfully", () => {
     const result = runBinary(["--help"]);
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain("tenancy init");
+    expect(result.stdout).toContain("tenancyjs-cli init");
   });
 
   it("previews init without writing and emits parseable JSON", async () => {
