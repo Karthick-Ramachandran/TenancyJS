@@ -519,17 +519,73 @@ export default function PromptGenerator() {
   });
   const [copied, setCopied] = useState(false);
 
-  // Enforce cascades
-  useEffect(() => {
-    if (db === "mongodb" && orm !== "mongoose") setOrm("mongoose");
-    if (db !== "mongodb" && orm === "mongoose") setOrm("prisma");
-    if (db === "mongodb" && strat === "schemaPerTenant") setStrat("rowLevel");
-    if (db === "mysql" && strat === "schemaPerTenant") setStrat("databasePerTenant");
-    if (fw === "adonisjs" && orm !== "lucid") setOrm("lucid");
-    if (fw !== "adonisjs" && orm === "lucid") setOrm("prisma");
-    if (orm === "lucid" && fw !== "adonisjs") setFw("adonisjs");
-    if (orm === "lucid" && db === "mongodb") setDb("postgres");
-  }, [fw, orm, db, strat]);
+  // Enforce cascades via explicit change handlers to avoid circular useEffect state locks
+  const handleFwChange = (newFw: string) => {
+    setFw(newFw);
+    if (newFw === "adonisjs") {
+      setOrm("lucid");
+      if (db === "mongodb") {
+        setDb("postgres");
+      }
+    } else if (orm === "lucid") {
+      setOrm("prisma");
+    }
+  };
+
+  const handleOrmChange = (newOrm: string) => {
+    setOrm(newOrm);
+    if (newOrm === "lucid") {
+      setFw("adonisjs");
+      if (db === "mongodb") {
+        setDb("postgres");
+      }
+    } else if (newOrm === "mongoose") {
+      setDb("mongodb");
+      if (strat === "schemaPerTenant") {
+        setStrat("rowLevel");
+      }
+      if (fw === "adonisjs") {
+        setFw("express");
+      }
+    } else {
+      if (fw === "adonisjs") {
+        setFw("express");
+      }
+      if (db === "mongodb") {
+        setDb("postgres");
+      }
+    }
+  };
+
+  const handleDbChange = (newDb: string) => {
+    setDb(newDb);
+    if (newDb === "mongodb") {
+      setOrm("mongoose");
+      if (strat === "schemaPerTenant") {
+        setStrat("rowLevel");
+      }
+      if (fw === "adonisjs") {
+        setFw("express");
+      }
+    } else {
+      if (orm === "mongoose") {
+        setOrm("prisma");
+      }
+      if (newDb === "mysql" && strat === "schemaPerTenant") {
+        setStrat("databasePerTenant");
+      }
+    }
+  };
+
+  const handleStratChange = (newStrat: string) => {
+    setStrat(newStrat);
+    if (newStrat === "schemaPerTenant") {
+      setDb("postgres");
+      if (orm === "mongoose") {
+        setOrm("prisma");
+      }
+    }
+  };
 
   const prompt = useMemo(() => buildPrompt(fw, orm, db, strat, guides), [fw, orm, db, strat, guides]);
 
@@ -558,10 +614,10 @@ export default function PromptGenerator() {
 
       {/* Selectors */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Sel label="Framework" value={fw} set={setFw} opts={FRAMEWORKS} off={(id) => isFwOff(id, orm)} />
-        <Sel label="ORM / query builder" value={orm} set={setOrm} opts={ORMS} off={(id) => isOrmOff(id, db, fw)} />
-        <Sel label="Database" value={db} set={setDb} opts={DATABASES} off={(id) => isDbOff(id, orm)} />
-        <Sel label="Isolation strategy" value={strat} set={setStrat} opts={STRATEGIES} off={(id) => isStratOff(id, db, orm)} />
+        <Sel label="Framework" value={fw} set={handleFwChange} opts={FRAMEWORKS} off={(id) => isFwOff(id, orm)} />
+        <Sel label="ORM / query builder" value={orm} set={handleOrmChange} opts={ORMS} off={(id) => isOrmOff(id, db, fw)} />
+        <Sel label="Database" value={db} set={handleDbChange} opts={DATABASES} off={(id) => isDbOff(id, orm)} />
+        <Sel label="Isolation strategy" value={strat} set={handleStratChange} opts={STRATEGIES} off={(id) => isStratOff(id, db, orm)} />
       </div>
 
       {/* Warnings */}
