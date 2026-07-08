@@ -135,6 +135,10 @@ function buildPrompt(fw: string, orm: string, db: string, strat: string, guides:
   const dbName = DATABASES.find((d) => d.id === db)?.name ?? db;
   const stratName = STRATEGIES.find((s) => s.id === strat)?.name ?? strat;
 
+  const isScaffolded = (fw === "express" || fw === "nextjs")
+    ? ["prisma", "typeorm", "sequelize", "drizzle"].includes(orm)
+    : (fw === "adonisjs" && orm === "lucid");
+
   const pkgs = ["tenancyjs-core", ORM_PKG[orm], FW_PKG[fw], "tenancyjs-identifiers"].filter(Boolean).join(" ");
   const urls = docUrls(fw, orm, strat);
 
@@ -571,10 +575,19 @@ ${urls.map((u) => `- ${u}`).join("\n")}
 - Detect any EXISTING tenant concept (tenantId/orgId column, workspaces table) and REUSE it.
 - Report the versions of all packages involved.
 
-## Step 1 — Install
+## Step 1 — Install${isScaffolded ? " & Scaffold" : ""}
+Reference installation guide: https://tenancyjs.pages.dev/docs/getting-started/installation
+
+1. Install the necessary packages:
 \`\`\`bash
 npm install ${pkgs}
 \`\`\`
+${isScaffolded ? `
+2. Scaffold the config and middleware using the CLI \`init\` command (highly recommended):
+\`\`\`bash
+npx tenancyjs-cli init --framework ${fw === "nextjs" ? "nextjs" : fw === "express" ? "express" : "adonis"} --orm ${orm} --strategy ${strat === "rowLevel" ? "row-level" : strat === "schemaPerTenant" ? "schema-per-tenant" : "database-per-tenant"}
+\`\`\`
+This scaffolds \`tenancy.config.ts\`, tenant registry integration hooks, and request middleware. Review the generated files under \`src/tenancy/\` or \`lib/tenancy/\` before customizing.` : ""}
 
 ## Step 2 — Create the TenancyManager (one shared instance)
 \`\`\`ts
@@ -588,6 +601,22 @@ Bootstrappers revert in reverse order on every path (including errors) via try/f
 
 ## Step 3 — Wire the adapter
 ${adapterBlock}
+${strat === "rowLevel" && db === "postgres" ? `
+### Generating & Applying RLS Policies via the CLI (recommended)
+Reference policy generator: https://tenancyjs.pages.dev/docs/cli#generate-rls-policy-sql
+
+Instead of writing RLS policies by hand in SQL DDL:
+1. Define a privileged \`admin\` Pool in your \`tenancy.config.ts\`:
+\`\`\`ts
+import { Pool } from "pg";
+// In defineTenancyRuntime:
+admin: new Pool({ connectionString: process.env.ADMIN_DATABASE_URL }),
+\`\`\`
+2. Generate and apply RLS policies automatically to your database:
+\`\`\`bash
+npx tenancyjs-cli policy --table <t1> --table <t2> --role app_runtime --apply
+\`\`\`
+` : ""}
 
 ## Step 4 — Wire the framework integration
 ${integrationBlock}
