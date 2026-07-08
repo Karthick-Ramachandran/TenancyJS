@@ -351,25 +351,127 @@ Failure semantics: 400 → no-identifier/invalid, 404 → not-found/suspended/fo
   }
 
   if (guides.testing) {
-    sections.push(`## Conformance & adversarial testing
-Write a two-tenant adversarial test on a real test database (never app data):
+    let testingSample = "";
+    if (strat === "rowLevel") {
+      testingSample = `// Implement the adapter conformance testing contract:
+import { createRowLevelAdapterContract } from "tenancyjs-testing";
+
+const contractCases = createRowLevelAdapterContract(async () => {
+  // Propose a harness satisfying RowLevelAdapterContractHarness:
+  return {
+    async reset() {
+      // Wipes/truncates the orders and posts test tables
+      await db.order.deleteMany();
+      await db.post.deleteMany();
+    },
+    async seed(records) {
+      // Bulk inserts RowLevelAdapterContractRecord[] to test tables
+      for (const r of records) {
+        await db.post.create({
+          data: { id: r.id, value: r.value, tenantId: r.tenantId }
+        });
+      }
+    },
+    async create(input) {
+      // Inserts a single record and returns RowLevelAdapterContractRecord
+      const res = await db.post.create({
+        data: { id: input.id, value: input.value }
+      });
+      return { id: res.id, value: res.value, tenantId: res.tenantId };
+    },
+    async findMany() {
+      // Queries all records from test tables
+      const res = await db.post.findMany();
+      return res.map(r => ({ id: r.id, value: r.value, tenantId: r.tenantId }));
+    },
+    async count() {
+      // Returns count of records in test tables
+      return db.post.count();
+    },
+    async updateMany(value) {
+      // Updates all records to have the specified value
+      const res = await db.post.updateMany({ data: { value } });
+      return res.count;
+    },
+    async deleteMany() {
+      // Deletes all records from test tables
+      const res = await db.post.deleteMany();
+      return res.count;
+    },
+    async runWithTenant(tenantId, callback) {
+      return manager.runWithTenant({ id: tenantId }, callback);
+    },
+    async runInCentralContext(callback) {
+      return manager.runInCentralContext(callback);
+    },
+    async transaction(callback) {
+      // Runs operations inside a database transaction
+      return db.$transaction(async (tx) => {
+        // execute operations against tx query handle inside transaction
+        const operations = {
+          create: async (input) => {
+            const res = await tx.post.create({ data: { id: input.id, value: input.value } });
+            return { id: res.id, value: res.value, tenantId: res.tenantId };
+          },
+          findMany: async () => {
+            const res = await tx.post.findMany();
+            return res.map(r => ({ id: r.id, value: r.value, tenantId: r.tenantId }));
+          },
+          count: async () => tx.post.count(),
+          updateMany: async (value) => {
+            const res = await tx.post.updateMany({ data: { value } });
+            return res.count;
+          },
+          deleteMany: async () => {
+            const res = await tx.post.deleteMany();
+            return res.count;
+          }
+        };
+        return callback(operations);
+      });
+    }
+  };
+});
+
+// Run them using Vitest / Jest:
+describe("TenancyJS Adapter Conformance Contract", () => {
+  for (const c of contractCases) {
+    it(c.name, () => c.run());
+  }
+});`;
+    } else {
+      testingSample = `// Implement the integration conformance testing contract:
+import { createIntegrationTenancyContract } from "tenancyjs-testing";
+
+const integrationCases = createIntegrationTenancyContract(
+  () => ({
+    manager,
+    async execute(tenant, callback) {
+      // Execute the request mock or callback using the resolved tenant context middleware
+      return manager.runWithTenant(tenant, callback);
+    }
+  }),
+  [
+    { id: "tenant-a", name: "Tenant A", status: "active", strategy: "${strat}" },
+    { id: "tenant-b", name: "Tenant B", status: "active", strategy: "${strat}" }
+  ]
+);
+
+describe("TenancyJS Integration Conformance Contract", () => {
+  for (const c of integrationCases) {
+    it(c.name, () => c.run());
+  }
+});`;
+    }
+
+    sections.push(`## Conformance & adversarial testing (Harness Guide)
+Reference testing-isolation guide: https://tenancyjs.pages.dev/docs/guides/testing-isolation
+
+Write a two-tenant adversarial test on a real test database (never app data) that plugs into the official tenancyjs-testing contract suite:
 \`\`\`ts
-// Seed colliding rows:
-await manager.runWithTenant({ id: "a" }, () =>
-  db.order.create({ data: { id: "same-id", total: 10 } }),
-);
-await manager.runWithTenant({ id: "b" }, () =>
-  db.order.create({ data: { id: "same-id", total: 99 } }),
-);
-
-// Verify isolation — tenant A sees only its own row:
-const seen = await manager.runWithTenant({ id: "a" }, () => db.order.findMany());
-expect(seen).toEqual([{ id: "same-id", total: 10 }]);
-
-// Verify fail-closed — unscoped access throws:
-await expect(db.order.findMany()).rejects.toThrow(TenantContextError);
+${testingSample}
 \`\`\`
-Use \`tenancyjs-testing\` conformance contracts for comprehensive coverage.
+Verify that a query executed outside a tenant scope throws a TenantContextError (fail-closed).
 Run \`tenancy test:leak --test-file <path>\` from the CLI to automate this.`);
   }
 
