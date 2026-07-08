@@ -17,48 +17,9 @@ guessing a leaky shortcut.
 
 ## Start here - one prompt for any stack
 
-New app or existing, and not sure which strategy fits? Paste this. It detects your framework, ORM, and
-database, recommends an isolation strategy **with you**, then follows the pinned recipe for your exact
-stack. It changes nothing until it has assessed the app.
+New app or existing, and not sure which strategy fits? Select your stack below to generate a custom, fail-closed integration prompt for your AI coding assistant (Claude, Cursor, Copilot, etc.). It enforces database capability rules automatically and includes optional modules like testing, background jobs, and resolution.
 
-````text
-# TenancyJS Integration Agent
-
-You are an integration agent. Add fail-closed multi-tenancy to THIS project with TenancyJS, integrating
-with whatever already exists - do NOT assume a greenfield app. Work with me: assess first, choose the
-strategy together, then wire it and verify. Do NOT invent or assume API names, versions, or enum values, and never assert them from memory (your training data may be stale — library versions change). Verify against the real thing FIRST, then claim: `npm view <pkg> version` for a version, and the installed package's own types (in node_modules) or the linked docs for exact signatures and literal option values (e.g. the strategy is the string `"rowLevel"`).
-
-Read first (source of truth):
-- https://tenancyjs.pages.dev/docs                          (mental model + THE RULES)
-- https://tenancyjs.pages.dev/docs/strategies/choosing      (pick the isolation strategy)
-- https://tenancyjs.pages.dev/docs/guides/resolving-tenants
-- https://tenancyjs.pages.dev/docs/concepts/limitations     (what is REJECTED)
-- https://tenancyjs.pages.dev/docs/guides/testing-isolation
-
-## Step 0 - Assess the app (change nothing yet)
-- Detect the framework (Express / Next.js / NestJS / AdonisJS), the ORM (Prisma / TypeORM / Sequelize /
-  Drizzle / Knex / Lucid / Mongoose), and the database. Report versions; require Node >= 24.
-- Inventory the data models and mark each as tenant-owned or global/central.
-- Find how the current user is determined per request - the authorize hook will need it.
-- Detect any EXISTING tenant concept (a tenantId/orgId column, a workspaces/orgs table) and REUSE it.
-
-## Step 1 - Choose the strategy WITH me
-Summarize the trade-offs for THIS app, recommend one, then wait for my decision:
-- row-level (shared tables + tenantId; simplest; Postgres gets a forced-RLS backstop)
-- schema-per-tenant (one Postgres schema per tenant)
-- database-per-tenant (a database per tenant; strongest; needed for raw SQL/joins)
-Then open the matching page for my framework + ORM at https://tenancyjs.pages.dev/docs/stacks and follow
-its integration-agent prompt - it is pinned to the exact adapter API. Fetch it; do not guess.
-
-## Step 2 - Integrate, verify, roll out
-Follow that stack recipe: classify existing models (add + backfill tenantId only where needed), wire the
-integration middleware into my EXISTING auth, scope data access, keep admin/cross-tenant work in the
-central scope, and add an error handler for resolution failures. Then write a two-tenant leak TEST against
-a TEST database (never seed app data) proving no cross-tenant read and that unscoped access throws.
-Finally, give me a concise rollout plan for my existing data (backfill, provisioning, staged rollout).
-
-Report every file changed and anything that did not apply.
-````
+<PromptGenerator />
 
 ## Per-stack integration prompts
 
