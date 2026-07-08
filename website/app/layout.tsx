@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import { SITE_URL, SITE_DESCRIPTION } from "@/lib/site";
+import Script from "next/script";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-geist" });
 const geistMono = Geist_Mono({
@@ -59,6 +60,19 @@ export default function Layout({ children }: { children: ReactNode }) {
       suppressHydrationWarning
     >
       <body className="flex min-h-screen flex-col">
+        {/* Google Analytics Tag */}
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-HSLY5KB8LW"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-HSLY5KB8LW');
+          `}
+        </Script>
         <RootProvider
           theme={{ defaultTheme: "light", enableSystem: false }}
           search={{ options: { type: "static" } }}
