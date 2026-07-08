@@ -3,17 +3,32 @@ import type { ReactNode } from "react";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-// Read the current tenancyjs-core version at build time so the badge never goes
-// stale on a version bump. (This page is a Server Component; the read runs during
-// the static export, with cwd = the website dir.)
-const version = (
-  JSON.parse(
-    readFileSync(
-      join(process.cwd(), "..", "packages", "core", "package.json"),
-      "utf8",
-    ),
-  ) as { version: string }
-).version;
+// Read the current tenancyjs-core version at build time (with dynamic registry fetch fallback)
+async function getVersion() {
+  try {
+    const res = await fetch("https://registry.npmjs.org/tenancyjs-core/latest", {
+      next: { revalidate: 3600 },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return data.version as string;
+    }
+  } catch (e) {
+    // network fallback
+  }
+  try {
+    return (
+      JSON.parse(
+        readFileSync(
+          join(process.cwd(), "..", "packages", "core", "package.json"),
+          "utf8",
+        ),
+      ) as { version: string }
+    ).version;
+  } catch {
+    return "0.1.2";
+  }
+}
 
 /* ── robust line-based code highlighter (preserves whitespace exactly) ──── */
 const CODE = `// Tenant identity rides AsyncLocalStorage.
@@ -169,7 +184,8 @@ const primaryBtn =
 const ghostBtn =
   "inline-flex items-center justify-center rounded-xl border border-fd-border bg-fd-card/60 px-5 py-3 font-semibold transition hover:border-fd-primary/60";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const version = await getVersion();
   return (
     <main className="flex flex-1 flex-col">
       {/* ── Hero ─────────────────────────────────────────────────────── */}
@@ -231,7 +247,7 @@ export default function HomePage() {
 
           <div className="mt-6 inline-flex items-center gap-3 rounded-xl border border-fd-border bg-fd-card/60 px-4 py-2.5 font-mono text-sm backdrop-blur">
             <span className="select-none text-fd-muted-foreground">$</span>
-            npm install tenancyjs-core
+            npx tenancyjs-cli init
           </div>
         </div>
 
