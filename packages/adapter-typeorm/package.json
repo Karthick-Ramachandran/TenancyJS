@@ -36,9 +36,9 @@
     "typeorm": ">=1.0.0 <2"
   },
   "devDependencies": {
-    "mysql2": "3.22.5",
-    "pg": "8.16.3",
-    "typeorm": "1.0.0"
+    "mysql2": "3.24.4",
+    "pg": "8.23.0",
+    "typeorm": "1.1.1"
   },
   "scripts": {
     "build": "tsc -b",

@@ -36,7 +36,7 @@
     "mongoose": ">=9.7.0 <10"
   },
   "devDependencies": {
-    "mongoose": "9.7.3"
+    "mongoose": "9.10.1"
   },
   "scripts": {
     "build": "tsc -b",
