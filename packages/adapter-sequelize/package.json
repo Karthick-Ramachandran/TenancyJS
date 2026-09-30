@@ -36,7 +36,7 @@
     "sequelize": ">=6.37.0 <7"
   },
   "devDependencies": {
-    "mysql2": "3.22.5",
+    "mysql2": "3.24.4",
     "sequelize": "6.37.8"
   },
   "scripts": {
