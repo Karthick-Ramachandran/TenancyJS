@@ -1,7 +1,6 @@
 {
   "version": "0.1.0",
   "templateVersion": "0.1.0",
-  "preset": null,
   "memoryProfile": "standard",
   "mode": "standard",
   "aiTools": [
