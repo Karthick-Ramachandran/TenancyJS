@@ -24,7 +24,7 @@ Applies To:
 Applies To:
 - `packages/integration-*/**`
 
-- A Web `ReadableStream` can retain creation-time ALS context; end Next.js tenant scope when the handler promise settles.
+- A Web `ReadableStream` can retain creation-time ALS context; end Next.js tenant scope when the handler promise settles; do no tenant database work in streamed callbacks.
 - Adonis config loads before providers boot; resolve Lucid through a lazy factory and construct it when the provider is ready.
 - Adonis Ace's legacy decorators conflict with standard TypeScript decorators; build native Ace commands with the operational CLI.
 - Validate Adonis tenancy only in `web`; tests should migrate first, then call `validate()` before serving.
